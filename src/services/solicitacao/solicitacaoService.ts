@@ -1,6 +1,5 @@
 import type { Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao.js'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
+import { buildApiUrl } from '../api/apiBaseUrl'
 
 // Criar nova solicitação
 export const createSolicitacao = async (
@@ -38,7 +37,7 @@ export const createSolicitacao = async (
       formData.append('files', file)
     })
 
-    const url = `${API_BASE_URL}/solicitacoes`
+    const url = buildApiUrl('/solicitacoes')
     console.log('Enviando requisição para:', url)
 
     const response = await fetch(url, {
@@ -66,7 +65,7 @@ export const createSolicitacao = async (
     // Mensagens de erro mais específicas
     if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
       throw new Error(
-        'Não foi possível conectar ao servidor. Verifique se o servidor backend está rodando na porta 3001.'
+        'Nao foi possivel conectar ao servidor. Verifique a URL da API configurada no deploy.'
       )
     }
     
@@ -77,7 +76,7 @@ export const createSolicitacao = async (
 // Buscar todas as solicitações
 export const getAllSolicitacoes = async (): Promise<SolicitacaoWithFiles[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes`)
+    const response = await fetch(buildApiUrl('/solicitacoes'))
 
     if (!response.ok) {
       throw new Error('Erro ao buscar solicitações')
@@ -101,7 +100,7 @@ export const getAllSolicitacoes = async (): Promise<SolicitacaoWithFiles[]> => {
 // Buscar solicitação por ID
 export const getSolicitacaoById = async (id: string): Promise<SolicitacaoWithFiles | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`)
+    const response = await fetch(buildApiUrl(`/solicitacoes/${id}`))
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -130,7 +129,7 @@ export const updateSolicitacao = async (
   updates: Partial<Solicitacao>
 ): Promise<SolicitacaoWithFiles> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`, {
+    const response = await fetch(buildApiUrl(`/solicitacoes/${id}`), {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -161,7 +160,7 @@ export const updateSolicitacao = async (
 // Deletar solicitação
 export const deleteSolicitacao = async (id: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`, {
+    const response = await fetch(buildApiUrl(`/solicitacoes/${id}`), {
       method: 'DELETE',
     })
 
@@ -196,7 +195,7 @@ export const analisarSolicitacaoComIA = async (
       })
     }
 
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}/analisar`, {
+    const response = await fetch(buildApiUrl(`/solicitacoes/${id}/analisar`), {
       method: 'POST',
       body: formData,
       // Não definir Content-Type - o browser define automaticamente com boundary para FormData

@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
@@ -27,7 +27,24 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
+const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
+
+const getPublicBaseUrl = (req: Request) => {
+  const configuredBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return normalizeBaseUrl(configuredBaseUrl);
+  }
+
+  const host = req.get("host") || `localhost:${PORT}`;
+  return `${req.protocol}://${host}`;
+};
+
+const buildUploadUrl = (req: Request, filename: string) => {
+  return `${getPublicBaseUrl(req)}/uploads/${filename}`;
+};
+
 // Middleware
+app.set("trust proxy", true);
 app.use(
   cors({
     origin: "*", // Em produção, especifique as origens permitidas
@@ -191,8 +208,7 @@ app.post("/api/solicitacoes", upload.array("files"), async (req, res) => {
     if (req.files && Array.isArray(req.files)) {
       arquivosUrls.push(
         ...req.files.map(
-          (file: Express.Multer.File) =>
-            `http://localhost:${PORT}/uploads/${file.filename}`,
+          (file: Express.Multer.File) => buildUploadUrl(req, file.filename),
         ),
       );
     }
@@ -261,8 +277,7 @@ app.post(
       if (req.files && Array.isArray(req.files) && req.files.length > 0) {
         novosPDFsUrls.push(
           ...req.files.map(
-            (file: Express.Multer.File) =>
-              `http://localhost:${PORT}/uploads/${file.filename}`,
+            (file: Express.Multer.File) => buildUploadUrl(req, file.filename),
           ),
         );
 

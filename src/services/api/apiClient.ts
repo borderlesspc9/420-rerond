@@ -1,5 +1,4 @@
-// Configuração da URL base da API
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+import { API_BASE_URL } from './apiBaseUrl'
 
 // Interface para opções de requisição
 interface RequestOptions {

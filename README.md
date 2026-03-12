@@ -4,18 +4,27 @@ Aplicação React + TypeScript + Vite com página de login integrada a servidor 
 
 ## Configuração do Ambiente
 
+### Deploy no Vercel
+
+O frontend pode ficar no Vercel, mas este projeto nao sobe o backend automaticamente la. O backend atual continua sendo um servidor Express + Prisma separado.
+
+Neste repositorio, o Vercel foi configurado para encaminhar requisicoes de `/api/*` e `/uploads/*` para o backend em producao no Render. Com isso, o frontend usa a mesma origem do site publicado e evita fallback para `localhost`.
+
+Se a URL do backend mudar, atualize [vercel.json](c:/Users/luanp/Documents/Borderless%20Projetos/420/420-rerond/vercel.json) e faca um novo deploy.
+
 ### Variáveis de Ambiente
 
-Para configurar a conexão com o servidor AWS, crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
+Para configurar a conexão com a API em desenvolvimento, crie um arquivo `.env` na raiz do projeto com o seguinte conteúdo:
 
 ```env
-# URL base da API AWS
-VITE_API_BASE_URL=https://seu-servidor-aws.com/api
+# URL base da API em desenvolvimento
+VITE_API_BASE_URL=http://localhost:3001/api
 ```
 
 **Importante:**
 - As variáveis de ambiente no Vite devem começar com `VITE_` para serem expostas ao código do cliente
-- Substitua `https://seu-servidor-aws.com/api` pela URL real do seu servidor AWS
+- Em producao, prefira deixar o frontend consumir `/api` pela mesma origem via rewrite do Vercel
+- Se optar por apontar diretamente para outro backend, configure `VITE_API_BASE_URL` no painel do Vercel
 - O arquivo `.env` não deve ser commitado no Git (já deve estar no `.gitignore`)
 
 ### Exemplo de Configuração
