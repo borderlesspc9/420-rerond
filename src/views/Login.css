@@ -93,3 +93,32 @@
   background-color: #cccccc;
   cursor: not-allowed;
 }
+
+/* Responsividade Mobile */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-box {
+    padding: 28px 20px;
+  }
+
+  .login-title {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+
+  .login-form {
+    gap: 16px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+  }
+
+  .form-group input,
+  .login-button {
+    font-size: 16px; /* Mantém 16px para evitar zoom no iOS */
+  }
+}

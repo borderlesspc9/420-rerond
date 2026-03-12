@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye } from 'lucide-react'
-import { getAllSolicitacoes, analisarSolicitacaoComIA } from '../services/solicitacao/solicitacaoService'
+import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle } from 'lucide-react'
+import { getAllSolicitacoes, analisarSolicitacaoComIA, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
 import type { SolicitacaoWithFiles } from '../models/Solicitacao.js'
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
@@ -20,6 +20,8 @@ export default function Solicitacoes() {
   } | null>(null)
   const [modalReanaliseAberto, setModalReanaliseAberto] = useState<SolicitacaoWithFiles | null>(null)
   const [analisandoId, setAnalisandoId] = useState<string | null>(null)
+  const [aprovandoId, setAprovandoId] = useState<string | null>(null)
+  const [rejeitandoId, setRejeitandoId] = useState<string | null>(null)
 
   useEffect(() => {
     loadSolicitacoes()
@@ -152,6 +154,48 @@ export default function Solicitacoes() {
     }
   }
 
+  const handleAprovar = async (solicitacao: SolicitacaoWithFiles) => {
+    if (!solicitacao.id) return
+
+    setAprovandoId(solicitacao.id)
+    try {
+      const resultado = await updateSolicitacao(solicitacao.id, {
+        status: 'aprovada',
+      })
+      
+      // Atualizar a solicitação na lista
+      setSolicitacoes((prev) =>
+        prev.map((s) => (s.id === resultado.id ? resultado : s))
+      )
+    } catch (error: any) {
+      console.error('Erro ao aprovar solicitação:', error)
+      alert('Erro ao aprovar solicitação: ' + (error.message || 'Tente novamente'))
+    } finally {
+      setAprovandoId(null)
+    }
+  }
+
+  const handleRejeitar = async (solicitacao: SolicitacaoWithFiles) => {
+    if (!solicitacao.id) return
+
+    setRejeitandoId(solicitacao.id)
+    try {
+      const resultado = await updateSolicitacao(solicitacao.id, {
+        status: 'rejeitada',
+      })
+      
+      // Atualizar a solicitação na lista
+      setSolicitacoes((prev) =>
+        prev.map((s) => (s.id === resultado.id ? resultado : s))
+      )
+    } catch (error: any) {
+      console.error('Erro ao rejeitar solicitação:', error)
+      alert('Erro ao rejeitar solicitação: ' + (error.message || 'Tente novamente'))
+    } finally {
+      setRejeitandoId(null)
+    }
+  }
+
   if (loading) {
     return (
       <div className="solicitacoes-container">
@@ -270,6 +314,28 @@ export default function Solicitacoes() {
                       ? 'Reanalisar' 
                       : 'Primeira Análise'}
                 </button>
+                {solicitacao.analisadoPorIA && solicitacao.status !== 'aprovada' && solicitacao.status !== 'rejeitada' && (
+                  <>
+                    <button
+                      className="btn-aprovar"
+                      onClick={() => handleAprovar(solicitacao)}
+                      disabled={aprovandoId === solicitacao.id || rejeitandoId === solicitacao.id}
+                      title="Aprovar solicitação após análise de IA"
+                    >
+                      <CheckCircle size={16} />
+                      {aprovandoId === solicitacao.id ? 'Aprovando...' : 'Aprovar'}
+                    </button>
+                    <button
+                      className="btn-rejeitar"
+                      onClick={() => handleRejeitar(solicitacao)}
+                      disabled={aprovandoId === solicitacao.id || rejeitandoId === solicitacao.id}
+                      title="Rejeitar solicitação após análise de IA"
+                    >
+                      <XCircle size={16} />
+                      {rejeitandoId === solicitacao.id ? 'Rejeitando...' : 'Rejeitar'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

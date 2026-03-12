@@ -313,3 +313,72 @@
 .modal-reanalise-file-remove:hover {
   background-color: #fee;
 }
+
+/* Responsividade Mobile */
+@media (max-width: 768px) {
+  .modal-reanalise-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-reanalise-container {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 95vh;
+  }
+
+  .modal-reanalise-header {
+    padding: 16px;
+  }
+
+  .modal-reanalise-header h2 {
+    font-size: 18px;
+  }
+
+  .modal-reanalise-body {
+    padding: 16px;
+  }
+
+  .modal-reanalise-description {
+    font-size: 14px;
+  }
+
+  .modal-reanalise-textarea {
+    min-height: 100px;
+  }
+
+  .modal-reanalise-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .modal-reanalise-btn-cancelar,
+  .modal-reanalise-btn-confirmar {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-reanalise-header {
+    padding: 12px;
+  }
+
+  .modal-reanalise-header h2 {
+    font-size: 16px;
+  }
+
+  .modal-reanalise-body {
+    padding: 12px;
+  }
+
+  .modal-reanalise-description {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .modal-reanalise-file-item {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}

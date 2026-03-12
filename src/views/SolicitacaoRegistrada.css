@@ -1,11 +1,14 @@
 .solicitacao-registrada-container {
-  padding: 24px;
+  padding: 32px 24px 24px 24px;
   max-width: 640px;
   margin: 0 auto;
   min-height: 60vh;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .solicitacao-registrada-card {
@@ -121,6 +124,7 @@
 @media (max-width: 640px) {
   .solicitacao-registrada-container {
     padding: 16px;
+    max-width: 100%;
   }
 
   .solicitacao-registrada-card {
@@ -129,5 +133,56 @@
 
   .solicitacao-registrada-title {
     font-size: 20px;
+  }
+
+  .solicitacao-registrada-subtitle {
+    font-size: 14px;
+  }
+
+  .solicitacao-registrada-info {
+    padding: 16px;
+  }
+
+  .solicitacao-registrada-info-item {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .solicitacao-registrada-info-item h2 {
+    font-size: 14px;
+  }
+
+  .solicitacao-registrada-info-item p {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .solicitacao-registrada-container {
+    padding: 12px;
+  }
+
+  .solicitacao-registrada-card {
+    padding: 24px 16px;
+    border-radius: 12px;
+  }
+
+  .solicitacao-registrada-title {
+    font-size: 18px;
+  }
+
+  .solicitacao-registrada-subtitle {
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .solicitacao-registrada-info {
+    padding: 14px;
+  }
+
+  .solicitacao-registrada-btn-primary,
+  .solicitacao-registrada-btn-secondary {
+    padding: 12px 20px;
+    font-size: 14px;
   }
 }

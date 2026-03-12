@@ -1,6 +1,6 @@
 /**
- * Provider de IA - Suporta Groq e OpenAI
- * Prioridade: Groq se GROQ_API_KEY configurado, senão OpenAI
+ * Provider de IA - Suporta OpenAI e Groq
+ * Prioridade: OpenAI se OPENAI_API_KEY configurado, senão Groq como fallback
  */
 
 export type AIProvider = 'groq' | 'openai'
@@ -13,18 +13,20 @@ export interface AIConfig {
 
 /**
  * Detecta qual provider usar baseado nas variáveis de ambiente
+ * Prioridade: OpenAI > Groq
  */
 export function detectAIProvider(): AIProvider {
-  if (process.env.GROQ_API_KEY) {
-    return 'groq'
-  }
-
   if (process.env.OPENAI_API_KEY) {
     return 'openai'
   }
 
+  if (process.env.GROQ_API_KEY) {
+    console.warn(`⚠️  OPENAI_API_KEY não encontrada. Usando Groq como fallback (sem suporte a visão em PDFs).`)
+    return 'groq'
+  }
+
   throw new Error(
-    'Nenhuma chave de API configurada. Configure GROQ_API_KEY ou OPENAI_API_KEY no arquivo .env'
+    'Nenhuma chave de API configurada. Configure OPENAI_API_KEY ou GROQ_API_KEY no arquivo .env'
   )
 }
 

@@ -128,7 +128,7 @@ export const getSolicitacaoById = async (id: string): Promise<SolicitacaoWithFil
 export const updateSolicitacao = async (
   id: string,
   updates: Partial<Solicitacao>
-): Promise<void> => {
+): Promise<SolicitacaoWithFiles> => {
   try {
     const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`, {
       method: 'PUT',
@@ -141,6 +141,16 @@ export const updateSolicitacao = async (
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Erro ao atualizar solicitação' }))
       throw new Error(error.error || 'Erro ao atualizar solicitação')
+    }
+
+    const data = await response.json()
+    
+    return {
+      ...data,
+      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+      updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
+      analisadoEm: data.analisadoEm ? new Date(data.analisadoEm) : undefined,
+      arquivos: data.arquivos || [],
     }
   } catch (error: any) {
     console.error('Erro ao atualizar solicitação:', error)
