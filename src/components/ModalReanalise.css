@@ -212,6 +212,23 @@
   line-height: 1.5;
 }
 
+.modal-reanalise-select {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  color: #1f2937;
+  background-color: #fff;
+}
+
+.modal-reanalise-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* Área de upload */
 .modal-reanalise-upload-area {
   border: 2px dashed #d1d5db;

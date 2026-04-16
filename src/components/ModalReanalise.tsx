@@ -1,16 +1,30 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { X, Sparkles, Upload, FileText } from 'lucide-react'
 import './ModalReanalise.css'
 
+const TIPOS_PROJETO_OPTIONS = [
+  { value: 'duplicacao', label: 'Duplicação' },
+  { value: 'recapeamento', label: 'Recapeamento' },
+  { value: 'reforma', label: 'Reforma' },
+  { value: 'construcao', label: 'Construção' },
+  { value: 'manutencao', label: 'Manutenção' },
+]
+
 interface ModalReanaliseProps {
   titulo: string
+  tipoObraAtual?: string
   primeiraAnalise: boolean
-  onConfirm: (promptCustomizado?: string, novosPDFs?: File[]) => Promise<void>
+  onConfirm: (
+    promptCustomizado?: string,
+    novosPDFs?: File[],
+    tiposProjetoPraComparar?: string[]
+  ) => Promise<void>
   onClose: () => void
 }
 
 export default function ModalReanalise({ 
   titulo, 
+  tipoObraAtual,
   primeiraAnalise,
   onConfirm, 
   onClose 
@@ -18,9 +32,26 @@ export default function ModalReanalise({
   const [promptCustomizado, setPromptCustomizado] = useState('')
   const [usarPromptCustomizado, setUsarPromptCustomizado] = useState(false)
   const [novosPDFs, setNovosPDFs] = useState<File[]>([])
+  const [tiposProjetoSelecionados, setTiposProjetoSelecionados] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const tipoNormalizado = (tipoObraAtual || '').trim().toLowerCase()
+    if (!tipoNormalizado) {
+      setTiposProjetoSelecionados([])
+      return
+    }
+
+    const existeNoCatalogo = TIPOS_PROJETO_OPTIONS.some(option => option.value === tipoNormalizado)
+    setTiposProjetoSelecionados(existeNoCatalogo ? [tipoNormalizado] : [])
+  }, [tipoObraAtual])
+
+  const handleTipoProjetoChange = (selectedOptions: HTMLSelectElement['selectedOptions']) => {
+    const values = Array.from(selectedOptions).map(option => option.value)
+    setTiposProjetoSelecionados(values)
+  }
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles) return
@@ -57,7 +88,8 @@ export default function ModalReanalise({
     try {
       await onConfirm(
         usarPromptCustomizado && promptCustomizado ? promptCustomizado : undefined,
-        novosPDFs.length > 0 ? novosPDFs : undefined
+        novosPDFs.length > 0 ? novosPDFs : undefined,
+        tiposProjetoSelecionados.length > 0 ? tiposProjetoSelecionados : undefined
       )
       onClose()
     } catch (error: any) {
@@ -97,6 +129,31 @@ export default function ModalReanalise({
 
           <form onSubmit={handleSubmit}>
             {/* Seção de Upload de PDFs */}
+            <div className="modal-reanalise-section">
+              <label className="modal-reanalise-section-title">
+                Delimitação de Tipos para Comparação Normativa
+              </label>
+              <p className="modal-reanalise-section-description">
+                A IA compara os documentos com as normas dos tipos selecionados. Se nada for marcado,
+                o backend usa o tipo da solicitação como fallback.
+              </p>
+              <select
+                multiple
+                className="modal-reanalise-select"
+                value={tiposProjetoSelecionados}
+                onChange={(e) => handleTipoProjetoChange(e.target.selectedOptions)}
+              >
+                {TIPOS_PROJETO_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="modal-reanalise-hint">
+                Segure Ctrl (ou Cmd no Mac) para selecionar mais de um tipo.
+              </p>
+            </div>
+
             <div className="modal-reanalise-section">
               <label className="modal-reanalise-section-title">
                 <FileText size={18} />

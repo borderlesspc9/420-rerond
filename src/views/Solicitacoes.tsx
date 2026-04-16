@@ -116,7 +116,11 @@ export default function Solicitacoes() {
     }
   }
 
-  const handleReanalisar = async (promptCustomizado?: string, novosPDFs?: File[]) => {
+  const handleReanalisar = async (
+    promptCustomizado?: string,
+    novosPDFs?: File[],
+    tiposProjetoPraComparar?: string[]
+  ) => {
     if (!modalReanaliseAberto?.id) return
 
     setAnalisandoId(modalReanaliseAberto.id)
@@ -124,7 +128,8 @@ export default function Solicitacoes() {
       const resultado = await analisarSolicitacaoComIA(
         modalReanaliseAberto.id, 
         promptCustomizado,
-        novosPDFs
+        novosPDFs,
+        tiposProjetoPraComparar
       )
       
       // Atualizar a solicitação na lista
@@ -354,6 +359,7 @@ export default function Solicitacoes() {
       {modalReanaliseAberto && (
         <ModalReanalise
           titulo={modalReanaliseAberto.titulo}
+          tipoObraAtual={modalReanaliseAberto.tipoObra}
           primeiraAnalise={!modalReanaliseAberto.analisadoPorIA}
           onConfirm={handleReanalisar}
           onClose={() => setModalReanaliseAberto(null)}

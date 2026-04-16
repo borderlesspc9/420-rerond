@@ -150,3 +150,16 @@ export function processarPrompt(promptTemplate: string, variaveis: Record<string
   
   return promptProcessado
 }
+
+/**
+ * Anexa instruções normativas ao prompt final sem alterar templates existentes.
+ */
+export function comporPromptComNormas(promptBase: string, blocoNormativo: string): string {
+  const base = promptBase.trim()
+  const bloco = blocoNormativo.trim()
+
+  if (!bloco) return base
+  if (!base) return bloco
+
+  return `${base}\n\n---\nCONTEXTO NORMATIVO PARA CONFORMIDADE\n${bloco}`
+}

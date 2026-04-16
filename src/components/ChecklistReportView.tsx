@@ -32,6 +32,14 @@ const CHECKLIST_ORDER = [
   'LIMITE_PROPRIEDADE', 'DELIMITACAO_DOMINIO_NAO_EDIFICANTE', 'ART_PDF', 'QTD_FOLHAS',
 ]
 
+function formatDynamicLabel(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+}
+
 function isAprovado(val: string): boolean {
   if (!val || typeof val !== 'string') return false
   const v = val.toLowerCase().trim()
@@ -58,14 +66,17 @@ export default function ChecklistReportView({
   tipoObra,
   descricao,
 }: ChecklistReportViewProps) {
-  const rows = CHECKLIST_ORDER.filter((key) => key in data).map((key, index) => {
+  const dynamicKeys = Object.keys(data).filter((key) => !CHECKLIST_ORDER.includes(key))
+  const orderedKeys = [...CHECKLIST_ORDER.filter((key) => key in data), ...dynamicKeys]
+
+  const rows = orderedKeys.map((key, index) => {
     const value = String(data[key] ?? '').trim()
     const aprovado = isAprovado(value)
     const naoBatem = isInformacoesNaoBatem(value)
     const situacao = aprovado ? 'OK' : (value || '—')
     return {
       item: index + 1,
-      documento: CHECKLIST_LABELS[key] || key,
+      documento: CHECKLIST_LABELS[key] || formatDynamicLabel(key),
       situacao,
       aprovado,
       naoBatem,

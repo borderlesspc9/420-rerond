@@ -1,0 +1,146 @@
+{
+  "fontes": [
+    {
+      "id": "ANTT_SUROD_13_2025",
+      "titulo": "Portaria SUROD n 13, de 27 de marco de 2025",
+      "orgao": "ANTT/SUROD",
+      "ano": 2025,
+      "url": "https://anttlegis.antt.gov.br/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=POR&numeroAto=00000013&seqAto=ATT&valorAno=2025&orgao=SUROD/ANTT/MT&cod_modulo=623&cod_menu=9230"
+    },
+    {
+      "id": "ANTT_SUROD_111_2025",
+      "titulo": "Portaria SUROD n 111, de 24 de agosto de 2025",
+      "orgao": "ANTT/SUROD",
+      "ano": 2025,
+      "url": "https://anttlegis.antt.gov.br/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=OR&numeroAto=00000111&seqAto=ATT&valorAno=2025&orgao=SUROD/ANTT/MT&codTipo=&desItem=&desItemFim=&cod_modulo=623&cod_menu=9230"
+    },
+    {
+      "id": "ANTT_SUROD_12_2025",
+      "titulo": "Portaria SUROD n 12, de 26 de marco de 2025",
+      "orgao": "ANTT/SUROD",
+      "ano": 2025,
+      "url": "https://anttlegis.antt.gov.br/action/ActionDatalegis.php?acao=abrirTextoAto&link=S&tipo=POR&numeroAto=00000012&seqAto=ATT&valorAno=2025&orgao=SUROD/ANTT/MT&codTipo=&desItem=&desItemFim=&cod_modulo=623&cod_menu=9230"
+    },
+    {
+      "id": "DNIT_RES_07_2021",
+      "titulo": "Resolucao n 07, de 02 de marco de 2021",
+      "orgao": "DNIT",
+      "ano": 2021,
+      "url": "https://www.gov.br/dnit/pt-br/rodovias/operacoesrodoviarias/faixa-de-dominio/regulamentacao-atual/copy_of_resolucao72021.pdf"
+    },
+    {
+      "id": "DNIT_IPR_728",
+      "titulo": "IPR-728 - Manual de projeto de acessos de areas lindeiras a rodovias federais",
+      "orgao": "DNIT/IPR",
+      "ano": 0,
+      "url": "https://www.gov.br/dnit/ptbr/rodovias/operacoes-rodoviarias/faixa-de-dominio/regulamentacao-atual/manual-deprojeto-de-acessos-de-areas-lindeiras-a-rodovias-federais.pdf"
+    },
+    {
+      "id": "ECORODOVIAS_ET_SIN_03",
+      "titulo": "Manual de sinalizacao de obras ET-ECS.000.000-SIN/03",
+      "orgao": "Ecorodovias",
+      "ano": 0,
+      "url": "https://www.ecorodovias.com.br/wpcontent/uploads/2024/04/ET-ECS.000.000-SIN_-03-especificacao-sinalizacao-de-obras-1.pdf"
+    }
+  ],
+  "tiposProjeto": {
+    "duplicacao": {
+      "nome": "Duplicacao",
+      "fontes": ["ANTT_SUROD_13_2025", "ANTT_SUROD_111_2025", "DNIT_RES_07_2021", "DNIT_IPR_728", "ECORODOVIAS_ET_SIN_03"],
+      "requisitos": [
+        {
+          "id": "LOCALIZACAO",
+          "descricao": "Localizacao e identificacao do trecho com kilometragem coerente entre formulario e pranchas"
+        },
+        {
+          "id": "TRACADO_FAIXA_DOMINIO",
+          "descricao": "Tracado da faixa de dominio e delimitacao nao edificante representados no projeto"
+        },
+        {
+          "id": "LARGURA_PISTA_DNIT",
+          "descricao": "Largura de pista, geometria e condicionantes de acesso compativeis com diretrizes DNIT"
+        },
+        {
+          "id": "SINALIZACAO_OBRAS",
+          "descricao": "Sinalizacao temporaria de obras prevista quando aplicavel"
+        }
+      ]
+    },
+    "recapeamento": {
+      "nome": "Recapeamento",
+      "fontes": ["ANTT_SUROD_13_2025", "DNIT_RES_07_2021", "ECORODOVIAS_ET_SIN_03"],
+      "requisitos": [
+        {
+          "id": "LOCALIZACAO",
+          "descricao": "Trecho e limites de intervencao em km claramente definidos"
+        },
+        {
+          "id": "VERIFICACAO_ESCALA",
+          "descricao": "Escalas e legibilidade suficientes para validacao tecnica"
+        },
+        {
+          "id": "MEMORIAL",
+          "descricao": "Memorial descritivo contendo escopo, metodos executivos e condicoes de seguranca"
+        }
+      ]
+    },
+    "reforma": {
+      "nome": "Reforma",
+      "fontes": ["ANTT_SUROD_12_2025", "DNIT_RES_07_2021", "DNIT_IPR_728"],
+      "requisitos": [
+        {
+          "id": "LOCALIZACAO",
+          "descricao": "Identificacao completa do ponto de acesso e da rodovia"
+        },
+        {
+          "id": "CARIMBO_CORRETO",
+          "descricao": "Pranchas com carimbo tecnico e identificacao de revisao"
+        },
+        {
+          "id": "ART_PDF",
+          "descricao": "ART ou documento tecnico equivalente anexado"
+        }
+      ]
+    },
+    "construcao": {
+      "nome": "Construcao",
+      "fontes": ["ANTT_SUROD_13_2025", "ANTT_SUROD_111_2025", "DNIT_RES_07_2021", "DNIT_IPR_728", "ECORODOVIAS_ET_SIN_03"],
+      "requisitos": [
+        {
+          "id": "LOCALIZACAO",
+          "descricao": "Coordenadas e referencia de km coerentes com projeto"
+        },
+        {
+          "id": "COORDENADAS_GEORREFERENCIAIS",
+          "descricao": "Coordenadas georreferenciais validas e consistentes"
+        },
+        {
+          "id": "DELIMITACAO_DOMINIO_NAO_EDIFICANTE",
+          "descricao": "Delimitacao de dominio e faixa nao edificante atendendo exigencias"
+        },
+        {
+          "id": "MEMORIAL",
+          "descricao": "Memorial completo com parametros tecnicos e justificativas"
+        }
+      ]
+    },
+    "manutencao": {
+      "nome": "Manutencao",
+      "fontes": ["ANTT_SUROD_12_2025", "DNIT_RES_07_2021", "ECORODOVIAS_ET_SIN_03"],
+      "requisitos": [
+        {
+          "id": "LOCALIZACAO",
+          "descricao": "Trecho de manutencao definido e rastreavel"
+        },
+        {
+          "id": "LEGENDAS",
+          "descricao": "Legendacao e anotacoes tecnicas suficientes para leitura"
+        },
+        {
+          "id": "SINALIZACAO_OBRAS",
+          "descricao": "Plano de sinalizacao e seguranca operacional para intervencao"
+        }
+      ]
+    }
+  }
+}

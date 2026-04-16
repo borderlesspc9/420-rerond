@@ -32,6 +32,34 @@ function parseChecklistJson(raw: string): Record<string, string> | null {
   }
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null
   const obj = data as Record<string, unknown>
+
+  // Novo formato de conformidade normativa
+  if (Array.isArray(obj.itens)) {
+    const normalized: Record<string, string> = {}
+
+    for (const item of obj.itens as Array<Record<string, unknown>>) {
+      const nomeItem = String(item.item ?? '').trim()
+      const status = String(item.status ?? '').trim().toUpperCase()
+      if (!nomeItem) continue
+
+      if (status === 'OK') {
+        normalized[nomeItem] = 'ok'
+        continue
+      }
+
+      const onde = String(item.onde_esta_errado ?? '').trim()
+      const porQue = String(item.por_que_esta_errado ?? '').trim()
+      const referencia = String(item.referencia_normativa ?? '').trim()
+      const detalhes = [onde, porQue, referencia].filter(Boolean).join(' | ')
+
+      normalized[nomeItem] = detalhes
+        ? `informações não batem; ${detalhes}`
+        : 'informações não batem'
+    }
+
+    return Object.keys(normalized).length ? normalized : null
+  }
+
   const hasKey = CHECKLIST_KEYS.some((k) => k in obj)
   if (!hasKey) return null
   const out: Record<string, string> = {}

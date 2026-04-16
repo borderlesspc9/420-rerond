@@ -146,39 +146,49 @@ export interface AnaliseSolicitacaoParams {
 
 const v = (s: string | undefined) => s ?? "não informado";
 
+const normalizarPromptTexto = (texto: string): string => {
+  return texto
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+};
+
 /**
  * Gera o prompt padrão para análise de solicitações (comparação formulário x PDFs)
  */
 function gerarPromptPadrao(params: AnaliseSolicitacaoParams): string {
-  return `Você é um analista de projetos de infraestrutura rodoviária. Sua tarefa é COMPARAR as informações preenchidas no formulário com o conteúdo dos documentos (imagens das páginas do PDF) anexados.
+  return `Compare os dados do formulário com os documentos anexados e responda APENAS em JSON.
 
-DADOS DO FORMULÁRIO:
-- Cliente: ${v(params.cliente)}
-- Kilometragem: ${v(params.kilometragem)}
-- Nro Processo ERP: ${v(params.nroProcessoErp)}
-- Rodovia: ${v(params.rodovia)}
-- Nome Concessionária: ${v(params.nomeConcessionaria)}
-- Sentido: ${v(params.sentido)}
-- Ocupação: ${v(params.ocupacao)}
-- Município - Estado: ${v(params.municipioEstado)}
-- Ocupação Área: ${v(params.ocupacaoArea)}
-- Responsável Técnico: ${v(params.responsavelTecnico)}
-- Fase do Projeto: ${v(params.faseProjeto)}
-- Analista Responsável: ${v(params.analistaResponsavel)}
-- Memorial: ${v(params.memorial)}
-- Data de Recebimento: ${v(params.dataRecebimento)}
-- Título: ${params.titulo}
-- Tipo de Obra: ${params.tipoObra}
-- Localização: ${params.localizacao}
-- Descrição: ${params.descricao}
+FORMULÁRIO:
+Cliente: ${v(params.cliente)}
+Kilometragem: ${v(params.kilometragem)}
+Nro Processo ERP: ${v(params.nroProcessoErp)}
+Rodovia: ${v(params.rodovia)}
+Nome Concessionária: ${v(params.nomeConcessionaria)}
+Sentido: ${v(params.sentido)}
+Ocupação: ${v(params.ocupacao)}
+Município - Estado: ${v(params.municipioEstado)}
+Ocupação Área: ${v(params.ocupacaoArea)}
+Responsável Técnico: ${v(params.responsavelTecnico)}
+Fase do Projeto: ${v(params.faseProjeto)}
+Analista Responsável: ${v(params.analistaResponsavel)}
+Memorial: ${v(params.memorial)}
+Data de Recebimento: ${v(params.dataRecebimento)}
+Título: ${params.titulo}
+Tipo de Obra: ${params.tipoObra}
+Localização: ${params.localizacao}
+Descrição: ${params.descricao}
 
-INSTRUÇÕES:
-1. Analise visualmente as páginas do PDF anexadas.
-2. Compare cada informação do formulário com o que consta nos documentos.
-3. Para cada item do checklist, use "ok" quando batem ou "informações não batem; [motivo]" quando há divergência.
-4. Retorne APENAS um objeto JSON válido com as chaves: LOCALIZACAO, KM_INICIO, KM_FIM, NOME_BR, COORDENADAS_GEORREFERENCIAIS_E, COORDENADAS_GEORREFERENCIAIS_N, TRACADO_FAIXA_DOMINIO, COTAS_TEXTOS_LEGIVEIS, VERIFICACAO_ESCALA, MEMORIAL, LARGURA_PISTA_DNIT, LEGENDAS, ANOTACAO_NOTA, SIGLA_ABREVIACAO, LOC_KM_PREFIXO, CARIMBO_CORRETO, LIMITE_PROPRIEDADE, DELIMITACAO_DOMINIO_NAO_EDIFICANTE, ART_PDF, QTD_FOLHAS.
+REGRAS:
+- Para cada campo, use somente "ok" ou "informações não batem; [motivo curto]".
+- Se faltar evidência no documento, use "informações não batem".
+- Não invente dados.
 
-Responda somente com o JSON, sem texto antes ou depois.`;
+CHAVES JSON (exatas): LOCALIZACAO, KM_INICIO, KM_FIM, NOME_BR, COORDENADAS_GEORREFERENCIAIS_E, COORDENADAS_GEORREFERENCIAIS_N, TRACADO_FAIXA_DOMINIO, COTAS_TEXTOS_LEGIVEIS, VERIFICACAO_ESCALA, MEMORIAL, LARGURA_PISTA_DNIT, LEGENDAS, ANOTACAO_NOTA, SIGLA_ABREVIACAO, LOC_KM_PREFIXO, CARIMBO_CORRETO, LIMITE_PROPRIEDADE, DELIMITACAO_DOMINIO_NAO_EDIFICANTE, ART_PDF, QTD_FOLHAS.
+
+Retorne somente o objeto JSON, sem texto extra.`;
 }
 
 /**
@@ -198,7 +208,8 @@ export async function analisarSolicitacaoComIA(
   }
 
   const config = getAIConfig();
-  const promptBase = params.promptCustomizado || gerarPromptPadrao(params);
+  const promptBaseBruto = params.promptCustomizado || gerarPromptPadrao(params);
+  const promptBase = normalizarPromptTexto(promptBaseBruto);
   const pdfPaths = params.arquivosPaths.filter((p) =>
     p.toLowerCase().endsWith(".pdf"),
   );
@@ -208,6 +219,7 @@ export async function analisarSolicitacaoComIA(
   console.log(
     `   Limite de tokens (MAX_TOKENS_ANALISE): ${MAX_TOKENS_ANALISE}`,
   );
+  console.log(`   Tamanho do prompt textual: ${promptBase.length} caracteres`);
   console.log(`   PDFs para processar: ${pdfPaths.length}`);
 
   // Se há PDFs e o provider é OpenAI, usa Vision
@@ -217,9 +229,13 @@ export async function analisarSolicitacaoComIA(
 
   // Caso sem PDFs ou com Groq — análise só pelo formulário
   if (pdfPaths.length > 0 && config.provider === "groq") {
+    const avisoSemVisao =
+      "Analise parcial: provider atual sem visao de PDF. A avaliacao foi feita sem leitura visual das paginas anexadas.";
     console.warn(
       `⚠️  Groq não suporta visão. PDFs serão ignorados. Configure OPENAI_API_KEY para análise visual dos documentos.`,
     );
+
+    return analisarSemVision(promptBase, config, avisoSemVisao);
   }
 
   return analisarSemVision(promptBase, config);
@@ -364,8 +380,13 @@ async function analisarComVision(
 async function analisarSemVision(
   promptBase: string,
   config: ReturnType<typeof getAIConfig>,
+  avisoSemVisao?: string,
 ): Promise<string> {
-  const mensagem = `${promptBase}\n\nNenhum documento foi anexado ou o provider atual não suporta visão. Gere a análise com base apenas nos dados do formulário.`;
+  const avisoInstrucao = avisoSemVisao
+    ? `\n\nAVISO OBRIGATORIO NO RESULTADO: inclua em metadados.aviso o texto exato: "${avisoSemVisao}".`
+    : "";
+
+  const mensagem = `${promptBase}\n\nNenhum documento foi anexado ou o provider atual não suporta visão. Gere a análise com base apenas nos dados do formulário.${avisoInstrucao}`;
 
   const messages: ChatMessage[] = [
     {

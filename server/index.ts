@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 import multer from "multer";
+import archiver from "archiver";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -13,12 +14,19 @@ import {
 import {
   obterPromptAtivo,
   processarPrompt,
+  comporPromptComNormas,
   carregarPrompts,
   obterPromptPorId,
   salvarPrompts,
 } from "./services/promptService.js";
+import {
+  parseTiposProjetoPraComparar,
+  obterNormasSelecionadas,
+  montarBlocoNormativoParaPrompt,
+} from "./services/normasService.js";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), "src/.env") });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +36,15 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
+
+const normalizarPromptTexto = (texto: string): string => {
+  return texto
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+};
 
 const getPublicBaseUrl = (req: Request) => {
   const configuredBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
@@ -257,6 +274,7 @@ app.post(
     try {
       const { id } = req.params;
       const promptCustomizado = req.body.promptCustomizado;
+      const tiposProjetoBody = req.body.tiposProjetoPraComparar;
 
       // Buscar solicitação
       const solicitacao = await prisma.solicitacao.findUnique({
@@ -324,15 +342,38 @@ app.post(
         dataRecebimento: solicitacao.dataRecebimento || "não informado",
         arquivosInfo:
           todosArquivosUrls.length > 0
-            ? `Foram anexados ${todosArquivosUrls.length} documento(s) para análise (${arquivosUrls.length} existentes${novosPDFsUrls.length > 0 ? ` + ${novosPDFsUrls.length} novos` : ""}).`
-            : "Nenhum documento foi anexado.",
+            ? `${todosArquivosUrls.length} documento(s) anexado(s) (${arquivosUrls.length} existente(s)${novosPDFsUrls.length > 0 ? ` + ${novosPDFsUrls.length} novo(s)` : ""})`
+            : "Sem documentos anexados.",
       };
+
+      const tipoObraFallback = (solicitacao.tipoObra || "").trim().toLowerCase();
+      const tiposDoPayload = parseTiposProjetoPraComparar(tiposProjetoBody);
+      const tiposParaComparar =
+        tiposDoPayload.length > 0
+          ? tiposDoPayload
+          : tipoObraFallback
+            ? [tipoObraFallback]
+            : [];
+
+      const normasSelecionadas = obterNormasSelecionadas(tiposParaComparar);
+      const blocoNormativo = montarBlocoNormativoParaPrompt(normasSelecionadas);
+
+      variaveisPrompt.tiposProjetoComparar =
+        normasSelecionadas.tiposValidos.length > 0
+          ? normasSelecionadas.tiposValidos.map((tipo) => tipo.id).join(", ")
+          : "nenhum";
+      variaveisPrompt.blocoNormativo = blocoNormativo;
 
       let promptParaUsar = promptCustomizado;
       if (!promptParaUsar) {
         const promptAtivo = obterPromptAtivo();
         promptParaUsar = processarPrompt(promptAtivo.prompt, variaveisPrompt);
       }
+      promptParaUsar = comporPromptComNormas(promptParaUsar, blocoNormativo);
+      promptParaUsar = normalizarPromptTexto(promptParaUsar);
+      console.log(
+        `📝 Prompt textual final: ${promptParaUsar.length} caracteres`,
+      );
 
       // Atualizar status para "em_analise"
       await prisma.solicitacao.update({
@@ -363,6 +404,10 @@ app.post(
         arquivosPaths,
         promptCustomizado: promptParaUsar,
       });
+
+      console.log(
+        `\n🧾 Relatório bruto retornado pela IA antes de salvar no banco:\n${relatorio}\n`,
+      );
 
       // Buscar solicitação atualizada para retornar
       const solicitacaoAtualizada = await prisma.solicitacao.findUnique({
@@ -514,6 +559,97 @@ app.put("/api/prompts/:id", express.json(), (req, res) => {
   } catch (error) {
     console.error("Erro ao atualizar prompt:", error);
     res.status(500).json({ error: "Erro ao atualizar prompt" });
+  }
+});
+
+// GET /api/solicitacoes/:id/download - Baixar anexos da solicitação em ZIP
+app.get("/api/solicitacoes/:id/download", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const solicitacao = await prisma.solicitacao.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        arquivos: true,
+      },
+    });
+
+    if (!solicitacao) {
+      return res.status(404).json({ error: "Solicitação não encontrada" });
+    }
+
+    const arquivosUrls = solicitacao.arquivos
+      ? (JSON.parse(solicitacao.arquivos) as string[])
+      : [];
+
+    if (arquivosUrls.length === 0) {
+      return res.status(404).json({ error: "Nenhum anexo encontrado" });
+    }
+
+    const arquivosValidos = arquivosUrls
+      .map((fileUrl, index) => {
+        try {
+          const pathname =
+            fileUrl.startsWith("http://") || fileUrl.startsWith("https://")
+              ? new URL(fileUrl).pathname
+              : fileUrl;
+          const rawName = pathname.split("/").pop();
+          const safeFilename = rawName ? path.basename(rawName) : null;
+          if (!safeFilename) return null;
+
+          const localPath = path.join(__dirname, "../uploads", safeFilename);
+          if (!fs.existsSync(localPath)) {
+            console.warn(`Arquivo não encontrado para download: ${localPath}`);
+            return null;
+          }
+
+          return {
+            localPath,
+            archiveName: `${String(index + 1).padStart(2, "0")}-${safeFilename}`,
+          };
+        } catch (error) {
+          console.warn(`Erro ao processar URL de arquivo: ${fileUrl}`);
+          return null;
+        }
+      })
+      .filter((item): item is { localPath: string; archiveName: string } => item !== null);
+
+    if (arquivosValidos.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Nenhum anexo disponível para download" });
+    }
+
+    const zipFilename = `solicitacao-${solicitacao.id}-anexos.zip`;
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=\"${zipFilename}\"`,
+    );
+
+    const archive = archiver("zip", {
+      zlib: { level: 9 },
+    });
+
+    archive.on("error", (error: Error) => {
+      console.error("Erro ao gerar ZIP de anexos:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Erro ao gerar arquivo ZIP" });
+      } else {
+        res.end();
+      }
+    });
+
+    archive.pipe(res);
+
+    arquivosValidos.forEach((arquivo) => {
+      archive.file(arquivo.localPath, { name: arquivo.archiveName });
+    });
+
+    await archive.finalize();
+  } catch (error) {
+    console.error("Erro ao baixar anexos:", error);
+    res.status(500).json({ error: "Erro ao baixar anexos" });
   }
 });
 
