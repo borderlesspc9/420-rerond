@@ -1,3 +1,4 @@
+import { setSessionToken, clearSession } from '../../auth/session'
 import { apiClient } from '../api/apiClient'
 
 export interface LoginResponse {
@@ -27,8 +28,7 @@ export const login = async (
 
     // Se houver token na resposta, você pode salvá-lo aqui
     if (response.data.token) {
-      // Exemplo: localStorage.setItem('token', response.data.token)
-      // ou usar um serviço de storage
+      setSessionToken(response.data.token)
     }
 
     return response.data
@@ -50,11 +50,10 @@ export const login = async (
 }
 
 export const logout = async (): Promise<void> => {
+  clearSession()
   try {
     await apiClient.post('/auth/logout')
-    // Limpar token do storage
-    // localStorage.removeItem('token')
-  } catch (error) {
-    console.error('Erro ao fazer logout:', error)
+  } catch {
+    // Endpoint pode não existir ainda; sessão local já foi limpa.
   }
 }

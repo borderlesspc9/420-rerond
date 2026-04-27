@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { isAuthenticated, setSessionToken } from '../auth/session'
 import './Login.css'
 
 export default function Login() {
@@ -7,16 +8,28 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
+  const from =
+    (location.state as { from?: string } | null)?.from && (location.state as { from: string }).from !== '/login'
+      ? (location.state as { from: string }).from
+      : '/dashboard'
+
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate(from, { replace: true })
+    }
+  }, [navigate, from])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    // Simula um pequeno delay antes de redirecionar
+    // Sem endpoint /auth/login no backend: sessão local até integrar auth real.
     setTimeout(() => {
+      setSessionToken(crypto.randomUUID())
       setLoading(false)
-      navigate('/dashboard')
-    }, 500)
+      navigate(from, { replace: true })
+    }, 400)
   }
 
   return (

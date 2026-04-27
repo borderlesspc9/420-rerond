@@ -1,3 +1,4 @@
+import { getSessionToken } from '../../auth/session'
 import { API_BASE_URL } from './apiBaseUrl'
 
 // Interface para opções de requisição
@@ -73,9 +74,7 @@ class ApiClient {
   }
 
   private getToken(): string | null {
-    // Você pode implementar a lógica de obter o token do storage aqui
-    // Exemplo: return localStorage.getItem('token')
-    return null
+    return getSessionToken()
   }
 
   get<T>(endpoint: string, headers?: Record<string, string>) {

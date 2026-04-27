@@ -1,11 +1,18 @@
 import { useState } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, FileText, Plus, Menu, X } from 'lucide-react'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, FileText, Plus, Menu, X, LogOut } from 'lucide-react'
+import { clearSession } from '../auth/session'
 import './Layout.css'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const handleLogout = () => {
+    clearSession()
+    navigate('/login', { replace: true })
+  }
 
   const isActive = (path: string) => location.pathname === path
 
@@ -59,6 +66,10 @@ export default function Layout() {
             <Plus size={20} />
             <span>Nova Solicitação</span>
           </Link>
+          <button type="button" className="nav-item nav-item-button" onClick={handleLogout}>
+            <LogOut size={20} />
+            <span>Sair</span>
+          </button>
         </nav>
       </aside>
       <main className="main-content">
