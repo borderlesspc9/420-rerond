@@ -6,7 +6,7 @@ Aplicação React + TypeScript + Vite com página de login integrada a servidor 
 
 ### Deploy no Vercel
 
-O frontend pode ficar no Vercel, mas este projeto nao sobe o backend automaticamente la. O backend atual continua sendo um servidor Express + Prisma separado.
+O frontend pode ficar no Vercel, mas este projeto nao sobe o backend automaticamente la. O backend atual continua sendo um servidor Express + Firestore (Firebase Admin) separado.
 
 Neste repositorio, o Vercel foi configurado para encaminhar requisicoes de `/api/*` e `/uploads/*` para o backend em producao no Render. Com isso, o frontend usa a mesma origem do site publicado e evita fallback para `localhost`.
 
@@ -19,6 +19,11 @@ Para configurar a conexão com a API em desenvolvimento, crie um arquivo `.env` 
 ```env
 # URL base da API em desenvolvimento
 VITE_API_BASE_URL=http://localhost:3001/api
+
+# Backend Firebase (Firestore)
+FIREBASE_PROJECT_ID=rerond-5956f
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
 **Importante:**
@@ -50,14 +55,19 @@ VITE_API_BASE_URL=https://api.exemplo.com/api
 npm install
 ```
 
-2. Configure o arquivo `.env` com a URL do seu servidor AWS
+2. Configure o arquivo `.env` com as variáveis do Firebase backend
 
-3. Execute o projeto:
+3. Inicie o backend:
+```bash
+npm run dev:server
+```
+
+4. Execute o frontend:
 ```bash
 npm run dev
 ```
 
-4. Acesse `http://localhost:5173` no navegador
+5. Acesse `http://localhost:5173` no navegador
 
 ## Integração com AWS
 

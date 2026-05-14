@@ -6,17 +6,19 @@ Se você está recebendo o erro "Failed to fetch", significa que o servidor back
 
 ## Solução:
 
-### 1. Gerar o Prisma Client (primeira vez)
-```bash
-npm run prisma:generate
+### 1. Configurar variáveis Firebase no `.env`
+
+Preencha no mínimo:
+
+```env
+FIREBASE_PROJECT_ID=rerond-5956f
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-### 2. Criar o banco de dados (primeira vez)
-```bash
-npm run prisma:migrate
-```
+> Alternativa: use `FIREBASE_SERVICE_ACCOUNT_JSON` com o JSON completo da service account.
 
-### 3. Iniciar o servidor backend
+### 2. Iniciar o servidor backend
 
 **Opção A: Apenas o servidor**
 ```bash
@@ -28,7 +30,7 @@ npm run dev:server
 npm run dev:all
 ```
 
-### 4. Verificar se o servidor está rodando
+### 3. Verificar se o servidor está rodando
 
 Abra no navegador ou use curl:
 ```
@@ -49,16 +51,15 @@ Você deve ver:
 
 1. Verifique se a porta 3001 está livre:
    ```bash
-   # Windows PowerShell
-   netstat -ano | findstr :3001
+   lsof -i :3001
    ```
 
-2. Verifique se o Prisma Client foi gerado:
+2. Verifique se as variáveis Firebase estão no `.env`:
    ```bash
-   npm run prisma:generate
+   rg "^FIREBASE_(PROJECT_ID|CLIENT_EMAIL|PRIVATE_KEY|SERVICE_ACCOUNT_JSON)=" .env
    ```
 
-3. Verifique se o banco de dados está configurado corretamente no `.env`
+3. Verifique se a service account possui permissão no Firestore do projeto correto
 
 ### O frontend não consegue conectar?
 

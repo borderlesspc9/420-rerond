@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, FileText, Plus, Menu, X, LogOut } from 'lucide-react'
-import { clearSession } from '../auth/session'
+import { logout } from '../services/auth/authService'
 import './Layout.css'
 
 export default function Layout() {
@@ -9,8 +9,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const handleLogout = () => {
-    clearSession()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login', { replace: true })
   }
 

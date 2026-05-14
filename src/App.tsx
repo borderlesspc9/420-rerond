@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthProvider'
 import Login from './views/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
@@ -11,6 +12,7 @@ import './App.css'
 function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute />}>
@@ -23,6 +25,7 @@ function App() {
           </Route>
         </Route>
       </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

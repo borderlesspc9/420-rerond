@@ -12,8 +12,13 @@ import {
   ArrowRight,
   Zap,
   BarChart3,
+  Building2,
 } from 'lucide-react'
 import { getAllSolicitacoes } from '../services/solicitacao/solicitacaoService'
+import {
+  addConcessionaria,
+  loadConcessionarias,
+} from '../utils/concessionariasStorage'
 import type { SolicitacaoWithFiles } from '../models/Solicitacao'
 import './Dashboard.css'
 
@@ -26,6 +31,10 @@ export default function Dashboard() {
     'todas' | 'pendente' | 'em_analise' | 'aprovada' | 'rejeitada'
   >('todas')
   const [busca, setBusca] = useState('')
+  const [showConcessionariaModal, setShowConcessionariaModal] = useState(false)
+  const [concessionarias, setConcessionarias] = useState<string[]>(() => loadConcessionarias())
+  const [novaConcessionaria, setNovaConcessionaria] = useState('')
+  const [concessionariaFeedback, setConcessionariaFeedback] = useState<string | null>(null)
 
   useEffect(() => {
     loadSolicitacoes()
@@ -123,6 +132,43 @@ export default function Dashboard() {
     }
   }
 
+  const openConcessionariaModal = () => {
+    setConcessionarias(loadConcessionarias())
+    setNovaConcessionaria('')
+    setConcessionariaFeedback(null)
+    setShowConcessionariaModal(true)
+  }
+
+  const closeConcessionariaModal = () => {
+    setShowConcessionariaModal(false)
+    setNovaConcessionaria('')
+    setConcessionariaFeedback(null)
+  }
+
+  const handleAddConcessionaria = () => {
+    const resultado = addConcessionaria(concessionarias, novaConcessionaria)
+    if (!resultado.nome) {
+      setConcessionariaFeedback('Informe o nome da concessionária.')
+      return
+    }
+
+    setConcessionarias(resultado.concessionarias)
+    setNovaConcessionaria('')
+
+    if (resultado.added) {
+      setConcessionariaFeedback(`Concessionária "${resultado.nome}" cadastrada.`)
+      return
+    }
+
+    setConcessionariaFeedback(`A concessionária "${resultado.nome}" já está cadastrada.`)
+  }
+
+  const handleNovaConcessionariaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    handleAddConcessionaria()
+  }
+
   const formatDate = (date?: Date) => {
     if (!date) return '-'
     return new Date(date).toLocaleDateString('pt-BR', {
@@ -152,13 +198,24 @@ export default function Dashboard() {
             Visão geral das solicitações de obras
           </p>
         </div>
-        <button
-          className="dashboard-btn-nova"
-          onClick={() => navigate('/nova-solicitacao')}
-        >
-          <Plus size={20} />
-          Nova Solicitação
-        </button>
+        <div className="dashboard-header-actions">
+          <button
+            type="button"
+            className="dashboard-btn-secundaria"
+            onClick={openConcessionariaModal}
+          >
+            <Building2 size={20} />
+            Nova Concessionária
+          </button>
+          <button
+            type="button"
+            className="dashboard-btn-nova"
+            onClick={() => navigate('/nova-solicitacao')}
+          >
+            <Plus size={20} />
+            Nova Solicitação
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -303,6 +360,19 @@ export default function Dashboard() {
                   <div>
                     <span className="dashboard-acao-titulo">Nova Solicitação</span>
                     <span className="dashboard-acao-desc">Criar nova solicitação</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="dashboard-acao-item"
+                  onClick={openConcessionariaModal}
+                >
+                  <Building2 size={20} />
+                  <div>
+                    <span className="dashboard-acao-titulo">Nova Concessionária</span>
+                    <span className="dashboard-acao-desc">
+                      Cadastrar concessionária para novas solicitações
+                    </span>
                   </div>
                 </button>
                 <button
@@ -472,6 +542,75 @@ export default function Dashboard() {
             )}
           </div>
         </>
+      )}
+
+      {showConcessionariaModal && (
+        <div
+          className="dashboard-modal-overlay"
+          onClick={closeConcessionariaModal}
+          role="presentation"
+        >
+          <div
+            className="dashboard-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dashboard-modal-concessionaria-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="dashboard-modal-header">
+              <h2 id="dashboard-modal-concessionaria-title">Nova Concessionária</h2>
+              <button
+                type="button"
+                className="dashboard-modal-close"
+                onClick={closeConcessionariaModal}
+                aria-label="Fechar"
+              >
+                ×
+              </button>
+            </div>
+            <p className="dashboard-modal-desc">
+              A concessionária fica salva neste navegador e aparece ao criar uma nova solicitação.
+            </p>
+            <div className="dashboard-modal-form">
+              <label htmlFor="dashboard-nova-concessionaria">Nome da concessionária</label>
+              <div className="dashboard-modal-input-row">
+                <input
+                  id="dashboard-nova-concessionaria"
+                  type="text"
+                  value={novaConcessionaria}
+                  onChange={(e) => setNovaConcessionaria(e.target.value)}
+                  onKeyDown={handleNovaConcessionariaKeyDown}
+                  placeholder="Ex: Arteris Litoral Sul"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="dashboard-modal-submit"
+                  onClick={handleAddConcessionaria}
+                >
+                  Cadastrar
+                </button>
+              </div>
+            </div>
+            {concessionariaFeedback && (
+              <p className="dashboard-modal-feedback" role="status">
+                {concessionariaFeedback}
+              </p>
+            )}
+            {concessionarias.length > 0 && (
+              <div className="dashboard-modal-list">
+                <span className="dashboard-modal-list-title">
+                  Concessionárias cadastradas ({concessionarias.length})
+                </span>
+                <ul>
+                  {concessionarias.map((concessionaria) => (
+                    <li key={concessionaria}>{concessionaria}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

@@ -90,6 +90,7 @@ DADOS DO FORMULÁRIO DE SOLICITAÇÃO (Overview Dados do cliente e Informações
 - Analista Responsável: {analistaResponsavel}
 - Memorial: {memorial}
 - Data de Recebimento: {dataRecebimento}
+- Número da Revisão: {numeroRevisao}
 - Título: {titulo}
 - Tipo de Obra: {tipoObra}
 - Localização: {localizacao}

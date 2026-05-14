@@ -142,6 +142,7 @@ export interface AnaliseSolicitacaoParams {
   analistaResponsavel?: string;
   memorial?: string;
   dataRecebimento?: string;
+  numeroRevisao?: string;
 }
 
 const v = (s: string | undefined) => s ?? "não informado";
@@ -176,6 +177,7 @@ Fase do Projeto: ${v(params.faseProjeto)}
 Analista Responsável: ${v(params.analistaResponsavel)}
 Memorial: ${v(params.memorial)}
 Data de Recebimento: ${v(params.dataRecebimento)}
+Número da Revisão: ${v(params.numeroRevisao)}
 Título: ${params.titulo}
 Tipo de Obra: ${params.tipoObra}
 Localização: ${params.localizacao}

@@ -31,6 +31,12 @@
   gap: 20px;
 }
 
+.login-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

@@ -1,3 +1,14 @@
+export type TipoRelatorio = 'pit' | 'obra_per' | 'obra_nao_per'
+
+export interface ChecklistItem {
+  item: string
+  status: 'OK' | 'NAO_CONFORME' | 'INFORMACAO_AUSENTE'
+  situacaoEncontrada: string
+  exigenciaNormativa: string
+  fundamentacao: string
+  orientacao: string
+}
+
 export interface Solicitacao {
   id?: string
   titulo: string
@@ -12,6 +23,9 @@ export interface Solicitacao {
   createdAt?: Date
   updatedAt?: Date
   createdBy?: string
+  tipoRelatorio?: TipoRelatorio
+  parecerTecnico?: string
+  checklistConformidade?: string
   // Overview Dados do cliente
   cliente?: string
   kilometragem?: string
@@ -27,6 +41,7 @@ export interface Solicitacao {
   analistaResponsavel?: string
   memorial?: string
   dataRecebimento?: string
+  numeroRevisao?: string
 }
 
 export interface SolicitacaoWithFiles extends Solicitacao {

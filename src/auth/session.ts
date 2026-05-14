@@ -1,18 +1,14 @@
-/** Chave alinhada ao que o apiClient usa para Bearer (quando houver API real). */
-export const AUTH_TOKEN_KEY = 'auth_token'
+import { auth } from '../lib/firebase'
 
-export function getSessionToken(): string | null {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
-}
+export async function getSessionToken(): Promise<string | null> {
+  const user = auth.currentUser
+  if (!user) {
+    return null
+  }
 
-export function setSessionToken(token: string): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, token)
-}
-
-export function clearSession(): void {
-  localStorage.removeItem(AUTH_TOKEN_KEY)
+  return user.getIdToken()
 }
 
 export function isAuthenticated(): boolean {
-  return Boolean(getSessionToken()?.trim())
+  return Boolean(auth.currentUser)
 }

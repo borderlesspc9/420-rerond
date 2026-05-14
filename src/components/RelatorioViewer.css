@@ -182,6 +182,155 @@
   font-style: italic;
 }
 
+/* Tabs */
+.relatorio-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  gap: 4px;
+}
+
+.relatorio-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.relatorio-tab:hover {
+  color: #1f2937;
+  background-color: #f9fafb;
+}
+
+.relatorio-tab-active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* Checklist Conformidade */
+.conformidade-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.conformidade-summary {
+  display: flex;
+  gap: 16px;
+}
+
+.conformidade-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.conformidade-stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.conformidade-stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.conformidade-stat-ok .conformidade-stat-number {
+  color: #10b981;
+}
+
+.conformidade-stat-nao .conformidade-stat-number {
+  color: #ef4444;
+}
+
+.conformidade-stat-ausente .conformidade-stat-number {
+  color: #f59e0b;
+}
+
+.conformidade-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.conformidade-table th {
+  background: #f9fafb;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.conformidade-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 13px;
+  color: #4b5563;
+  vertical-align: top;
+}
+
+.conformidade-row-ok {
+  background: #f0fdf4;
+}
+
+.conformidade-row-nao-conforme {
+  background: #fef2f2;
+}
+
+.conformidade-row-informacao-ausente {
+  background: #fffbeb;
+}
+
+.conformidade-detalhe {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.conformidade-fundamentacao,
+.conformidade-orientacao {
+  font-size: 12px;
+}
+
+.conformidade-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.conformidade-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.conformidade-nao-conforme {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.conformidade-ausente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 /* Responsividade Mobile */
 @media (max-width: 768px) {
   .relatorio-viewer-overlay {

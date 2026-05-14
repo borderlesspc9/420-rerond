@@ -17,6 +17,8 @@ export default function Solicitacoes() {
     relatorio: string
     titulo: string
     solicitacaoInfo?: { localizacao?: string; tipoObra?: string; descricao?: string }
+    parecerTecnico?: string
+    checklistConformidade?: string
   } | null>(null)
   const [modalReanaliseAberto, setModalReanaliseAberto] = useState<SolicitacaoWithFiles | null>(null)
   const [analisandoId, setAnalisandoId] = useState<string | null>(null)
@@ -103,15 +105,17 @@ export default function Solicitacoes() {
   }
 
   const handleVerRelatorio = (solicitacao: SolicitacaoWithFiles) => {
-    if (solicitacao.relatorioIA) {
+    if (solicitacao.relatorioIA || solicitacao.parecerTecnico || solicitacao.checklistConformidade) {
       setRelatorioAberto({
-        relatorio: solicitacao.relatorioIA,
+        relatorio: solicitacao.relatorioIA || '',
         titulo: solicitacao.titulo,
         solicitacaoInfo: {
           localizacao: solicitacao.localizacao,
           tipoObra: solicitacao.tipoObra,
           descricao: solicitacao.descricao,
         },
+        parecerTecnico: solicitacao.parecerTecnico,
+        checklistConformidade: solicitacao.checklistConformidade,
       })
     }
   }
@@ -137,16 +141,17 @@ export default function Solicitacoes() {
         prev.map((s) => (s.id === resultado.id ? resultado : s))
       )
       
-      // Mostrar o novo relatório
-      if (resultado.relatorioIA) {
+      if (resultado.relatorioIA || resultado.parecerTecnico || resultado.checklistConformidade) {
         setRelatorioAberto({
-          relatorio: resultado.relatorioIA,
+          relatorio: resultado.relatorioIA || '',
           titulo: resultado.titulo,
           solicitacaoInfo: {
             localizacao: resultado.localizacao,
             tipoObra: resultado.tipoObra,
             descricao: resultado.descricao,
           },
+          parecerTecnico: resultado.parecerTecnico,
+          checklistConformidade: resultado.checklistConformidade,
         })
       }
       
@@ -298,7 +303,7 @@ export default function Solicitacoes() {
               )}
 
               <div className="solicitacao-actions">
-                {solicitacao.relatorioIA && (
+                {(solicitacao.relatorioIA || solicitacao.parecerTecnico || solicitacao.checklistConformidade) && (
                   <button
                     className="btn-ver-relatorio"
                     onClick={() => handleVerRelatorio(solicitacao)}
@@ -352,6 +357,8 @@ export default function Solicitacoes() {
           relatorio={relatorioAberto.relatorio}
           titulo={relatorioAberto.titulo}
           solicitacaoInfo={relatorioAberto.solicitacaoInfo}
+          parecerTecnico={relatorioAberto.parecerTecnico}
+          checklistConformidade={relatorioAberto.checklistConformidade}
           onClose={() => setRelatorioAberto(null)}
         />
       )}

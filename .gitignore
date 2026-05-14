@@ -21,6 +21,10 @@ prisma/dev.db-journal
 # Uploads
 uploads/
 
+# Firebase service account (Admin SDK)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
 # Environment variables
 .env
 .env.local

@@ -1,0 +1,82 @@
+{
+  "fontes": [
+    {
+      "id": "ANTT_SUROD_12_2025",
+      "titulo": "Portaria SUROD nº 12, de 26 de março de 2025",
+      "orgao": "ANTT/SUROD",
+      "ano": 2025,
+      "pdf": "portaria-surod-12-2025.pdf",
+      "descricao": "POP para análise técnica de estudos e projetos de obras e serviços de engenharia (concessões rodoviárias federais)"
+    },
+    {
+      "id": "ANTT_SUROD_13_2025",
+      "titulo": "Portaria SUROD nº 13, de 27 de março de 2025",
+      "orgao": "ANTT/SUROD",
+      "ano": 2025,
+      "pdf": "portaria-surod-13-2025.pdf",
+      "descricao": "POP para análise técnica de Projetos de Interesse de Terceiros (PITs) em concessões rodoviárias federais"
+    }
+  ],
+  "tiposProjeto": {
+    "pit": {
+      "nome": "Projeto de Interesse de Terceiros (PIT)",
+      "fontes": ["ANTT_SUROD_13_2025"],
+      "maxPaginas": 15,
+      "requisitos": [
+        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Completude da documentação protocolada (Art. 3º)" },
+        { "id": "CARTA_SOLICITACAO", "descricao": "Carta de solicitação do PIT com assunto conforme modelo (Art. 5º, I)" },
+        { "id": "PARECER_CONCESSIONARIA", "descricao": "Parecer Técnico de aprovação da Concessionária (Art. 5º, II)" },
+        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de Veracidade (Art. 5º, III)" },
+        { "id": "FORMULARIO_PIT", "descricao": "Formulário de PIT preenchido (Art. 5º, IV)" },
+        { "id": "VOLUME_I_RELATORIO", "descricao": "Volume I: Relatório Técnico com memoriais e estudos (Art. 5º, b)" },
+        { "id": "VOLUME_II_PROJETOS", "descricao": "Volume II: Peças gráficas com detalhamento de Projeto Executivo (Art. 5º, c)" },
+        { "id": "ART_PROJETO_OBRA", "descricao": "ART referente ao projeto executivo e à execução da obra (Art. 5º, d, I)" },
+        { "id": "LICENCA_AMBIENTAL", "descricao": "Licença ambiental ou justificativa para não apresentação (Art. 5º, d, II)" },
+        { "id": "CRONOGRAMA_EXECUCAO", "descricao": "Cronograma de execução da obra (Art. 5º, d, III)" },
+        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 4º)" },
+        { "id": "NOMENCLATURA_DOCS", "descricao": "Nomeação de documentos conforme padrão Art. 5º-A" }
+      ]
+    },
+    "obra_per": {
+      "nome": "Obra prevista no PER",
+      "fontes": ["ANTT_SUROD_12_2025"],
+      "maxPaginas": 30,
+      "requisitos": [
+        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa conforme Art. 7º (volumes mínimos)" },
+        { "id": "FUNCIONALIDADE_OBRA", "descricao": "Funcionalidade da obra atendendo parâmetros do PER (Art. 9º)" },
+        { "id": "PARAMETROS_PER", "descricao": "Cumprimento dos parâmetros técnicos e de desempenho do PER (Art. 9º)" },
+        { "id": "CHECK_LIST", "descricao": "Check-list de verificação preenchido (Art. 10, §5º)" },
+        { "id": "TIPOLOGIA", "descricao": "Tipologia da obra compatível com o PER (Art. 10, §6º, II)" },
+        { "id": "CONFIGURACAO", "descricao": "Configuração da obra conforme previsto (Art. 10, §6º, III)" },
+        { "id": "LOCALIZACAO", "descricao": "Localização coerente com o PER (Art. 10, §6º, IV)" },
+        { "id": "QUANTITATIVO", "descricao": "Quantitativos compatíveis (Art. 10, §6º, V)" },
+        { "id": "PRAZO", "descricao": "Prazo de execução conforme previsto (Art. 10, §6º, VI)" },
+        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade de informações e documentos (Art. 7º, §2º, I)" },
+        { "id": "GUIA_REMESSA", "descricao": "Guia de remessa de documentos (Art. 7º, §2º, II)" },
+        { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
+        { "id": "CODIFICACAO_DOCS", "descricao": "Codificação e identificação de documentos conforme Anexo (Art. 8º)" },
+        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
+      ]
+    },
+    "obra_nao_per": {
+      "nome": "Obra não prevista no PER",
+      "fontes": ["ANTT_SUROD_12_2025"],
+      "maxPaginas": 30,
+      "requisitos": [
+        { "id": "SOLUCAO_ENGENHARIA", "descricao": "Solução de engenharia avaliada (Art. 18)" },
+        { "id": "TIPOLOGIA", "descricao": "Tipologia da intervenção (Art. 18)" },
+        { "id": "FUNCIONALIDADE", "descricao": "Funcionalidade da intervenção (Art. 18)" },
+        { "id": "OPERACIONALIDADE", "descricao": "Operacionalidade da intervenção (Art. 18)" },
+        { "id": "DIMENSIONAMENTO_SERVICOS", "descricao": "Dimensionamento dos principais serviços e quantitativos (Art. 18, parágrafo único)" },
+        { "id": "MODERNIZACAO_DURABILIDADE", "descricao": "Critérios de modernização, durabilidade, eficiência técnica e sustentabilidade (Art. 19)" },
+        { "id": "ORCAMENTO_ANALITICO", "descricao": "Orçamento analítico com composições de custos diretos e BDI (Art. 20)" },
+        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa com todos os volumes (Art. 22)" },
+        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade (Art. 7º, §2º, I)" },
+        { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
+        { "id": "DECLARACAO_CUSTOS", "descricao": "Declaração de responsabilidade referente a serviços, quantitativos e custos (Art. 7º, §2º, VIII)" },
+        { "id": "CODIFICACAO_DOCS", "descricao": "Codificação conforme Anexo (Art. 8º)" },
+        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
+      ]
+    }
+  }
+}

@@ -33,7 +33,7 @@ class ApiClient {
     }
 
     // Adicionar token de autenticação se existir
-    const token = this.getToken()
+    const token = await this.getToken()
     if (token) {
       config.headers = {
         ...config.headers,
@@ -73,7 +73,7 @@ class ApiClient {
     }
   }
 
-  private getToken(): string | null {
+  private async getToken(): Promise<string | null> {
     return getSessionToken()
   }
 

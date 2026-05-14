@@ -1,229 +1,340 @@
-import type { Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao.js'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  type DocumentData,
+  type Timestamp,
+} from 'firebase/firestore'
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { httpsCallable } from 'firebase/functions'
+import type { Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao'
+import { auth, db, functions, storage } from '../../lib/firebase'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
+const COLLECTION_NAME =
+  import.meta.env.VITE_FIRESTORE_SOLICITACOES_COLLECTION?.trim() || 'solicitacoes'
 
-// Criar nova solicitação
+const solicitacoesRef = collection(db, COLLECTION_NAME)
+
+const toDate = (value: unknown): Date | undefined => {
+  if (!value) return undefined
+  if (value instanceof Date) return value
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    return (value as Timestamp).toDate()
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value)
+    if (!Number.isNaN(date.getTime())) return date
+  }
+  return undefined
+}
+
+const parseArquivos = (value: unknown): string[] => {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item))
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item))
+      }
+    } catch {
+      return [value]
+    }
+  }
+  return []
+}
+
+const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles => {
+  const arquivos = parseArquivos(data.arquivos)
+
+  return {
+    id,
+    titulo: String(data.titulo ?? ''),
+    tipoObra: String(data.tipoObra ?? ''),
+    localizacao: String(data.localizacao ?? ''),
+    descricao: String(data.descricao ?? ''),
+    status: (data.status as Solicitacao['status']) ?? 'pendente',
+    relatorioIA: data.relatorioIA ? String(data.relatorioIA) : undefined,
+    analisadoPorIA: Boolean(data.analisadoPorIA),
+    analisadoEm: toDate(data.analisadoEm),
+    createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+    createdBy: data.createdBy ? String(data.createdBy) : undefined,
+    cliente: data.cliente ? String(data.cliente) : undefined,
+    kilometragem: data.kilometragem ? String(data.kilometragem) : undefined,
+    nroProcessoErp: data.nroProcessoErp ? String(data.nroProcessoErp) : undefined,
+    rodovia: data.rodovia ? String(data.rodovia) : undefined,
+    nomeConcessionaria: data.nomeConcessionaria ? String(data.nomeConcessionaria) : undefined,
+    sentido: data.sentido ? String(data.sentido) : undefined,
+    ocupacao: data.ocupacao ? String(data.ocupacao) : undefined,
+    municipioEstado: data.municipioEstado ? String(data.municipioEstado) : undefined,
+    ocupacaoArea: data.ocupacaoArea ? String(data.ocupacaoArea) : undefined,
+    responsavelTecnico: data.responsavelTecnico ? String(data.responsavelTecnico) : undefined,
+    faseProjeto: data.faseProjeto ? String(data.faseProjeto) : undefined,
+    analistaResponsavel: data.analistaResponsavel
+      ? String(data.analistaResponsavel)
+      : undefined,
+    memorial: data.memorial ? String(data.memorial) : undefined,
+    dataRecebimento: data.dataRecebimento ? String(data.dataRecebimento) : undefined,
+    numeroRevisao: data.numeroRevisao ? String(data.numeroRevisao) : undefined,
+    tipoRelatorio: data.tipoRelatorio ? (data.tipoRelatorio as Solicitacao['tipoRelatorio']) : undefined,
+    parecerTecnico: data.parecerTecnico ? String(data.parecerTecnico) : undefined,
+    checklistConformidade: data.checklistConformidade ? String(data.checklistConformidade) : undefined,
+    arquivos,
+    arquivosUrls: arquivos,
+  }
+}
+
+const ensureAuthenticatedUpload = async () => {
+  const user = auth.currentUser
+  if (!user) {
+    throw new Error('Sessão expirada. Faça login novamente antes de enviar arquivos.')
+  }
+
+  await user.getIdToken()
+}
+
+const formatStorageUploadError = (error: unknown): string => {
+  const code =
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+      ? (error as { code: string }).code
+      : ''
+
+  if (code === 'storage/unauthorized' || code === 'storage/unauthenticated') {
+    return 'Sem permissão para enviar arquivos. Faça login novamente e tente outra vez.'
+  }
+
+  if (code === 'storage/retry-limit-exceeded' || code === 'storage/unknown') {
+    return 'Não foi possível enviar os arquivos para o Firebase Storage. Verifique se o Storage está ativo no projeto Firebase e se as regras foram publicadas.'
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return 'Não foi possível enviar os arquivos para o Firebase Storage.'
+}
+
+const uploadSolicitacaoFiles = async (solicitacaoId: string, files: File[]) => {
+  await ensureAuthenticatedUpload()
+
+  const uploads = files.map(async (file) => {
+    const safeName = file.name.replace(/[^\w.\-]+/g, '_')
+    const storageRef = ref(
+      storage,
+      `solicitacoes/${solicitacaoId}/${Date.now()}-${safeName}`,
+    )
+
+    try {
+      const snapshot = await uploadBytes(storageRef, file, {
+        contentType: file.type || undefined,
+      })
+      return getDownloadURL(snapshot.ref)
+    } catch (error: unknown) {
+      throw new Error(formatStorageUploadError(error))
+    }
+  })
+
+  return Promise.all(uploads)
+}
+
+const buildCreatePayload = (
+  solicitacao: Omit<Solicitacao, 'id' | 'createdAt' | 'updatedAt'>,
+) => ({
+  titulo: solicitacao.titulo,
+  tipoObra: solicitacao.tipoObra,
+  localizacao: solicitacao.localizacao,
+  descricao: solicitacao.descricao,
+  status: solicitacao.status ?? 'pendente',
+  relatorioIA: solicitacao.relatorioIA ?? null,
+  analisadoPorIA: solicitacao.analisadoPorIA ?? false,
+  analisadoEm: solicitacao.analisadoEm ?? null,
+  createdBy: solicitacao.createdBy ?? auth.currentUser?.uid ?? null,
+  cliente: solicitacao.cliente ?? null,
+  kilometragem: solicitacao.kilometragem ?? null,
+  nroProcessoErp: solicitacao.nroProcessoErp ?? null,
+  rodovia: solicitacao.rodovia ?? null,
+  nomeConcessionaria: solicitacao.nomeConcessionaria ?? null,
+  sentido: solicitacao.sentido ?? null,
+  ocupacao: solicitacao.ocupacao ?? null,
+  municipioEstado: solicitacao.municipioEstado ?? null,
+  ocupacaoArea: solicitacao.ocupacaoArea ?? null,
+  responsavelTecnico: solicitacao.responsavelTecnico ?? null,
+  faseProjeto: solicitacao.faseProjeto ?? null,
+  analistaResponsavel: solicitacao.analistaResponsavel ?? null,
+  memorial: solicitacao.memorial ?? null,
+  dataRecebimento: solicitacao.dataRecebimento ?? null,
+  numeroRevisao: solicitacao.numeroRevisao ?? null,
+  tipoRelatorio: solicitacao.tipoRelatorio ?? null,
+  parecerTecnico: solicitacao.parecerTecnico ?? null,
+  checklistConformidade: solicitacao.checklistConformidade ?? null,
+  arquivos: [],
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+})
+
 export const createSolicitacao = async (
   solicitacao: Omit<Solicitacao, 'id' | 'createdAt' | 'updatedAt'>,
-  files: File[] = []
+  files: File[] = [],
 ): Promise<string> => {
+  let createdId: string | null = null
+
   try {
-    const formData = new FormData()
-    
-    // Adicionar campos do formulário
-    formData.append('titulo', solicitacao.titulo)
-    formData.append('tipoObra', solicitacao.tipoObra)
-    formData.append('localizacao', solicitacao.localizacao)
-    formData.append('descricao', solicitacao.descricao)
-    if (solicitacao.status) formData.append('status', solicitacao.status)
-    if (solicitacao.createdBy) formData.append('createdBy', solicitacao.createdBy)
-    // Overview Dados do cliente
-    if (solicitacao.cliente) formData.append('cliente', solicitacao.cliente)
-    if (solicitacao.kilometragem) formData.append('kilometragem', solicitacao.kilometragem)
-    if (solicitacao.nroProcessoErp) formData.append('nroProcessoErp', solicitacao.nroProcessoErp)
-    if (solicitacao.rodovia) formData.append('rodovia', solicitacao.rodovia)
-    if (solicitacao.nomeConcessionaria) formData.append('nomeConcessionaria', solicitacao.nomeConcessionaria)
-    if (solicitacao.sentido) formData.append('sentido', solicitacao.sentido)
-    if (solicitacao.ocupacao) formData.append('ocupacao', solicitacao.ocupacao)
-    if (solicitacao.municipioEstado) formData.append('municipioEstado', solicitacao.municipioEstado)
-    if (solicitacao.ocupacaoArea) formData.append('ocupacaoArea', solicitacao.ocupacaoArea)
-    if (solicitacao.responsavelTecnico) formData.append('responsavelTecnico', solicitacao.responsavelTecnico)
-    if (solicitacao.faseProjeto) formData.append('faseProjeto', solicitacao.faseProjeto)
-    if (solicitacao.analistaResponsavel) formData.append('analistaResponsavel', solicitacao.analistaResponsavel)
-    if (solicitacao.memorial) formData.append('memorial', solicitacao.memorial)
-    if (solicitacao.dataRecebimento) formData.append('dataRecebimento', solicitacao.dataRecebimento)
+    const created = await addDoc(solicitacoesRef, buildCreatePayload(solicitacao))
+    createdId = created.id
 
-    // Adicionar arquivos
-    files.forEach((file) => {
-      formData.append('files', file)
+    if (files.length === 0) {
+      return created.id
+    }
+
+    const arquivos = await uploadSolicitacaoFiles(created.id, files)
+    await updateDoc(doc(db, COLLECTION_NAME, created.id), {
+      arquivos,
+      updatedAt: serverTimestamp(),
     })
 
-    const url = `${API_BASE_URL}/solicitacoes`
-    console.log('Enviando requisição para:', url)
-
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-      // Não definir Content-Type manualmente - o browser define automaticamente com boundary para FormData
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      let errorData
+    return created.id
+  } catch (error: unknown) {
+    if (createdId) {
       try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = { error: errorText || `Erro HTTP ${response.status}` }
+        await deleteDoc(doc(db, COLLECTION_NAME, createdId))
+      } catch (rollbackError: unknown) {
+        console.error('Erro ao reverter solicitação sem anexos:', rollbackError)
       }
-      throw new Error(errorData.error || `Erro ao criar solicitação (${response.status})`)
     }
 
-    const data = await response.json()
-    return data.id
-  } catch (error: any) {
     console.error('Erro ao criar solicitação:', error)
-    
-    // Mensagens de erro mais específicas
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-      throw new Error(
-        'Não foi possível conectar ao servidor. Verifique se o servidor backend está rodando na porta 3001.'
-      )
-    }
-    
-    throw new Error(error.message || 'Erro ao criar solicitação. Tente novamente.')
+    const message = error instanceof Error ? error.message : 'Erro ao criar solicitação.'
+    throw new Error(message)
   }
 }
 
-// Buscar todas as solicitações
 export const getAllSolicitacoes = async (): Promise<SolicitacaoWithFiles[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes`)
-
-    if (!response.ok) {
-      throw new Error('Erro ao buscar solicitações')
-    }
-
-    const data = await response.json()
-    
-    // Converter datas de string para Date
-    return data.map((s: any) => ({
-      ...s,
-      createdAt: s.createdAt ? new Date(s.createdAt) : undefined,
-      updatedAt: s.updatedAt ? new Date(s.updatedAt) : undefined,
-      arquivos: s.arquivos || [],
-    }))
-  } catch (error) {
+    const snapshot = await getDocs(query(solicitacoesRef, orderBy('createdAt', 'desc')))
+    return snapshot.docs.map((item) => mapSolicitacao(item.id, item.data()))
+  } catch (error: unknown) {
     console.error('Erro ao buscar solicitações:', error)
-    throw new Error('Erro ao buscar solicitações. Tente novamente.')
+    const message = error instanceof Error ? error.message : 'Erro ao buscar solicitações.'
+    throw new Error(message)
   }
 }
 
-// Buscar solicitação por ID
 export const getSolicitacaoById = async (id: string): Promise<SolicitacaoWithFiles | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`)
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null
-      }
-      throw new Error('Erro ao buscar solicitação')
+    const snapshot = await getDoc(doc(db, COLLECTION_NAME, id))
+    if (!snapshot.exists()) {
+      return null
     }
 
-    const data = await response.json()
-    
-    return {
-      ...data,
-      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-      updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-      arquivos: data.arquivos || [],
-    }
-  } catch (error) {
+    return mapSolicitacao(snapshot.id, snapshot.data())
+  } catch (error: unknown) {
     console.error('Erro ao buscar solicitação:', error)
     throw new Error('Erro ao buscar solicitação. Tente novamente.')
   }
 }
 
-// Atualizar solicitação
 export const updateSolicitacao = async (
   id: string,
-  updates: Partial<Solicitacao>
+  updates: Partial<Solicitacao>,
 ): Promise<SolicitacaoWithFiles> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates),
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erro ao atualizar solicitação' }))
-      throw new Error(error.error || 'Erro ao atualizar solicitação')
+    const refDoc = doc(db, COLLECTION_NAME, id)
+    const existing = await getDoc(refDoc)
+    if (!existing.exists()) {
+      throw new Error('Solicitação não encontrada')
     }
 
-    const data = await response.json()
-    
-    return {
-      ...data,
-      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-      updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-      analisadoEm: data.analisadoEm ? new Date(data.analisadoEm) : undefined,
-      arquivos: data.arquivos || [],
+    const payload: Record<string, unknown> = {
+      ...updates,
+      updatedAt: serverTimestamp(),
     }
-  } catch (error: any) {
+
+    if (updates.arquivos) {
+      payload.arquivos = updates.arquivos
+    }
+
+    await updateDoc(refDoc, payload)
+    const updated = await getDoc(refDoc)
+    return mapSolicitacao(updated.id, updated.data() ?? {})
+  } catch (error: unknown) {
     console.error('Erro ao atualizar solicitação:', error)
-    throw new Error(error.message || 'Erro ao atualizar solicitação. Tente novamente.')
+    const message = error instanceof Error ? error.message : 'Erro ao atualizar solicitação.'
+    throw new Error(message)
   }
 }
 
-// Deletar solicitação
 export const deleteSolicitacao = async (id: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}`, {
-      method: 'DELETE',
-    })
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erro ao deletar solicitação' }))
-      throw new Error(error.error || 'Erro ao deletar solicitação')
-    }
-  } catch (error: any) {
+    await deleteDoc(doc(db, COLLECTION_NAME, id))
+  } catch (error: unknown) {
     console.error('Erro ao deletar solicitação:', error)
-    throw new Error(error.message || 'Erro ao deletar solicitação. Tente novamente.')
+    const message = error instanceof Error ? error.message : 'Erro ao deletar solicitação.'
+    throw new Error(message)
   }
 }
 
-// Analisar solicitação com IA
 export const analisarSolicitacaoComIA = async (
   id: string,
   promptCustomizado?: string,
   novosPDFs?: File[],
-  tiposProjetoPraComparar?: string[]
+  tiposProjetoPraComparar?: string[],
 ): Promise<SolicitacaoWithFiles> => {
   try {
-    const formData = new FormData()
-    
-    // Adicionar prompt customizado se fornecido
-    if (promptCustomizado) {
-      formData.append('promptCustomizado', promptCustomizado)
-    }
-
-    if (tiposProjetoPraComparar && tiposProjetoPraComparar.length > 0) {
-      formData.append('tiposProjetoPraComparar', JSON.stringify(tiposProjetoPraComparar))
-    }
-    
-    // Adicionar novos PDFs se fornecidos
-    if (novosPDFs && novosPDFs.length > 0) {
-      novosPDFs.forEach((file) => {
-        formData.append('novosPDFs', file)
-      })
-    }
-
-    const response = await fetch(`${API_BASE_URL}/solicitacoes/${id}/analisar`, {
-      method: 'POST',
-      body: formData,
-      // Não definir Content-Type - o browser define automaticamente com boundary para FormData
+    const callable = httpsCallable(functions, 'analisarSolicitacao', {
+      // A análise com PDF + norma pode levar alguns minutos.
+      timeout: 540000,
+    })
+    const response = await callable({
+      solicitacaoId: id,
+      promptCustomizado,
+      tiposProjetoPraComparar,
+      novosPDFsCount: novosPDFs?.length ?? 0,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Erro ao analisar solicitação' }))
-      const msg = errorData.message || errorData.error || 'Erro ao analisar solicitação'
-      throw new Error(msg)
+    const data = response.data as SolicitacaoWithFiles | undefined
+    if (!data?.id) {
+      throw new Error('Resposta inválida da Cloud Function de análise.')
     }
 
-    const data = await response.json()
-    
     return {
       ...data,
-      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-      updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-      analisadoEm: data.analisadoEm ? new Date(data.analisadoEm) : undefined,
-      arquivos: data.arquivos || [],
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+      analisadoEm: toDate(data.analisadoEm),
+      arquivos: parseArquivos(data.arquivos),
+      arquivosUrls: parseArquivos(data.arquivos),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao analisar solicitação:', error)
-    throw new Error(error.message || 'Erro ao analisar solicitação. Tente novamente.')
+    const firebaseCode =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      typeof (error as { code?: unknown }).code === 'string'
+        ? (error as { code: string }).code
+        : ''
+    if (firebaseCode === 'functions/deadline-exceeded') {
+      throw new Error(
+        'A análise excedeu o tempo limite da chamada. Aguarde e atualize a página para verificar se o relatório foi concluído.',
+      )
+    }
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'A análise por IA estará disponível após o deploy das Cloud Functions.'
+    throw new Error(message)
   }
 }

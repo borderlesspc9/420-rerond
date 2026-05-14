@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { isAuthenticated, setSessionToken } from '../auth/session'
+import { useAuth } from '../auth/AuthProvider'
+import { login } from '../services/auth/authService'
 import './Login.css'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from =
@@ -15,21 +18,26 @@ export default function Login() {
       : '/dashboard'
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (!authLoading && user) {
       navigate(from, { replace: true })
     }
-  }, [navigate, from])
+  }, [authLoading, user, navigate, from])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
 
-    // Sem endpoint /auth/login no backend: sessão local até integrar auth real.
-    setTimeout(() => {
-      setSessionToken(crypto.randomUUID())
-      setLoading(false)
+    try {
+      await login(email, password)
       navigate(from, { replace: true })
-    }, 400)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Não foi possível entrar. Tente novamente.'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -59,7 +67,12 @@ export default function Login() {
               placeholder="••••••••"
             />
           </div>
-          <button type="submit" className="login-button" disabled={loading}>
+          {error && (
+            <p className="login-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button type="submit" className="login-button" disabled={loading || authLoading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>

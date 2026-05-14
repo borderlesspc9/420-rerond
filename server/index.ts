@@ -1,7 +1,6 @@
+import "./loadEnv.js";
 import express, { type Request } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
 import multer from "multer";
 import archiver from "archiver";
 import path from "path";
@@ -24,15 +23,12 @@ import {
   obterNormasSelecionadas,
   montarBlocoNormativoParaPrompt,
 } from "./services/normasService.js";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-dotenv.config({ path: path.resolve(process.cwd(), "src/.env") });
+import { solicitacaoStore } from "./services/solicitacaoStore.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, "");
@@ -145,11 +141,7 @@ const uploadPDFs = multer({
 // GET /api/solicitacoes - Listar todas as solicitações
 app.get("/api/solicitacoes", async (req, res) => {
   try {
-    const solicitacoes = await prisma.solicitacao.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const solicitacoes = await solicitacaoStore.findMany();
 
     // Converter arquivos de JSON string para array
     const solicitacoesComArquivos = solicitacoes.map((s) => ({
@@ -161,7 +153,13 @@ app.get("/api/solicitacoes", async (req, res) => {
     res.json(solicitacoesComArquivos);
   } catch (error) {
     console.error("Erro ao buscar solicitações:", error);
-    res.status(500).json({ error: "Erro ao buscar solicitações" });
+    const isDev = process.env.NODE_ENV !== "production";
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    res.status(500).json({
+      error: "Erro ao buscar solicitações",
+      ...(isDev && { details: message }),
+    });
   }
 });
 
@@ -169,9 +167,7 @@ app.get("/api/solicitacoes", async (req, res) => {
 app.get("/api/solicitacoes/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id },
-    });
+    const solicitacao = await solicitacaoStore.findUnique(id);
 
     if (!solicitacao) {
       return res.status(404).json({ error: "Solicitação não encontrada" });
@@ -212,6 +208,7 @@ app.post("/api/solicitacoes", upload.array("files"), async (req, res) => {
       analistaResponsavel,
       memorial,
       dataRecebimento,
+      numeroRevisao,
     } = req.body;
 
     if (!titulo || !tipoObra || !localizacao || !descricao) {
@@ -230,30 +227,32 @@ app.post("/api/solicitacoes", upload.array("files"), async (req, res) => {
       );
     }
 
-    const solicitacao = await prisma.solicitacao.create({
-      data: {
-        titulo,
-        tipoObra,
-        localizacao,
-        descricao,
-        status: status || "pendente",
-        arquivos: JSON.stringify(arquivosUrls),
-        createdBy: createdBy || null,
-        cliente: cliente || null,
-        kilometragem: kilometragem || null,
-        nroProcessoErp: nroProcessoErp || null,
-        rodovia: rodovia || null,
-        nomeConcessionaria: nomeConcessionaria || null,
-        sentido: sentido || null,
-        ocupacao: ocupacao || null,
-        municipioEstado: municipioEstado || null,
-        ocupacaoArea: ocupacaoArea || null,
-        responsavelTecnico: responsavelTecnico || null,
-        faseProjeto: faseProjeto || null,
-        analistaResponsavel: analistaResponsavel || null,
-        memorial: memorial || null,
-        dataRecebimento: dataRecebimento || null,
-      },
+    const solicitacao = await solicitacaoStore.create({
+      titulo,
+      tipoObra,
+      localizacao,
+      descricao,
+      status: status || "pendente",
+      arquivos: JSON.stringify(arquivosUrls),
+      relatorioIA: null,
+      analisadoPorIA: false,
+      analisadoEm: null,
+      createdBy: createdBy || null,
+      cliente: cliente || null,
+      kilometragem: kilometragem || null,
+      nroProcessoErp: nroProcessoErp || null,
+      rodovia: rodovia || null,
+      nomeConcessionaria: nomeConcessionaria || null,
+      sentido: sentido || null,
+      ocupacao: ocupacao || null,
+      municipioEstado: municipioEstado || null,
+      ocupacaoArea: ocupacaoArea || null,
+      responsavelTecnico: responsavelTecnico || null,
+      faseProjeto: faseProjeto || null,
+      analistaResponsavel: analistaResponsavel || null,
+      memorial: memorial || null,
+      dataRecebimento: dataRecebimento || null,
+      numeroRevisao: numeroRevisao || null,
     });
 
     res.status(201).json({
@@ -277,9 +276,7 @@ app.post(
       const tiposProjetoBody = req.body.tiposProjetoPraComparar;
 
       // Buscar solicitação
-      const solicitacao = await prisma.solicitacao.findUnique({
-        where: { id },
-      });
+      const solicitacao = await solicitacaoStore.findUnique(id);
 
       if (!solicitacao) {
         return res.status(404).json({ error: "Solicitação não encontrada" });
@@ -301,11 +298,8 @@ app.post(
 
         // Atualizar lista de arquivos da solicitação com os novos PDFs
         const todosArquivos = [...arquivosUrls, ...novosPDFsUrls];
-        await prisma.solicitacao.update({
-          where: { id },
-          data: {
-            arquivos: JSON.stringify(todosArquivos),
-          },
+        await solicitacaoStore.update(id, {
+          arquivos: JSON.stringify(todosArquivos),
         });
       }
 
@@ -340,6 +334,7 @@ app.post(
         analistaResponsavel: solicitacao.analistaResponsavel || "não informado",
         memorial: solicitacao.memorial || "não informado",
         dataRecebimento: solicitacao.dataRecebimento || "não informado",
+        numeroRevisao: solicitacao.numeroRevisao || "não informado",
         arquivosInfo:
           todosArquivosUrls.length > 0
             ? `${todosArquivosUrls.length} documento(s) anexado(s) (${arquivosUrls.length} existente(s)${novosPDFsUrls.length > 0 ? ` + ${novosPDFsUrls.length} novo(s)` : ""})`
@@ -376,10 +371,7 @@ app.post(
       );
 
       // Atualizar status para "em_analise"
-      await prisma.solicitacao.update({
-        where: { id },
-        data: { status: "em_analise" },
-      });
+      await solicitacaoStore.update(id, { status: "em_analise" });
 
       // Analisar com IA
       const relatorio = await analisarSolicitacaoComIA({
@@ -401,6 +393,7 @@ app.post(
         analistaResponsavel: solicitacao.analistaResponsavel ?? undefined,
         memorial: solicitacao.memorial ?? undefined,
         dataRecebimento: solicitacao.dataRecebimento ?? undefined,
+        numeroRevisao: solicitacao.numeroRevisao ?? undefined,
         arquivosPaths,
         promptCustomizado: promptParaUsar,
       });
@@ -410,9 +403,7 @@ app.post(
       );
 
       // Buscar solicitação atualizada para retornar
-      const solicitacaoAtualizada = await prisma.solicitacao.findUnique({
-        where: { id },
-      });
+      const solicitacaoAtualizada = await solicitacaoStore.findUnique(id);
 
       if (!solicitacaoAtualizada) {
         return res
@@ -421,14 +412,11 @@ app.post(
       }
 
       // Salvar relatório no banco
-      const solicitacaoFinal = await prisma.solicitacao.update({
-        where: { id },
-        data: {
-          relatorioIA: relatorio,
-          analisadoPorIA: true,
-          analisadoEm: new Date(),
-          status: "em_analise", // Mantém em análise para revisão manual
-        },
+      const solicitacaoFinal = await solicitacaoStore.update(id, {
+        relatorioIA: relatorio,
+        analisadoPorIA: true,
+        analisadoEm: new Date(),
+        status: "em_analise", // Mantém em análise para revisão manual
       });
 
       res.json({
@@ -444,10 +432,7 @@ app.post(
 
       // Atualizar status de volta para pendente em caso de erro
       try {
-        await prisma.solicitacao.update({
-          where: { id: req.params.id },
-          data: { status: "pendente" },
-        });
+        await solicitacaoStore.update(req.params.id, { status: "pendente" });
       } catch (updateError) {
         console.error("Erro ao atualizar status:", updateError);
       }
@@ -466,15 +451,12 @@ app.put("/api/solicitacoes/:id", async (req, res) => {
     const { id } = req.params;
     const { titulo, tipoObra, localizacao, descricao, status } = req.body;
 
-    const solicitacao = await prisma.solicitacao.update({
-      where: { id },
-      data: {
-        ...(titulo && { titulo }),
-        ...(tipoObra && { tipoObra }),
-        ...(localizacao && { localizacao }),
-        ...(descricao && { descricao }),
-        ...(status && { status }),
-      },
+    const solicitacao = await solicitacaoStore.update(id, {
+      ...(titulo && { titulo }),
+      ...(tipoObra && { tipoObra }),
+      ...(localizacao && { localizacao }),
+      ...(descricao && { descricao }),
+      ...(status && { status }),
     });
 
     res.json({
@@ -566,13 +548,7 @@ app.put("/api/prompts/:id", express.json(), (req, res) => {
 app.get("/api/solicitacoes/:id/download", async (req, res) => {
   try {
     const { id } = req.params;
-    const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        arquivos: true,
-      },
-    });
+    const solicitacao = await solicitacaoStore.findUnique(id);
 
     if (!solicitacao) {
       return res.status(404).json({ error: "Solicitação não encontrada" });
@@ -659,9 +635,7 @@ app.delete("/api/solicitacoes/:id", async (req, res) => {
     const { id } = req.params;
 
     // Buscar solicitação para deletar arquivos
-    const solicitacao = await prisma.solicitacao.findUnique({
-      where: { id },
-    });
+    const solicitacao = await solicitacaoStore.findUnique(id);
 
     if (solicitacao && solicitacao.arquivos) {
       const arquivosUrls = JSON.parse(solicitacao.arquivos) as string[];
@@ -677,9 +651,7 @@ app.delete("/api/solicitacoes/:id", async (req, res) => {
       });
     }
 
-    await prisma.solicitacao.delete({
-      where: { id },
-    });
+    await solicitacaoStore.delete(id);
 
     res.json({ message: "Solicitação deletada com sucesso" });
   } catch (error) {
@@ -696,12 +668,10 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on("SIGINT", async () => {
-  await prisma.$disconnect();
+process.on("SIGINT", () => {
   process.exit(0);
 });
 
-process.on("SIGTERM", async () => {
-  await prisma.$disconnect();
+process.on("SIGTERM", () => {
   process.exit(0);
 });

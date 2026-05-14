@@ -81,6 +81,33 @@
   min-height: 120px;
 }
 
+.add-concessionaria-row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-concessionaria-row input {
+  flex: 1;
+}
+
+.btn-add-concessionaria {
+  padding: 0 14px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  color: #333333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-add-concessionaria:hover {
+  background-color: #efefef;
+  border-color: #bdbdbd;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -268,6 +295,15 @@
   .form-row {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .add-concessionaria-row {
+    flex-direction: column;
+  }
+
+  .btn-add-concessionaria {
+    width: 100%;
+    min-height: 44px;
   }
 
   .upload-area {
