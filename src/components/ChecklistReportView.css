@@ -181,3 +181,57 @@
     min-width: 0;
   }
 }
+
+/* ---------- UI refresh / identidade Baseinfra ---------- */
+.checklist-report {
+  color: var(--color-text);
+}
+
+.checklist-report-empresa {
+  color: var(--color-primary-800);
+}
+
+.checklist-report-titulo {
+  color: var(--color-primary-900);
+}
+
+.checklist-report-protocolo {
+  background: linear-gradient(135deg, var(--color-primary-900), var(--color-primary-700));
+  border-radius: var(--radius-sm);
+}
+
+.checklist-report-identificacao {
+  background: var(--color-primary-50);
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.checklist-report-label {
+  color: var(--color-text-soft);
+}
+
+.checklist-report-valor {
+  color: var(--color-text);
+}
+
+.checklist-report-nota {
+  background: #123a8f;
+  border-radius: var(--radius-sm);
+}
+
+.checklist-report-table {
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.checklist-report-table thead {
+  background: linear-gradient(135deg, #123a8f, #2d67db);
+}
+
+.checklist-report-table td {
+  border-bottom-color: #dde8f8;
+}
+
+.checklist-report-table tbody tr:hover {
+  background: var(--color-primary-50);
+}

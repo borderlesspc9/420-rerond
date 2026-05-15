@@ -399,3 +399,129 @@
     padding: 8px 10px;
   }
 }
+
+/* ---------- UI refresh / identidade Baseinfra ---------- */
+.modal-reanalise-overlay {
+  background-color: rgba(14, 32, 66, 0.52);
+  backdrop-filter: blur(3px);
+}
+
+.modal-reanalise-container {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-reanalise-header {
+  border-bottom-color: #e1ebf9;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.modal-reanalise-header h2,
+.modal-reanalise-section-title,
+.modal-reanalise-description strong {
+  color: var(--color-primary-900);
+}
+
+.modal-reanalise-icon {
+  color: var(--color-primary-700);
+}
+
+.modal-reanalise-close {
+  color: var(--color-text-muted);
+}
+
+.modal-reanalise-close:hover {
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-900);
+}
+
+.modal-reanalise-description,
+.modal-reanalise-hint,
+.modal-reanalise-section-description {
+  color: var(--color-text-muted);
+}
+
+.modal-reanalise-textarea,
+.modal-reanalise-select {
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.modal-reanalise-textarea:focus,
+.modal-reanalise-select:focus {
+  border-color: var(--color-primary-700);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 4px rgba(35, 87, 196, 0.13);
+}
+
+.modal-reanalise-upload-area {
+  border-color: #bfd3ef;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #fbfdff 0%, #f2f8ff 100%);
+}
+
+.modal-reanalise-upload-area:hover,
+.modal-reanalise-upload-area.has-files {
+  border-color: var(--color-primary-700);
+  background: var(--color-primary-50);
+}
+
+.modal-reanalise-upload-icon {
+  color: var(--color-primary-700);
+}
+
+.modal-reanalise-upload-text {
+  color: var(--color-primary-900);
+}
+
+.modal-reanalise-upload-info {
+  color: var(--color-text-muted);
+}
+
+.modal-reanalise-file-item {
+  border: 1px solid #cbdcf4;
+  background-color: var(--color-primary-50);
+  border-radius: var(--radius-sm);
+}
+
+.modal-reanalise-file-name {
+  color: var(--color-text);
+}
+
+.modal-reanalise-file-remove {
+  color: var(--color-danger);
+}
+
+.modal-reanalise-file-remove:hover {
+  background-color: var(--color-danger-bg);
+}
+
+.modal-reanalise-error {
+  background: var(--color-danger-bg);
+  border-color: rgba(219, 54, 72, 0.3);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+}
+
+.modal-reanalise-btn-cancel {
+  background-color: var(--color-surface);
+  color: var(--color-primary-900);
+  border: 1px solid var(--color-border);
+}
+
+.modal-reanalise-btn-cancel:hover:not(:disabled) {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-700);
+}
+
+.modal-reanalise-btn-confirm {
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-600));
+  box-shadow: 0 8px 20px rgba(18, 58, 143, 0.2);
+}
+
+.modal-reanalise-btn-confirm:hover:not(:disabled) {
+  filter: brightness(1.03);
+}

@@ -22,6 +22,7 @@ import {
   buildAnalysisPrompt,
   buildInferTipoPrompt,
   type DadosFormulario,
+  type EscopoAnalisePrompt,
 } from "./config/prompts";
 
 const app = initializeApp();
@@ -37,6 +38,55 @@ const VALID_TIPOS: TipoRelatorio[] = ["pit", "obra_per", "obra_nao_per"];
 
 function isValidTipo(value: unknown): value is TipoRelatorio {
   return typeof value === "string" && VALID_TIPOS.includes(value as TipoRelatorio);
+}
+
+const DEFAULT_ESCOPO_ANALISE: EscopoAnalisePrompt = {
+  incluirDadosFormulario: true,
+  incluirDocumentosProjeto: true,
+  gerarChecklistConformidade: true,
+  gerarParecerTecnico: true,
+};
+
+function parseEscopoAnalise(value: unknown): EscopoAnalisePrompt {
+  if (!value || typeof value !== "object") {
+    return DEFAULT_ESCOPO_ANALISE;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const escopo: EscopoAnalisePrompt = {
+    incluirDadosFormulario:
+      typeof raw.incluirDadosFormulario === "boolean"
+        ? raw.incluirDadosFormulario
+        : DEFAULT_ESCOPO_ANALISE.incluirDadosFormulario,
+    incluirDocumentosProjeto:
+      typeof raw.incluirDocumentosProjeto === "boolean"
+        ? raw.incluirDocumentosProjeto
+        : DEFAULT_ESCOPO_ANALISE.incluirDocumentosProjeto,
+    gerarChecklistConformidade:
+      typeof raw.gerarChecklistConformidade === "boolean"
+        ? raw.gerarChecklistConformidade
+        : DEFAULT_ESCOPO_ANALISE.gerarChecklistConformidade,
+    gerarParecerTecnico:
+      typeof raw.gerarParecerTecnico === "boolean"
+        ? raw.gerarParecerTecnico
+        : DEFAULT_ESCOPO_ANALISE.gerarParecerTecnico,
+  };
+
+  if (!escopo.incluirDadosFormulario && !escopo.incluirDocumentosProjeto) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Selecione ao menos uma fonte de dados para análise.",
+    );
+  }
+
+  if (!escopo.gerarChecklistConformidade && !escopo.gerarParecerTecnico) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Selecione ao menos uma saída de relatório para geração.",
+    );
+  }
+
+  return escopo;
 }
 
 async function downloadStorageFile(url: string): Promise<Buffer> {
@@ -145,6 +195,21 @@ export const analisarSolicitacao = onCall(
       throw new HttpsError("invalid-argument", "solicitacaoId é obrigatório.");
     }
 
+    const promptCustomizadoRaw = request.data?.promptCustomizado;
+    const promptCustomizado =
+      typeof promptCustomizadoRaw === "string" && promptCustomizadoRaw.trim()
+        ? promptCustomizadoRaw.trim()
+        : undefined;
+
+    const tiposProjetoPraCompararRaw = Array.isArray(request.data?.tiposProjetoPraComparar)
+      ? request.data.tiposProjetoPraComparar
+      : [];
+    const tiposProjetoPraComparar = tiposProjetoPraCompararRaw
+      .map((item: unknown) => String(item).trim().toLowerCase())
+      .filter((item: string): item is TipoRelatorio => isValidTipo(item));
+
+    const escopoAnalise = parseEscopoAnalise(request.data?.escopoAnalise);
+
     const apiKey =
       openaiApiKey.value()?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
     if (!apiKey) {
@@ -190,26 +255,53 @@ export const analisarSolicitacao = onCall(
         }
       }
 
-      let tipoRelatorio: TipoRelatorio;
+      let tipoBase: TipoRelatorio;
       if (isValidTipo(data.tipoRelatorio)) {
-        tipoRelatorio = data.tipoRelatorio;
-        console.log(`Tipo de relatório (formulário): ${tipoRelatorio}`);
+        tipoBase = data.tipoRelatorio;
+        console.log(`Tipo de relatório (formulário): ${tipoBase}`);
       } else {
-        console.log("tipoRelatorio não informado, inferindo via IA...");
-        tipoRelatorio = await inferTipoRelatorio(pdfBuffers);
-        console.log(`Tipo inferido: ${tipoRelatorio}`);
+        if (pdfBuffers.length > 0) {
+          console.log("tipoRelatorio não informado, inferindo via IA...");
+          tipoBase = await inferTipoRelatorio(pdfBuffers);
+          console.log(`Tipo inferido: ${tipoBase}`);
+        } else {
+          tipoBase = "pit";
+          console.log("Sem PDFs para inferência; usando tipo padrão 'pit'.");
+        }
       }
 
-      const tipoConfig = getTipoProjetoConfig(tipoRelatorio);
-      if (!tipoConfig) {
-        throw new HttpsError(
-          "internal",
-          `Configuração não encontrada para tipo: ${tipoRelatorio}`,
-        );
-      }
+      const tiposAnalise = Array.from(
+        new Set<TipoRelatorio>(
+          tiposProjetoPraComparar.length > 0
+            ? tiposProjetoPraComparar
+            : [tipoBase],
+        ),
+      );
+      console.log(`Tipos de análise selecionados: ${tiposAnalise.join(", ")}`);
 
-      console.log(`Carregando norma(s) para tipo: ${tipoConfig.nome}`);
-      const normasPDFs = carregarNormasPDFParaTipo(tipoRelatorio);
+      const tiposConfig = tiposAnalise.map((tipo) => {
+        const config = getTipoProjetoConfig(tipo);
+        if (!config) {
+          throw new HttpsError(
+            "internal",
+            `Configuração não encontrada para tipo: ${tipo}`,
+          );
+        }
+        return { tipo, config };
+      });
+
+      const normasMap = new Map<
+        string,
+        { fonte: (ReturnType<typeof carregarNormasPDFParaTipo>[number])["fonte"]; buffer: Buffer }
+      >();
+      for (const tipo of tiposAnalise) {
+        const normasDoTipo = carregarNormasPDFParaTipo(tipo);
+        for (const norma of normasDoTipo) {
+          normasMap.set(norma.fonte.id, norma);
+        }
+      }
+      const normasPDFs = Array.from(normasMap.values());
+      console.log(`Normas carregadas: ${normasPDFs.length}`);
 
       const dadosForm: DadosFormulario = {
         titulo: data.titulo ?? "",
@@ -233,13 +325,23 @@ export const analisarSolicitacao = onCall(
         numeroRevisao: data.numeroRevisao,
       };
 
-      const requisitosFormatados = listarRequisitosFormatados(tipoRelatorio);
+      const requisitosFormatados = tiposConfig
+        .map(
+          ({ tipo, config }) =>
+            `### ${config.nome} (${tipo})\n${listarRequisitosFormatados(tipo)}`,
+        )
+        .join("\n\n");
+      const tiposProjetoNome = tiposConfig
+        .map(({ config }) => config.nome)
+        .join(", ");
       const systemPrompt = buildSystemPrompt();
       const analysisPrompt = buildAnalysisPrompt(
         dadosForm,
-        tipoRelatorio,
+        tiposAnalise,
         requisitosFormatados,
-        tipoConfig.nome,
+        tiposProjetoNome,
+        escopoAnalise,
+        promptCustomizado,
       );
 
       const parts: InputPart[] = [];
@@ -255,17 +357,21 @@ export const analisarSolicitacao = onCall(
         );
       }
 
-      for (const pdf of pdfBuffers) {
-        parts.push(buildFileInput(pdf.filename, pdf.buffer));
-        parts.push(
-          buildTextInput(`[DOCUMENTO DO PROJETO: ${pdf.filename}]`),
-        );
+      if (escopoAnalise.incluirDocumentosProjeto) {
+        for (const pdf of pdfBuffers) {
+          parts.push(buildFileInput(pdf.filename, pdf.buffer));
+          parts.push(
+            buildTextInput(`[DOCUMENTO DO PROJETO: ${pdf.filename}]`),
+          );
+        }
       }
 
       parts.push(buildTextInput(analysisPrompt));
 
       console.log(
-        `Enviando para OpenAI: ${normasPDFs.length} norma(s) + ${pdfBuffers.length} PDF(s) do projeto`,
+        `Enviando para OpenAI: ${normasPDFs.length} norma(s) + ${
+          escopoAnalise.incluirDocumentosProjeto ? pdfBuffers.length : 0
+        } PDF(s) do projeto`,
       );
       const result = await analyze(parts, {
         maxOutputTokens: 8000,
@@ -277,13 +383,19 @@ export const analisarSolicitacao = onCall(
       );
 
       const { checklist, parecerTecnico } = parseAIResponse(result.content);
+      const checklistFinal = escopoAnalise.gerarChecklistConformidade ? checklist : [];
+      const parecerFinal = escopoAnalise.gerarParecerTecnico ? parecerTecnico : "";
 
       await docRef.update({
         status: "em_analise",
-        tipoRelatorio,
+        tipoRelatorio: tipoBase,
+        tiposProjetoComparados: tiposAnalise,
+        escopoAnalise,
         relatorioIA: result.content,
-        checklistConformidade: JSON.stringify(checklist),
-        parecerTecnico,
+        checklistConformidade: escopoAnalise.gerarChecklistConformidade
+          ? JSON.stringify(checklistFinal)
+          : null,
+        parecerTecnico: escopoAnalise.gerarParecerTecnico ? parecerFinal : null,
         analisadoPorIA: true,
         analisadoEm: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),

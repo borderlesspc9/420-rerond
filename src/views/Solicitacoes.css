@@ -369,3 +369,115 @@
     width: 100%;
   }
 }
+
+/* ---------- UI refresh / identidade Baseinfra ---------- */
+.solicitacoes-container {
+  padding: 30px 26px 24px;
+}
+
+.solicitacoes-header h1 {
+  color: var(--color-primary-900);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+.btn-nova-solicitacao,
+.btn-reanalisar {
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-600));
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 20px rgba(18, 58, 143, 0.2);
+}
+
+.btn-nova-solicitacao:hover,
+.btn-reanalisar:hover:not(:disabled) {
+  filter: brightness(1.02);
+}
+
+.solicitacao-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: linear-gradient(175deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.solicitacao-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.solicitacao-header h3 {
+  color: var(--color-text);
+}
+
+.status-badge {
+  font-weight: 700;
+  border-radius: 999px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.info-item,
+.solicitacao-descricao,
+.arquivos-count {
+  color: var(--color-text-muted);
+}
+
+.arquivos-count,
+.solicitacao-actions {
+  border-top-color: #e6eef9;
+}
+
+.solicitacao-ia-badge {
+  background-color: var(--color-primary-50);
+  border-color: #bcd2f4;
+  color: var(--color-primary-800);
+  border-radius: var(--radius-sm);
+}
+
+.ia-date {
+  color: var(--color-primary-700);
+  font-weight: 600;
+}
+
+.btn-ver-relatorio {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary-800);
+}
+
+.btn-ver-relatorio:hover {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-700);
+}
+
+.btn-aprovar {
+  background: linear-gradient(135deg, #22b372, #1a995f);
+}
+
+.btn-rejeitar {
+  background: linear-gradient(135deg, #eb4b5f, #d9384b);
+}
+
+.btn-aprovar:hover:not(:disabled),
+.btn-rejeitar:hover:not(:disabled) {
+  filter: brightness(1.03);
+}
+
+.loading-spinner {
+  border-color: #dbe6f5;
+  border-top-color: var(--color-primary-700);
+}
+
+.error-message {
+  background: var(--color-danger-bg);
+  border-color: rgba(219, 54, 72, 0.3);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+.btn-retry {
+  background: var(--color-danger);
+}
+
+.empty-state {
+  color: var(--color-text-muted);
+}

@@ -361,3 +361,132 @@
     padding: 20px 12px;
   }
 }
+
+/* ---------- UI refresh / identidade Baseinfra ---------- */
+.nova-solicitacao-container {
+  padding: 30px 26px 24px;
+}
+
+.form-section {
+  background: linear-gradient(176deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  color: var(--color-primary-900);
+  border-bottom-color: #dfe9f8;
+  letter-spacing: -0.01em;
+}
+
+.form-group label {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  background: var(--color-surface-alt);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--color-primary-700);
+  box-shadow: 0 0 0 4px rgba(35, 87, 196, 0.13);
+  background: var(--color-surface);
+}
+
+.btn-add-concessionaria {
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-primary-800);
+}
+
+.btn-add-concessionaria:hover {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-700);
+}
+
+.upload-area {
+  border-color: #bfd3ef;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #fbfdff 0%, #f2f8ff 100%);
+}
+
+.upload-area:hover {
+  border-color: var(--color-primary-700);
+  background: linear-gradient(180deg, #f8fbff 0%, #eaf2ff 100%);
+}
+
+.upload-area.dragging {
+  border-color: var(--color-primary-700);
+  background: var(--color-primary-100);
+}
+
+.upload-icon {
+  color: var(--color-primary-700);
+}
+
+.upload-text {
+  color: var(--color-primary-900);
+}
+
+.upload-info {
+  color: var(--color-text-muted);
+}
+
+.select-files-button,
+.btn-criar {
+  background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-600));
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 18px rgba(18, 58, 143, 0.22);
+}
+
+.select-files-button:hover,
+.btn-criar:hover {
+  filter: brightness(1.03);
+}
+
+.btn-cancelar {
+  background-color: var(--color-surface);
+  color: var(--color-primary-900);
+  border-color: var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.btn-cancelar:hover {
+  background-color: var(--color-primary-50);
+  border-color: var(--color-primary-700);
+}
+
+.file-item {
+  background-color: var(--color-primary-50);
+  border-color: #cbdcf4;
+  border-radius: var(--radius-sm);
+}
+
+.file-name {
+  color: var(--color-text);
+}
+
+.file-size {
+  color: var(--color-text-muted);
+}
+
+.remove-file-button:hover {
+  color: var(--color-danger);
+}
+
+.form-error {
+  background: var(--color-danger-bg);
+  border-color: rgba(219, 54, 72, 0.3);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+}

@@ -1,5 +1,12 @@
 export type TipoRelatorio = 'pit' | 'obra_per' | 'obra_nao_per'
 
+export interface EscopoAnalise {
+  incluirDadosFormulario: boolean
+  incluirDocumentosProjeto: boolean
+  gerarChecklistConformidade: boolean
+  gerarParecerTecnico: boolean
+}
+
 export interface ChecklistItem {
   item: string
   status: 'OK' | 'NAO_CONFORME' | 'INFORMACAO_AUSENTE'

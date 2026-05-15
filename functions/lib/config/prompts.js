@@ -16,8 +16,9 @@ REGRAS IMPORTANTES:
 - Cite sempre a norma, o artigo, parágrafo ou página que fundamenta cada conclusão
 - Em caso de dúvida sobre o tipo de projeto, baseie-se no conteúdo dos documentos`;
 }
-function buildAnalysisPrompt(dados, tipoRelatorio, requisitosFormatados, tipoProjetoNome) {
-    return `DADOS DO FORMULÁRIO DE SOLICITAÇÃO:
+function buildAnalysisPrompt(dados, tiposRelatorio, requisitosFormatados, tiposProjetoNome, escopo, promptCustomizado) {
+    const blocoFormulario = escopo.incluirDadosFormulario
+        ? `DADOS DO FORMULÁRIO DE SOLICITAÇÃO:
 - Cliente: ${v(dados.cliente)}
 - Kilometragem: ${v(dados.kilometragem)}
 - Nro Processo ERP: ${v(dados.nroProcessoErp)}
@@ -36,18 +37,45 @@ function buildAnalysisPrompt(dados, tipoRelatorio, requisitosFormatados, tipoPro
 - Título: ${dados.titulo}
 - Tipo de Obra: ${dados.tipoObra}
 - Localização: ${dados.localizacao}
-- Descrição: ${dados.descricao}
+ - Descrição: ${dados.descricao}`
+        : `DADOS DO FORMULÁRIO DE SOLICITAÇÃO: NÃO UTILIZAR.
+Ignore completamente campos do formulário e baseie a análise apenas no restante do contexto permitido.`;
+    const instrucoesEntrada = [
+        escopo.incluirDadosFormulario
+            ? "Formulário: incluído."
+            : "Formulário: excluído por decisão do usuário.",
+        escopo.incluirDocumentosProjeto
+            ? "Documentos do projeto (PDFs anexados): incluídos."
+            : "Documentos do projeto (PDFs anexados): excluídos por decisão do usuário.",
+    ].join("\n- ");
+    const instrucoesSaida = [
+        escopo.gerarChecklistConformidade
+            ? "Gerar checklist de conformidade."
+            : "NÃO gerar checklist de conformidade.",
+        escopo.gerarParecerTecnico
+            ? "Gerar parecer técnico em markdown."
+            : "NÃO gerar parecer técnico.",
+    ].join("\n- ");
+    const tiposSelecionados = tiposRelatorio.join(", ");
+    const promptAdicional = promptCustomizado?.trim()
+        ? `\nPROMPT ADICIONAL DO USUÁRIO (priorize sem quebrar as regras estruturais de saída):\n${promptCustomizado.trim()}`
+        : "";
+    return `${blocoFormulario}
 
-TIPO DE PROJETO PARA ANÁLISE: ${tipoProjetoNome} (${tipoRelatorio})
+TIPOS DE PROJETO PARA ANÁLISE NORMATIVA: ${tiposProjetoNome} (${tiposSelecionados})
 
 REQUISITOS DE CONFORMIDADE A VERIFICAR:
 ${requisitosFormatados}
 
 INSTRUÇÕES:
-1. Leia integralmente o PDF da norma enviado como referência.
-2. Leia integralmente o(s) PDF(s) do projeto enviado(s) pelo cliente.
-3. Compare os dados do formulário acima com o conteúdo dos documentos.
-4. Para cada requisito listado, verifique se o projeto atende, não atende ou se a informação está ausente.
+1. Respeite estritamente o escopo definido pelo usuário:
+- ${instrucoesEntrada}
+2. Leia integralmente os PDFs de norma enviados como referência.
+3. Se documentos do projeto estiverem incluídos, leia integralmente os PDFs do cliente.
+4. Compare o que estiver no escopo com os requisitos listados.
+5. Para cada requisito listado, verifique se o projeto atende, não atende ou se a informação está ausente.
+6. Respeite estritamente as saídas pedidas:
+- ${instrucoesSaida}${promptAdicional}
 
 FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto antes ou depois:
 {
@@ -61,7 +89,7 @@ FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto a
       "orientacao": "O que precisa ser corrigido (vazio se OK)"
     }
   ],
-  "parecerTecnico": "PARECER EM MARKDOWN conforme estrutura abaixo"
+  "parecerTecnico": "PARECER EM MARKDOWN conforme estrutura abaixo (ou string vazia se não solicitado)"
 }
 
 ESTRUTURA DO parecerTecnico (Markdown):

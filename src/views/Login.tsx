@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { Lock, Mail, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../auth/AuthProvider'
 import { login } from '../services/auth/authService'
 import './Login.css'
@@ -42,40 +43,60 @@ export default function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-box">
-        <h1 className="login-title">Login</h1>
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="seu@email.com"
-            />
+      <div className="login-shell">
+        <div className="login-box">
+          <div className="login-brand">
+            <img src="/logo420.png" alt="Logo Baseinfra" className="login-logo" />
           </div>
-          <div className="form-group">
-            <label htmlFor="password">Senha</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
+
+          <div className="login-trust-pill" aria-hidden="true">
+            <ShieldCheck size={14} />
+            <span>Acesso seguro Baseinfra</span>
           </div>
-          {error && (
-            <p className="login-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button type="submit" className="login-button" disabled={loading || authLoading}>
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <div className="input-shell">
+                <Mail size={18} className="input-icon" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="seu@email.com"
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Senha</label>
+              <div className="input-shell">
+                <Lock size={18} className="input-icon" />
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+            {error && (
+              <p className="login-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button type="submit" className="login-button" disabled={loading || authLoading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <p className="login-footnote">
+            Plataforma de conformidade para engenharia rodoviária.
+          </p>
+        </div>
       </div>
     </div>
   )

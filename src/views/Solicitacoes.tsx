@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle } from 'lucide-react'
 import { getAllSolicitacoes, analisarSolicitacaoComIA, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
-import type { SolicitacaoWithFiles } from '../models/Solicitacao.js'
+import type { EscopoAnalise, SolicitacaoWithFiles } from '../models/Solicitacao.js'
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
 import './Solicitacoes.css'
@@ -123,7 +123,8 @@ export default function Solicitacoes() {
   const handleReanalisar = async (
     promptCustomizado?: string,
     novosPDFs?: File[],
-    tiposProjetoPraComparar?: string[]
+    tiposProjetoPraComparar?: string[],
+    escopoAnalise?: EscopoAnalise
   ) => {
     if (!modalReanaliseAberto?.id) return
 
@@ -133,7 +134,8 @@ export default function Solicitacoes() {
         modalReanaliseAberto.id, 
         promptCustomizado,
         novosPDFs,
-        tiposProjetoPraComparar
+        tiposProjetoPraComparar,
+        escopoAnalise
       )
       
       // Atualizar a solicitação na lista

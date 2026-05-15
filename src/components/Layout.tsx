@@ -39,7 +39,7 @@ export default function Layout() {
 
       <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
-          <h2>Portal de Análise</h2>
+          <img src="/logo420.png" alt="Baseinfra" className="sidebar-logo" />
         </div>
         <nav className="sidebar-nav">
           <Link

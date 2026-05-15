@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { httpsCallable } from 'firebase/functions'
-import type { Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao'
+import type { EscopoAnalise, Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao'
 import { auth, db, functions, storage } from '../../lib/firebase'
 
 const COLLECTION_NAME =
@@ -291,6 +291,7 @@ export const analisarSolicitacaoComIA = async (
   promptCustomizado?: string,
   novosPDFs?: File[],
   tiposProjetoPraComparar?: string[],
+  escopoAnalise?: EscopoAnalise,
 ): Promise<SolicitacaoWithFiles> => {
   try {
     const callable = httpsCallable(functions, 'analisarSolicitacao', {
@@ -301,6 +302,7 @@ export const analisarSolicitacaoComIA = async (
       solicitacaoId: id,
       promptCustomizado,
       tiposProjetoPraComparar,
+      escopoAnalise,
       novosPDFsCount: novosPDFs?.length ?? 0,
     })
 

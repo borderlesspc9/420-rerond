@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Sparkles, Upload, FileText } from 'lucide-react'
+import type { EscopoAnalise } from '../models/Solicitacao'
 import './ModalReanalise.css'
 
 const TIPOS_PROJETO_OPTIONS = [
@@ -17,7 +18,8 @@ interface ModalReanaliseProps {
   onConfirm: (
     promptCustomizado?: string,
     novosPDFs?: File[],
-    tiposProjetoPraComparar?: string[]
+    tiposProjetoPraComparar?: string[],
+    escopoAnalise?: EscopoAnalise
   ) => Promise<void>
   onClose: () => void
 }
@@ -33,6 +35,12 @@ export default function ModalReanalise({
   const [usarPromptCustomizado, setUsarPromptCustomizado] = useState(false)
   const [novosPDFs, setNovosPDFs] = useState<File[]>([])
   const [tiposProjetoSelecionados, setTiposProjetoSelecionados] = useState<string[]>([])
+  const [escopoAnalise, setEscopoAnalise] = useState<EscopoAnalise>({
+    incluirDadosFormulario: true,
+    incluirDocumentosProjeto: true,
+    gerarChecklistConformidade: true,
+    gerarParecerTecnico: true,
+  })
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -83,13 +91,25 @@ export default function ModalReanalise({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErro(null)
+
+    if (!escopoAnalise.incluirDadosFormulario && !escopoAnalise.incluirDocumentosProjeto) {
+      setErro('Selecione ao menos uma fonte de dados para a IA (formulário ou documentos).')
+      return
+    }
+
+    if (!escopoAnalise.gerarChecklistConformidade && !escopoAnalise.gerarParecerTecnico) {
+      setErro('Selecione ao menos uma saída (checklist ou parecer técnico).')
+      return
+    }
+
     setLoading(true)
 
     try {
       await onConfirm(
         usarPromptCustomizado && promptCustomizado ? promptCustomizado : undefined,
         novosPDFs.length > 0 ? novosPDFs : undefined,
-        tiposProjetoSelecionados.length > 0 ? tiposProjetoSelecionados : undefined
+        tiposProjetoSelecionados.length > 0 ? tiposProjetoSelecionados : undefined,
+        escopoAnalise
       )
       onClose()
     } catch (error: any) {
@@ -129,6 +149,79 @@ export default function ModalReanalise({
 
           <form onSubmit={handleSubmit}>
             {/* Seção de Upload de PDFs */}
+            <div className="modal-reanalise-section">
+              <label className="modal-reanalise-section-title">
+                Escopo da Análise de IA
+              </label>
+              <p className="modal-reanalise-section-description">
+                Defina exatamente quais informações entram na análise e quais saídas o sistema deve gerar.
+              </p>
+
+              <div className="modal-reanalise-option">
+                <label className="modal-reanalise-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={escopoAnalise.incluirDadosFormulario}
+                    onChange={(e) =>
+                      setEscopoAnalise((prev) => ({
+                        ...prev,
+                        incluirDadosFormulario: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Usar dados do formulário da solicitação</span>
+                </label>
+              </div>
+
+              <div className="modal-reanalise-option">
+                <label className="modal-reanalise-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={escopoAnalise.incluirDocumentosProjeto}
+                    onChange={(e) =>
+                      setEscopoAnalise((prev) => ({
+                        ...prev,
+                        incluirDocumentosProjeto: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Usar documentos anexados (PDFs do projeto)</span>
+                </label>
+              </div>
+
+              <div className="modal-reanalise-option">
+                <label className="modal-reanalise-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={escopoAnalise.gerarChecklistConformidade}
+                    onChange={(e) =>
+                      setEscopoAnalise((prev) => ({
+                        ...prev,
+                        gerarChecklistConformidade: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Gerar checklist de conformidade</span>
+                </label>
+              </div>
+
+              <div className="modal-reanalise-option">
+                <label className="modal-reanalise-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={escopoAnalise.gerarParecerTecnico}
+                    onChange={(e) =>
+                      setEscopoAnalise((prev) => ({
+                        ...prev,
+                        gerarParecerTecnico: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Gerar parecer técnico em markdown</span>
+                </label>
+              </div>
+            </div>
+
             <div className="modal-reanalise-section">
               <label className="modal-reanalise-section-title">
                 Delimitação de Tipos para Comparação Normativa
