@@ -1,0 +1,127 @@
+{
+  "cenario": "Teste ECO101 — Sooretama, travessia aérea, ART genérica, licença só mencionada no memorial",
+  "dadosExtraidos": {
+    "rodovia": "BR-101",
+    "kilometragem": "KM 85+200",
+    "municipio": "Sooretama",
+    "uf": "ES",
+    "interessado": "Companhia Energética Exemplo S/A",
+    "numeroArt": "ES20240012345",
+    "responsavelTecnico": "Eng. João da Silva",
+    "extensao": "350 m",
+    "tipoIntervencao": "Instalação de travessia aérea de energia"
+  },
+  "conferenciaInputs": [
+    {
+      "campo": "interessado",
+      "valorFormulario": "Companhia Energética Exemplo S/A",
+      "valorDocumento": "Companhia Energética Exemplo S/A",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "rodovia",
+      "valorFormulario": "BR-101",
+      "valorDocumento": "BR-101",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "kilometragem",
+      "valorFormulario": "KM 85+200",
+      "valorDocumento": "KM 85+200",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "municipio",
+      "valorFormulario": "Sooretama/ES",
+      "valorDocumento": "Sooretama",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "uf",
+      "valorFormulario": "ES",
+      "valorDocumento": "ES",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "extensao",
+      "valorFormulario": "350 m",
+      "valorDocumento": "350 m",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "numeroArt",
+      "valorFormulario": "ES20240012345",
+      "valorDocumento": "ES20240012345",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "responsavelTecnico",
+      "valorFormulario": "Eng. João da Silva",
+      "valorDocumento": "Eng. João da Silva",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    },
+    {
+      "campo": "tipoIntervencao",
+      "valorFormulario": "Travessia aérea",
+      "valorDocumento": "Instalação de travessia aérea de energia",
+      "status": "COMPATIVEL",
+      "observacao": "Valores compatíveis após normalização."
+    }
+  ],
+  "nota_conferencia": "Campo 'cliente' NÃO aparece — é interno do sistema e foi excluído da conferência documental.",
+  "trechos_parecer_simulados": {
+    "memorial_descritivo_3_1_1": {
+      "conclusao": "Atende parcialmente",
+      "analise_resumo": "Memorial apresentado (Memorial_Descritivo.pdf, p. 3-5) descreve localização KM 85+200, município de Sooretama/ES, extensão de 350 m e tipo de intervenção (travessia aérea). Não foram localizados afastamentos laterais dos postes em relação ao bordo da pista/acostamento, nem altura livre da travessia aérea. A condição dos postes (existentes ou novos) não está explicitada. Parâmetros geométricos insuficientes para análise completa.",
+      "checklist_status": "NAO_CONFORME"
+    },
+    "art_3_3_3": {
+      "conclusao": "Atende parcialmente",
+      "analise_resumo": "ART nº ES20240012345 (ART.pdf, p. 1) apresentada, porém redigida de forma genérica, sem individualizar empreendimento, rodovia BR-101, km 85+200, ocupação em faixa de domínio e local específico da obra. Responsável técnico identificado, mas vínculo ao trecho não está comprovado.",
+      "checklist_status": "NAO_CONFORME"
+    },
+    "licenca_ambiental_3_3_5": {
+      "conclusao": "Atende parcialmente",
+      "analise_resumo": "Não foi apresentado documento específico de licença ambiental, dispensa ou inexigibilidade. Há apenas menção genérica no Memorial Descritivo (p. 7) de que 'a obra possui licença ambiental'. Sem o documento comprobatório, não é possível validar conformidade plena.",
+      "checklist_status": "NAO_CONFORME"
+    }
+  },
+  "checklist_amostra": [
+    {
+      "item": "ECO101_MEMORIAL_DESCRITIVO",
+      "categoria": "VOLUME_I",
+      "status": "NAO_CONFORME",
+      "situacaoEncontrada": "Memorial apresentado com dados básicos de localização e intervenção, porém sem afastamentos laterais, altura livre da travessia, condição dos postes nem parâmetros geométricos suficientes.",
+      "exigenciaNormativa": "Memorial descritivo completo com parâmetros técnicos da ocupação em faixa de domínio.",
+      "fundamentacao": "Manual ECO101 — Volume I, item Memorial Descritivo.",
+      "orientacao": "Complementar memorial com afastamentos laterais, altura livre, condição dos postes e detalhamento geométrico."
+    },
+    {
+      "item": "ECO101_ART",
+      "categoria": "VOLUME_III",
+      "status": "NAO_CONFORME",
+      "situacaoEncontrada": "ART genérica sem individualização de empreendimento, rodovia, km, ocupação em faixa de domínio e local da obra.",
+      "exigenciaNormativa": "ART específica vinculada ao objeto e ao trecho da intervenção.",
+      "fundamentacao": "Manual ECO101 — Volume III, item ART.",
+      "orientacao": "Apresentar ART retificada ou complementar com vínculo explícito ao trecho BR-101 km 85+200."
+    },
+    {
+      "item": "ECO101_LICENCA_AMBIENTAL",
+      "categoria": "VOLUME_III",
+      "status": "NAO_CONFORME",
+      "situacaoEncontrada": "Ausência de documento específico; apenas menção textual no memorial.",
+      "exigenciaNormativa": "Licença ambiental, dispensa ou comprovação de inexigibilidade.",
+      "fundamentacao": "Manual ECO101 — Volume III, item Licença Ambiental.",
+      "orientacao": "Anexar licença/dispensa/inexigibilidade ou retificar documentação."
+    }
+  ],
+  "conclusao_global": "A documentação atende parcialmente aos requisitos ECO101 analisados."
+}

@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTipoProjetoConfig = getTipoProjetoConfig;
 exports.getFontesParaTipo = getFontesParaTipo;
+exports.getRequisitosParaConcessionaria = getRequisitosParaConcessionaria;
 exports.getRequisitosParaTipo = getRequisitosParaTipo;
 exports.getMaxPaginas = getMaxPaginas;
 exports.carregarNormaPDF = carregarNormaPDF;
@@ -57,7 +58,16 @@ function getFontesParaTipo(tipo) {
         return [];
     return normas_json_1.default.fontes.filter((f) => config.fontes.includes(f.id));
 }
-function getRequisitosParaTipo(tipo) {
+function getRequisitosParaConcessionaria(concessionariaId) {
+    if (concessionariaId !== "eco101")
+        return [];
+    const cfg = normas_json_1.default.concessionarias?.eco101;
+    return cfg?.requisitos ?? [];
+}
+function getRequisitosParaTipo(tipo, concessionariaId) {
+    const eco101 = getRequisitosParaConcessionaria(concessionariaId);
+    if (eco101.length > 0)
+        return eco101;
     const config = getTipoProjetoConfig(tipo);
     return config?.requisitos ?? [];
 }
@@ -68,27 +78,39 @@ function getMaxPaginas(tipo) {
 function carregarNormaPDF(normaId) {
     const fonte = normas_json_1.default.fontes.find((f) => f.id === normaId);
     if (!fonte) {
-        throw new Error(`Norma não encontrada no catálogo: ${normaId}`);
+        console.warn(`Norma não encontrada no catálogo: ${normaId}`);
+        return null;
+    }
+    if (fonte.requerPdf === false) {
+        return null;
     }
     const pdfPath = path.join(NORMAS_PDF_DIR, fonte.pdf);
     if (!fs.existsSync(pdfPath)) {
-        throw new Error(`PDF da norma não encontrado: ${pdfPath}`);
+        console.warn(`PDF normativo ausente: ${pdfPath}`);
+        return null;
     }
     return fs.readFileSync(pdfPath);
 }
 function carregarNormasPDFParaTipo(tipo) {
     const fontes = getFontesParaTipo(tipo);
-    return fontes.map((fonte) => ({
-        fonte,
-        buffer: carregarNormaPDF(fonte.id),
-    }));
+    const resultados = [];
+    for (const fonte of fontes) {
+        const buffer = carregarNormaPDF(fonte.id);
+        if (buffer) {
+            resultados.push({ fonte, buffer });
+        }
+    }
+    return resultados;
 }
-function listarRequisitosFormatados(tipo) {
-    const requisitos = getRequisitosParaTipo(tipo);
+function listarRequisitosFormatados(tipo, concessionariaId) {
+    const requisitos = getRequisitosParaTipo(tipo, concessionariaId);
     if (requisitos.length === 0)
         return "Nenhum requisito configurado.";
     return requisitos
-        .map((r) => `- ${r.id}: ${r.descricao}`)
+        .map((r) => {
+        const cat = r.categoria ? ` [${r.categoria}]` : "";
+        return `- ${r.id}: ${r.descricao}${cat}`;
+    })
         .join("\n");
 }
 //# sourceMappingURL=normasService.js.map

@@ -14,7 +14,16 @@ import {
 } from 'firebase/firestore'
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { httpsCallable } from 'firebase/functions'
-import type { EscopoAnalise, Solicitacao, SolicitacaoWithFiles } from '../../models/Solicitacao'
+import type {
+  ArquivoMeta,
+  ComplementoChecklistItem,
+  ConferenciaInput,
+  DadosExtraidosAnalise,
+  EscopoAnalise,
+  Solicitacao,
+  SolicitacaoWithFiles,
+  TipoDocumentoAnexo,
+} from '../../models/Solicitacao'
 import { auth, db, functions, storage } from '../../lib/firebase'
 
 const COLLECTION_NAME =
@@ -53,8 +62,60 @@ const parseArquivos = (value: unknown): string[] => {
   return []
 }
 
+const parseArquivosMeta = (value: unknown): ArquivoMeta[] => {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => {
+      const raw = item as Record<string, unknown>
+      return {
+        url: String(raw.url ?? ''),
+        nome: String(raw.nome ?? ''),
+        tipoDocumento: (raw.tipoDocumento as TipoDocumentoAnexo) ?? 'desconhecido',
+        mimeType: raw.mimeType ? String(raw.mimeType) : undefined,
+        tamanhoBytes: typeof raw.tamanhoBytes === 'number' ? raw.tamanhoBytes : undefined,
+        uploadedAt: raw.uploadedAt ? String(raw.uploadedAt) : undefined,
+      }
+    })
+    .filter((item) => item.url)
+}
+
+const parseDadosExtraidos = (value: unknown): DadosExtraidosAnalise | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const raw = value as Record<string, unknown>
+  return {
+    rodovia: raw.rodovia != null ? String(raw.rodovia) : null,
+    kilometragem: raw.kilometragem != null ? String(raw.kilometragem) : null,
+    municipio: raw.municipio != null ? String(raw.municipio) : null,
+    uf: raw.uf != null ? String(raw.uf) : null,
+    interessado: raw.interessado != null ? String(raw.interessado) : null,
+    numeroArt: raw.numeroArt != null ? String(raw.numeroArt) : null,
+    responsavelTecnico: raw.responsavelTecnico != null ? String(raw.responsavelTecnico) : null,
+    extensao: raw.extensao != null ? String(raw.extensao) : null,
+    tipoIntervencao: raw.tipoIntervencao != null ? String(raw.tipoIntervencao) : null,
+  }
+}
+
+const parseConferenciaInputs = (value: unknown): ConferenciaInput[] | undefined => {
+  if (!Array.isArray(value)) return undefined
+  return value
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => {
+      const raw = item as Record<string, unknown>
+      return {
+        campo: String(raw.campo ?? ''),
+        valorFormulario: raw.valorFormulario != null ? String(raw.valorFormulario) : null,
+        valorDocumento: raw.valorDocumento != null ? String(raw.valorDocumento) : null,
+        status: raw.status as ConferenciaInput['status'],
+        observacao: raw.observacao ? String(raw.observacao) : undefined,
+      }
+    })
+    .filter((item) => item.campo)
+}
+
 const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles => {
   const arquivos = parseArquivos(data.arquivos)
+  const arquivosMeta = parseArquivosMeta(data.arquivosMeta)
 
   return {
     id,
@@ -69,7 +130,9 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
     createdBy: data.createdBy ? String(data.createdBy) : undefined,
+    concessionariaId: data.concessionariaId != null ? String(data.concessionariaId) : undefined,
     cliente: data.cliente ? String(data.cliente) : undefined,
+    interessado: data.interessado != null ? String(data.interessado) : undefined,
     kilometragem: data.kilometragem ? String(data.kilometragem) : undefined,
     nroProcessoErp: data.nroProcessoErp ? String(data.nroProcessoErp) : undefined,
     rodovia: data.rodovia ? String(data.rodovia) : undefined,
@@ -77,8 +140,13 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
     sentido: data.sentido ? String(data.sentido) : undefined,
     ocupacao: data.ocupacao ? String(data.ocupacao) : undefined,
     municipioEstado: data.municipioEstado ? String(data.municipioEstado) : undefined,
+    uf: data.uf != null ? String(data.uf) : undefined,
     ocupacaoArea: data.ocupacaoArea ? String(data.ocupacaoArea) : undefined,
     responsavelTecnico: data.responsavelTecnico ? String(data.responsavelTecnico) : undefined,
+    extensao: data.extensao != null ? String(data.extensao) : undefined,
+    numeroArt: data.numeroArt != null ? String(data.numeroArt) : undefined,
+    tipoIntervencaoDetalhado:
+      data.tipoIntervencaoDetalhado != null ? String(data.tipoIntervencaoDetalhado) : undefined,
     faseProjeto: data.faseProjeto ? String(data.faseProjeto) : undefined,
     analistaResponsavel: data.analistaResponsavel
       ? String(data.analistaResponsavel)
@@ -89,7 +157,13 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
     tipoRelatorio: data.tipoRelatorio ? (data.tipoRelatorio as Solicitacao['tipoRelatorio']) : undefined,
     parecerTecnico: data.parecerTecnico ? String(data.parecerTecnico) : undefined,
     checklistConformidade: data.checklistConformidade ? String(data.checklistConformidade) : undefined,
+    complementosChecklist: data.complementosChecklist
+      ? String(data.complementosChecklist)
+      : undefined,
+    dadosExtraidos: parseDadosExtraidos(data.dadosExtraidos),
+    conferenciaInputs: parseConferenciaInputs(data.conferenciaInputs),
     arquivos,
+    arquivosMeta: arquivosMeta.length > 0 ? arquivosMeta : undefined,
     arquivosUrls: arquivos,
   }
 }
@@ -100,7 +174,8 @@ const ensureAuthenticatedUpload = async () => {
     throw new Error('Sessão expirada. Faça login novamente antes de enviar arquivos.')
   }
 
-  await user.getIdToken()
+  // Força refresh do token para evitar storage/unauthorized com sessão aparentemente válida.
+  await user.getIdToken(true)
 }
 
 const formatStorageUploadError = (error: unknown): string => {
@@ -127,7 +202,11 @@ const formatStorageUploadError = (error: unknown): string => {
   return 'Não foi possível enviar os arquivos para o Firebase Storage.'
 }
 
-const uploadSolicitacaoFiles = async (solicitacaoId: string, files: File[]) => {
+const uploadSolicitacaoFiles = async (
+  solicitacaoId: string,
+  files: File[],
+  fileDocumentTypes?: Record<string, TipoDocumentoAnexo>,
+): Promise<{ urls: string[]; metas: ArquivoMeta[] }> => {
   await ensureAuthenticatedUpload()
 
   const uploads = files.map(async (file) => {
@@ -141,13 +220,27 @@ const uploadSolicitacaoFiles = async (solicitacaoId: string, files: File[]) => {
       const snapshot = await uploadBytes(storageRef, file, {
         contentType: file.type || undefined,
       })
-      return getDownloadURL(snapshot.ref)
+      const url = await getDownloadURL(snapshot.ref)
+      const fileKey = `${file.name}-${file.size}-${file.lastModified}`
+      const meta: ArquivoMeta = {
+        url,
+        nome: file.name,
+        tipoDocumento: fileDocumentTypes?.[fileKey] ?? 'desconhecido',
+        mimeType: file.type || undefined,
+        tamanhoBytes: file.size,
+        uploadedAt: new Date().toISOString(),
+      }
+      return { url, meta }
     } catch (error: unknown) {
       throw new Error(formatStorageUploadError(error))
     }
   })
 
-  return Promise.all(uploads)
+  const results = await Promise.all(uploads)
+  return {
+    urls: results.map((item) => item.url),
+    metas: results.map((item) => item.meta),
+  }
 }
 
 const buildCreatePayload = (
@@ -162,7 +255,9 @@ const buildCreatePayload = (
   analisadoPorIA: solicitacao.analisadoPorIA ?? false,
   analisadoEm: solicitacao.analisadoEm ?? null,
   createdBy: solicitacao.createdBy ?? auth.currentUser?.uid ?? null,
+  concessionariaId: solicitacao.concessionariaId ?? null,
   cliente: solicitacao.cliente ?? null,
+  interessado: solicitacao.interessado ?? null,
   kilometragem: solicitacao.kilometragem ?? null,
   nroProcessoErp: solicitacao.nroProcessoErp ?? null,
   rodovia: solicitacao.rodovia ?? null,
@@ -170,8 +265,12 @@ const buildCreatePayload = (
   sentido: solicitacao.sentido ?? null,
   ocupacao: solicitacao.ocupacao ?? null,
   municipioEstado: solicitacao.municipioEstado ?? null,
+  uf: solicitacao.uf ?? null,
   ocupacaoArea: solicitacao.ocupacaoArea ?? null,
   responsavelTecnico: solicitacao.responsavelTecnico ?? null,
+  extensao: solicitacao.extensao ?? null,
+  numeroArt: solicitacao.numeroArt ?? null,
+  tipoIntervencaoDetalhado: solicitacao.tipoIntervencaoDetalhado ?? null,
   faseProjeto: solicitacao.faseProjeto ?? null,
   analistaResponsavel: solicitacao.analistaResponsavel ?? null,
   memorial: solicitacao.memorial ?? null,
@@ -180,6 +279,7 @@ const buildCreatePayload = (
   tipoRelatorio: solicitacao.tipoRelatorio ?? null,
   parecerTecnico: solicitacao.parecerTecnico ?? null,
   checklistConformidade: solicitacao.checklistConformidade ?? null,
+  complementosChecklist: solicitacao.complementosChecklist ?? null,
   arquivos: [],
   createdAt: serverTimestamp(),
   updatedAt: serverTimestamp(),
@@ -188,6 +288,7 @@ const buildCreatePayload = (
 export const createSolicitacao = async (
   solicitacao: Omit<Solicitacao, 'id' | 'createdAt' | 'updatedAt'>,
   files: File[] = [],
+  fileDocumentTypes?: Record<string, TipoDocumentoAnexo>,
 ): Promise<string> => {
   let createdId: string | null = null
 
@@ -199,9 +300,14 @@ export const createSolicitacao = async (
       return created.id
     }
 
-    const arquivos = await uploadSolicitacaoFiles(created.id, files)
+    const { urls: arquivos, metas: arquivosMeta } = await uploadSolicitacaoFiles(
+      created.id,
+      files,
+      fileDocumentTypes,
+    )
     await updateDoc(doc(db, COLLECTION_NAME, created.id), {
       arquivos,
+      arquivosMeta,
       updatedAt: serverTimestamp(),
     })
 
@@ -294,6 +400,26 @@ export const analisarSolicitacaoComIA = async (
   escopoAnalise?: EscopoAnalise,
 ): Promise<SolicitacaoWithFiles> => {
   try {
+    if (novosPDFs?.length) {
+      const solicitacaoAtual = await getSolicitacaoById(id)
+      if (!solicitacaoAtual) {
+        throw new Error('Solicitação não encontrada')
+      }
+
+      const { urls: novasUrls, metas: novasMetas } = await uploadSolicitacaoFiles(id, novosPDFs)
+      const arquivosAtualizados = [...(solicitacaoAtual.arquivos ?? []), ...novasUrls]
+      const arquivosMetaAtualizados = [
+        ...(solicitacaoAtual.arquivosMeta ?? []),
+        ...novasMetas,
+      ]
+
+      await updateDoc(doc(db, COLLECTION_NAME, id), {
+        arquivos: arquivosAtualizados,
+        arquivosMeta: arquivosMetaAtualizados,
+        updatedAt: serverTimestamp(),
+      })
+    }
+
     const callable = httpsCallable(functions, 'analisarSolicitacao', {
       // A análise com PDF + norma pode levar alguns minutos.
       timeout: 540000,
@@ -303,7 +429,6 @@ export const analisarSolicitacaoComIA = async (
       promptCustomizado,
       tiposProjetoPraComparar,
       escopoAnalise,
-      novosPDFsCount: novosPDFs?.length ?? 0,
     })
 
     const data = response.data as SolicitacaoWithFiles | undefined
@@ -337,6 +462,42 @@ export const analisarSolicitacaoComIA = async (
       error instanceof Error
         ? error.message
         : 'A análise por IA estará disponível após o deploy das Cloud Functions.'
+    throw new Error(message)
+  }
+}
+
+export const formatarRelatorioComplementos = async (
+  id: string,
+  complementosChecklist: ComplementoChecklistItem[],
+): Promise<SolicitacaoWithFiles> => {
+  try {
+    const callable = httpsCallable(functions, 'formatarRelatorioComplementos', {
+      timeout: 300000,
+    })
+    const response = await callable({
+      solicitacaoId: id,
+      complementosChecklist,
+    })
+
+    const data = response.data as SolicitacaoWithFiles | undefined
+    if (!data?.id) {
+      throw new Error('Resposta inválida da Cloud Function de formatação.')
+    }
+
+    return {
+      ...data,
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+      analisadoEm: toDate(data.analisadoEm),
+      arquivos: parseArquivos(data.arquivos),
+      arquivosUrls: parseArquivos(data.arquivos),
+    }
+  } catch (error: unknown) {
+    console.error('Erro ao formatar relatório com complementos:', error)
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro ao atualizar relatório com complementos.'
     throw new Error(message)
   }
 }

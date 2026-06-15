@@ -1,5 +1,29 @@
 export type TipoRelatorio = 'pit' | 'obra_per' | 'obra_nao_per'
 
+export type TipoDocumentoAnexo =
+  | 'requerimento'
+  | 'memorial_descritivo'
+  | 'plano_trabalho'
+  | 'planta_baixa'
+  | 'perfil_ocupacao'
+  | 'projeto_sinalizacao'
+  | 'art'
+  | 'cronograma'
+  | 'declaracao_veracidade'
+  | 'licenca_ambiental'
+  | 'parecer_concessionaria'
+  | 'documento_complementar'
+  | 'desconhecido'
+
+export interface ArquivoMeta {
+  url: string
+  nome: string
+  tipoDocumento: TipoDocumentoAnexo
+  mimeType?: string
+  tamanhoBytes?: number
+  uploadedAt?: string
+}
+
 export interface EscopoAnalise {
   incluirDadosFormulario: boolean
   incluirDocumentosProjeto: boolean
@@ -9,11 +33,43 @@ export interface EscopoAnalise {
 
 export interface ChecklistItem {
   item: string
+  categoria?: string
   status: 'OK' | 'NAO_CONFORME' | 'INFORMACAO_AUSENTE'
   situacaoEncontrada: string
   exigenciaNormativa: string
   fundamentacao: string
   orientacao: string
+}
+
+export interface ComplementoChecklistItem {
+  item: string
+  texto: string
+}
+
+export interface DadosExtraidosAnalise {
+  rodovia?: string | null
+  kilometragem?: string | null
+  municipio?: string | null
+  uf?: string | null
+  interessado?: string | null
+  numeroArt?: string | null
+  responsavelTecnico?: string | null
+  extensao?: string | null
+  tipoIntervencao?: string | null
+}
+
+export type StatusConferenciaInput =
+  | 'COMPATIVEL'
+  | 'DIVERGENTE'
+  | 'AUSENTE_NO_DOCUMENTO'
+  | 'AUSENTE_NO_FORMULARIO'
+
+export interface ConferenciaInput {
+  campo: string
+  valorFormulario?: string | null
+  valorDocumento?: string | null
+  status: StatusConferenciaInput
+  observacao?: string
 }
 
 export interface Solicitacao {
@@ -23,6 +79,7 @@ export interface Solicitacao {
   localizacao: string
   descricao: string
   arquivos?: string[]
+  arquivosMeta?: ArquivoMeta[]
   status?: 'pendente' | 'em_analise' | 'aprovada' | 'rejeitada'
   relatorioIA?: string
   analisadoPorIA?: boolean
@@ -33,8 +90,13 @@ export interface Solicitacao {
   tipoRelatorio?: TipoRelatorio
   parecerTecnico?: string
   checklistConformidade?: string
+  complementosChecklist?: string
+  dadosExtraidos?: DadosExtraidosAnalise | null
+  conferenciaInputs?: ConferenciaInput[]
+  concessionariaId?: string | null
   // Overview Dados do cliente
   cliente?: string
+  interessado?: string | null
   kilometragem?: string
   nroProcessoErp?: string
   rodovia?: string
@@ -42,8 +104,12 @@ export interface Solicitacao {
   sentido?: string
   ocupacao?: string
   municipioEstado?: string
+  uf?: string | null
   ocupacaoArea?: string
   responsavelTecnico?: string
+  extensao?: string | null
+  numeroArt?: string | null
+  tipoIntervencaoDetalhado?: string | null
   faseProjeto?: string
   analistaResponsavel?: string
   memorial?: string

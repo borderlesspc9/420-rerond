@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle } from 'lucide-react'
 import { getAllSolicitacoes, analisarSolicitacaoComIA, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
-import type { EscopoAnalise, SolicitacaoWithFiles } from '../models/Solicitacao.js'
+import type { EscopoAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao.js'
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
 import './Solicitacoes.css'
@@ -14,11 +14,17 @@ export default function Solicitacoes() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [relatorioAberto, setRelatorioAberto] = useState<{
+    solicitacaoId: string
     relatorio: string
     titulo: string
     solicitacaoInfo?: { localizacao?: string; tipoObra?: string; descricao?: string }
     parecerTecnico?: string
     checklistConformidade?: string
+    complementosChecklist?: string
+    tipoRelatorio?: TipoRelatorio
+    concessionariaId?: string | null
+    dadosExtraidos?: SolicitacaoWithFiles['dadosExtraidos']
+    conferenciaInputs?: SolicitacaoWithFiles['conferenciaInputs']
   } | null>(null)
   const [modalReanaliseAberto, setModalReanaliseAberto] = useState<SolicitacaoWithFiles | null>(null)
   const [analisandoId, setAnalisandoId] = useState<string | null>(null)
@@ -107,6 +113,7 @@ export default function Solicitacoes() {
   const handleVerRelatorio = (solicitacao: SolicitacaoWithFiles) => {
     if (solicitacao.relatorioIA || solicitacao.parecerTecnico || solicitacao.checklistConformidade) {
       setRelatorioAberto({
+        solicitacaoId: solicitacao.id!,
         relatorio: solicitacao.relatorioIA || '',
         titulo: solicitacao.titulo,
         solicitacaoInfo: {
@@ -116,6 +123,11 @@ export default function Solicitacoes() {
         },
         parecerTecnico: solicitacao.parecerTecnico,
         checklistConformidade: solicitacao.checklistConformidade,
+        complementosChecklist: solicitacao.complementosChecklist,
+        tipoRelatorio: solicitacao.tipoRelatorio,
+        concessionariaId: solicitacao.concessionariaId,
+        dadosExtraidos: solicitacao.dadosExtraidos,
+        conferenciaInputs: solicitacao.conferenciaInputs,
       })
     }
   }
@@ -145,6 +157,7 @@ export default function Solicitacoes() {
       
       if (resultado.relatorioIA || resultado.parecerTecnico || resultado.checklistConformidade) {
         setRelatorioAberto({
+          solicitacaoId: resultado.id!,
           relatorio: resultado.relatorioIA || '',
           titulo: resultado.titulo,
           solicitacaoInfo: {
@@ -154,6 +167,11 @@ export default function Solicitacoes() {
           },
           parecerTecnico: resultado.parecerTecnico,
           checklistConformidade: resultado.checklistConformidade,
+          complementosChecklist: resultado.complementosChecklist,
+          tipoRelatorio: resultado.tipoRelatorio,
+          concessionariaId: resultado.concessionariaId,
+          dadosExtraidos: resultado.dadosExtraidos,
+          conferenciaInputs: resultado.conferenciaInputs,
         })
       }
       
@@ -356,11 +374,36 @@ export default function Solicitacoes() {
 
       {relatorioAberto && (
         <RelatorioViewer
+          solicitacaoId={relatorioAberto.solicitacaoId}
           relatorio={relatorioAberto.relatorio}
           titulo={relatorioAberto.titulo}
           solicitacaoInfo={relatorioAberto.solicitacaoInfo}
           parecerTecnico={relatorioAberto.parecerTecnico}
           checklistConformidade={relatorioAberto.checklistConformidade}
+          complementosChecklist={relatorioAberto.complementosChecklist}
+          tipoRelatorio={relatorioAberto.tipoRelatorio}
+          concessionariaId={relatorioAberto.concessionariaId}
+          dadosExtraidos={relatorioAberto.dadosExtraidos}
+          conferenciaInputs={relatorioAberto.conferenciaInputs}
+          onRelatorioAtualizado={(resultado) => {
+            setSolicitacoes((prev) =>
+              prev.map((s) => (s.id === resultado.id ? resultado : s)),
+            )
+            setRelatorioAberto((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    relatorio: resultado.relatorioIA || prev.relatorio,
+                    parecerTecnico: resultado.parecerTecnico,
+                    checklistConformidade: resultado.checklistConformidade,
+                    complementosChecklist: resultado.complementosChecklist,
+                    tipoRelatorio: resultado.tipoRelatorio,
+                    dadosExtraidos: resultado.dadosExtraidos,
+                    conferenciaInputs: resultado.conferenciaInputs,
+                  }
+                : prev,
+            )
+          }}
           onClose={() => setRelatorioAberto(null)}
         />
       )}
@@ -368,7 +411,8 @@ export default function Solicitacoes() {
       {modalReanaliseAberto && (
         <ModalReanalise
           titulo={modalReanaliseAberto.titulo}
-          tipoObraAtual={modalReanaliseAberto.tipoObra}
+          tipoRelatorioAtual={modalReanaliseAberto.tipoRelatorio}
+          concessionariaId={modalReanaliseAberto.concessionariaId}
           primeiraAnalise={!modalReanaliseAberto.analisadoPorIA}
           onConfirm={handleReanalisar}
           onClose={() => setModalReanaliseAberto(null)}

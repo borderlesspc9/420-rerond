@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildSystemPrompt = buildSystemPrompt;
 exports.buildAnalysisPrompt = buildAnalysisPrompt;
 exports.buildInferTipoPrompt = buildInferTipoPrompt;
+exports.buildComplementacaoSystemPrompt = buildComplementacaoSystemPrompt;
+exports.buildComplementacaoPrompt = buildComplementacaoPrompt;
 const v = (s) => s || "não informado";
 function buildSystemPrompt() {
     return `Você é um especialista técnico em projetos rodoviários e engenharia de transportes, com profundo conhecimento das normas brasileiras vigentes que regulamentam acessos, faixa de domínio, sinalização de obras e infraestrutura viária.
@@ -125,5 +127,67 @@ Responda APENAS com uma das seguintes opções, sem texto adicional:
 - pit (se for Projeto de Interesse de Terceiros)
 - obra_per (se for obra prevista no PER - Programa de Exploração da Rodovia)
 - obra_nao_per (se for obra não prevista no PER)`;
+}
+function buildComplementacaoSystemPrompt() {
+    return `Você é um especialista técnico em conformidade de projetos rodoviários.
+Sua função é ATUALIZAR um relatório de conformidade já existente, incorporando informações complementares fornecidas pelo analista humano.
+Trate os complementos como informação válida para reavaliar os itens correspondentes.
+Mantenha rigor técnico, cite fundamentação normativa e produza saída estruturada completa.`;
+}
+function buildComplementacaoPrompt(dados, tiposProjetoNome, requisitosFormatados, checklistAnterior, parecerAnterior, complementos) {
+    const complementosFormatados = complementos
+        .map((c) => `- **${c.item}** (${c.descricao}):\n  Informação complementar do analista: ${c.texto}`)
+        .join("\n\n");
+    return `ATUALIZAÇÃO DE RELATÓRIO COM COMPLEMENTOS DO ANALISTA
+
+IDENTIFICAÇÃO:
+- Título: ${dados.titulo}
+- Tipo de Obra: ${dados.tipoObra}
+- Localização: ${dados.localizacao}
+- Tipo normativo: ${tiposProjetoNome}
+
+REQUISITOS DO CATÁLOGO A MANTER NO CHECKLIST:
+${requisitosFormatados}
+
+CHECKLIST ANTERIOR (JSON):
+${checklistAnterior}
+
+PARECER TÉCNICO ANTERIOR (Markdown):
+${parecerAnterior || "(não havia parecer anterior)"}
+
+COMPLEMENTOS INFORMADOS PELO ANALISTA — TRATE COMO VERDADE PARA OS ITENS LISTADOS:
+${complementosFormatados}
+
+INSTRUÇÕES:
+1. Use os complementos do analista para reavaliar APENAS os itens correspondentes.
+2. Regenere o checklist COMPLETO com TODOS os requisitos do catálogo (não omita itens).
+3. Para itens com complemento: atualize status (OK, NAO_CONFORME ou INFORMACAO_AUSENTE), situacaoEncontrada, fundamentacao e orientacao.
+4. Para itens sem complemento: preserve a avaliação anterior quando ainda fizer sentido.
+5. Regenere o parecer técnico COMPLETO em Markdown com todas as seções obrigatórias.
+6. Não invente dados além do relatório anterior e dos complementos fornecidos.
+
+FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto antes ou depois:
+{
+  "checklist": [
+    {
+      "item": "ID_DO_REQUISITO",
+      "status": "OK" | "NAO_CONFORME" | "INFORMACAO_AUSENTE",
+      "situacaoEncontrada": "O que o projeto apresenta (string curta)",
+      "exigenciaNormativa": "O que a norma determina (string curta)",
+      "fundamentacao": "Norma + Artigo/Parágrafo específico",
+      "orientacao": "O que precisa ser corrigido (vazio se OK)"
+    }
+  ],
+  "parecerTecnico": "PARECER EM MARKDOWN COMPLETO conforme estrutura padrão"
+}
+
+ESTRUTURA DO parecerTecnico (Markdown):
+
+## IDENTIFICAÇÃO DO PROJETO
+## NORMAS APLICADAS
+## ITENS CONFORMES
+## NÃO CONFORMIDADES
+## INFORMAÇÕES AUSENTES
+## CONCLUSÃO GERAL`;
 }
 //# sourceMappingURL=prompts.js.map

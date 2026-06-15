@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.analisarSolicitacao = void 0;
+exports.formatarRelatorioComplementos = exports.analisarSolicitacao = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -9,6 +9,11 @@ const params_1 = require("firebase-functions/params");
 const openaiService_1 = require("./services/openaiService");
 const normasService_1 = require("./services/normasService");
 const prompts_1 = require("./config/prompts");
+const eco101_prompt_1 = require("./config/eco101.prompt");
+const consistencyAnalyzer_1 = require("./services/consistencyAnalyzer");
+const normasService_2 = require("./services/normasService");
+const MAX_PDFS_PROJETO = 10;
+const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024;
 const app = (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)(app);
 const storage = (0, storage_1.getStorage)(app);
@@ -85,7 +90,7 @@ function extractFilenameFromUrl(url) {
         return "documento.pdf";
     }
 }
-function parseAIResponse(raw) {
+function stripMarkdownFence(raw) {
     let cleaned = raw.trim();
     if (cleaned.startsWith("```json")) {
         cleaned = cleaned.slice(7);
@@ -96,14 +101,95 @@ function parseAIResponse(raw) {
     if (cleaned.endsWith("```")) {
         cleaned = cleaned.slice(0, -3);
     }
-    cleaned = cleaned.trim();
-    const parsed = JSON.parse(cleaned);
+    return cleaned.trim();
+}
+function extractJsonCandidates(raw) {
+    const candidates = new Set();
+    const trimmed = raw.trim();
+    if (trimmed)
+        candidates.add(trimmed);
+    candidates.add(stripMarkdownFence(raw));
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1]?.trim()) {
+        candidates.add(fenced[1].trim());
+    }
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+        candidates.add(raw.slice(firstBrace, lastBrace + 1).trim());
+    }
+    return Array.from(candidates).filter(Boolean);
+}
+function mapParsedAIResponse(parsed) {
+    const dadosExtraidos = parsed.dadosExtraidos && typeof parsed.dadosExtraidos === "object"
+        ? parsed.dadosExtraidos
+        : null;
+    const conferenciaInputs = Array.isArray(parsed.conferenciaInputs)
+        ? parsed.conferenciaInputs
+        : [];
     return {
         checklist: Array.isArray(parsed.checklist) ? parsed.checklist : [],
         parecerTecnico: typeof parsed.parecerTecnico === "string"
             ? parsed.parecerTecnico
             : "Parecer não gerado.",
+        dadosExtraidos,
+        conferenciaInputs,
     };
+}
+function parseAIResponse(raw) {
+    const candidates = extractJsonCandidates(raw);
+    for (const candidate of candidates) {
+        try {
+            const parsed = JSON.parse(candidate);
+            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+                continue;
+            }
+            return mapParsedAIResponse(parsed);
+        }
+        catch {
+            // tenta próximo candidato
+        }
+    }
+    const preview = raw.trim().slice(0, 160).replace(/\s+/g, " ");
+    console.error("Resposta da IA não é JSON válido. Prévia:", preview);
+    throw new https_1.HttpsError("internal", "A IA retornou texto em vez de JSON estruturado. Tente novamente; se persistir, reduza a quantidade de PDFs ou desmarque documentos extras no escopo da análise.");
+}
+function parseArquivosMeta(value) {
+    if (!Array.isArray(value))
+        return [];
+    return value
+        .filter((item) => item && typeof item === "object")
+        .map((item) => {
+        const raw = item;
+        return {
+            url: String(raw.url ?? ""),
+            nome: String(raw.nome ?? ""),
+            tipoDocumento: raw.tipoDocumento ? String(raw.tipoDocumento) : "desconhecido",
+        };
+    })
+        .filter((item) => item.url);
+}
+function buildDocumentoProjetoLabel(filename, arquivosMeta, url) {
+    const meta = arquivosMeta.find((m) => m.url === url || m.nome === filename);
+    const tipo = meta?.tipoDocumento ?? "desconhecido";
+    const nome = meta?.nome ?? filename;
+    return `[DOCUMENTO DO PROJETO: tipoDocumento=${tipo}; arquivo=${nome}]`;
+}
+function aplicarLimitesPdf(pdfBuffers) {
+    const incluidos = [];
+    const omitidos = [];
+    for (const pdf of pdfBuffers) {
+        if (incluidos.length >= MAX_PDFS_PROJETO) {
+            omitidos.push(`${pdf.filename} (limite de ${MAX_PDFS_PROJETO} PDFs)`);
+            continue;
+        }
+        if (pdf.buffer.length > MAX_PDF_SIZE_BYTES) {
+            omitidos.push(`${pdf.filename} (tamanho ${Math.round(pdf.buffer.length / 1024 / 1024)} MB > ${MAX_PDF_SIZE_BYTES / 1024 / 1024} MB)`);
+            continue;
+        }
+        incluidos.push(pdf);
+    }
+    return { incluidos, omitidos };
 }
 async function inferTipoRelatorio(pdfBuffers) {
     const parts = [];
@@ -164,6 +250,11 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
     const arquivos = Array.isArray(data.arquivos)
         ? data.arquivos
         : [];
+    const arquivosMeta = parseArquivosMeta(data.arquivosMeta);
+    const concessionariaId = data.concessionariaId
+        ? String(data.concessionariaId)
+        : null;
+    const isEco101 = (0, eco101_prompt_1.isEco101Concessionaria)(concessionariaId);
     await docRef.update({
         status: "em_analise",
         updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -171,17 +262,21 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
     try {
         const pdfUrls = arquivos.filter((url) => url.toLowerCase().includes(".pdf"));
         console.log(`Baixando ${pdfUrls.length} PDF(s) do projeto...`);
-        const pdfBuffers = [];
+        const pdfBuffersRaw = [];
         for (const url of pdfUrls) {
             try {
                 const buffer = await downloadStorageFile(url);
                 const filename = extractFilenameFromUrl(url);
-                pdfBuffers.push({ filename, buffer });
+                pdfBuffersRaw.push({ filename, buffer, url });
                 console.log(`  OK: ${filename} (${Math.round(buffer.length / 1024)} KB)`);
             }
             catch (err) {
                 console.error(`  ERRO ao baixar: ${url}`, err);
             }
+        }
+        const { incluidos: pdfBuffers, omitidos: pdfsOmitidos } = aplicarLimitesPdf(pdfBuffersRaw);
+        if (pdfsOmitidos.length > 0) {
+            console.warn(`PDFs omitidos por limite: ${pdfsOmitidos.join("; ")}`);
         }
         let tipoBase;
         if (isValidTipo(data.tipoRelatorio)) {
@@ -224,7 +319,9 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
             tipoObra: data.tipoObra ?? "",
             localizacao: data.localizacao ?? "",
             descricao: data.descricao ?? "",
+            concessionariaId,
             cliente: data.cliente,
+            interessado: data.interessado,
             kilometragem: data.kilometragem,
             nroProcessoErp: data.nroProcessoErp,
             rodovia: data.rodovia,
@@ -232,22 +329,32 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
             sentido: data.sentido,
             ocupacao: data.ocupacao,
             municipioEstado: data.municipioEstado,
+            uf: data.uf,
             ocupacaoArea: data.ocupacaoArea,
             responsavelTecnico: data.responsavelTecnico,
+            extensao: data.extensao,
+            numeroArt: data.numeroArt,
+            tipoIntervencaoDetalhado: data.tipoIntervencaoDetalhado,
             faseProjeto: data.faseProjeto,
             analistaResponsavel: data.analistaResponsavel,
             memorial: data.memorial,
             dataRecebimento: data.dataRecebimento,
             numeroRevisao: data.numeroRevisao,
         };
-        const requisitosFormatados = tiposConfig
-            .map(({ tipo, config }) => `### ${config.nome} (${tipo})\n${(0, normasService_1.listarRequisitosFormatados)(tipo)}`)
-            .join("\n\n");
-        const tiposProjetoNome = tiposConfig
-            .map(({ config }) => config.nome)
-            .join(", ");
-        const systemPrompt = (0, prompts_1.buildSystemPrompt)();
-        const analysisPrompt = (0, prompts_1.buildAnalysisPrompt)(dadosForm, tiposAnalise, requisitosFormatados, tiposProjetoNome, escopoAnalise, promptCustomizado);
+        const requisitosFormatados = isEco101
+            ? (0, normasService_1.listarRequisitosFormatados)(tipoBase, concessionariaId)
+            : tiposConfig
+                .map(({ tipo, config }) => `### ${config.nome} (${tipo})\n${(0, normasService_1.listarRequisitosFormatados)(tipo, concessionariaId)}`)
+                .join("\n\n");
+        const tiposProjetoNome = isEco101
+            ? "Ecovias / ECO101 — Ocupação em Faixa de Domínio"
+            : tiposConfig.map(({ config }) => config.nome).join(", ");
+        const systemPrompt = isEco101
+            ? (0, eco101_prompt_1.buildEco101SystemPrompt)()
+            : (0, prompts_1.buildSystemPrompt)();
+        const analysisPrompt = isEco101
+            ? (0, eco101_prompt_1.buildEco101AnalysisPrompt)(dadosForm, requisitosFormatados, escopoAnalise, promptCustomizado)
+            : (0, prompts_1.buildAnalysisPrompt)(dadosForm, tiposAnalise, requisitosFormatados, tiposProjetoNome, escopoAnalise, promptCustomizado);
         const parts = [];
         parts.push((0, openaiService_1.buildTextInput)(systemPrompt));
         for (const norma of normasPDFs) {
@@ -257,25 +364,46 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
         if (escopoAnalise.incluirDocumentosProjeto) {
             for (const pdf of pdfBuffers) {
                 parts.push((0, openaiService_1.buildFileInput)(pdf.filename, pdf.buffer));
-                parts.push((0, openaiService_1.buildTextInput)(`[DOCUMENTO DO PROJETO: ${pdf.filename}]`));
+                parts.push((0, openaiService_1.buildTextInput)(buildDocumentoProjetoLabel(pdf.filename, arquivosMeta, pdf.url)));
+            }
+            if (pdfsOmitidos.length > 0) {
+                parts.push((0, openaiService_1.buildTextInput)(`[AVISO: Os seguintes PDFs do projeto foram omitidos por limite de quantidade ou tamanho: ${pdfsOmitidos.join("; ")}]`));
             }
         }
         parts.push((0, openaiService_1.buildTextInput)(analysisPrompt));
         console.log(`Enviando para OpenAI: ${normasPDFs.length} norma(s) + ${escopoAnalise.incluirDocumentosProjeto ? pdfBuffers.length : 0} PDF(s) do projeto`);
         const result = await (0, openaiService_1.analyze)(parts, {
-            maxOutputTokens: 8000,
+            maxOutputTokens: isEco101 ? 16000 : 12000,
             temperature: 0.1,
+            jsonMode: true,
         });
         console.log(`Resposta recebida. Modelo: ${result.model}, Tokens: ${result.tokensUsed ?? "N/A"}`);
-        const { checklist, parecerTecnico } = parseAIResponse(result.content);
-        const checklistFinal = escopoAnalise.gerarChecklistConformidade ? checklist : [];
-        const parecerFinal = escopoAnalise.gerarParecerTecnico ? parecerTecnico : "";
+        const parsed = parseAIResponse(result.content);
+        const checklistFinal = escopoAnalise.gerarChecklistConformidade
+            ? parsed.checklist
+            : [];
+        const parecerFinal = escopoAnalise.gerarParecerTecnico
+            ? parsed.parecerTecnico
+            : "";
+        const conferenciaFinal = (0, consistencyAnalyzer_1.complementarConferenciaDeterministica)(parsed.conferenciaInputs, {
+            interessado: dadosForm.interessado,
+            rodovia: dadosForm.rodovia,
+            kilometragem: dadosForm.kilometragem,
+            municipioEstado: dadosForm.municipioEstado,
+            uf: dadosForm.uf,
+            extensao: dadosForm.extensao,
+            numeroArt: dadosForm.numeroArt,
+            responsavelTecnico: dadosForm.responsavelTecnico,
+            tipoIntervencaoDetalhado: dadosForm.tipoIntervencaoDetalhado,
+        }, parsed.dadosExtraidos);
         await docRef.update({
             status: "em_analise",
             tipoRelatorio: tipoBase,
             tiposProjetoComparados: tiposAnalise,
             escopoAnalise,
             relatorioIA: result.content,
+            dadosExtraidos: parsed.dadosExtraidos,
+            conferenciaInputs: conferenciaFinal,
             checklistConformidade: escopoAnalise.gerarChecklistConformidade
                 ? JSON.stringify(checklistFinal)
                 : null,
@@ -308,5 +436,138 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
         const message = error instanceof Error ? error.message : "Erro desconhecido na análise.";
         throw new https_1.HttpsError("internal", message);
     }
+});
+function parseComplementos(value) {
+    if (!Array.isArray(value))
+        return [];
+    return value
+        .map((entry) => {
+        if (!entry || typeof entry !== "object")
+            return null;
+        const raw = entry;
+        const item = String(raw.item ?? "").trim().toUpperCase();
+        const texto = String(raw.texto ?? "").trim();
+        if (!item || !texto)
+            return null;
+        return { item, texto };
+    })
+        .filter((entry) => entry !== null);
+}
+function mapComplementosComDescricao(complementos, tipo) {
+    const requisitos = (0, normasService_2.getRequisitosParaTipo)(tipo);
+    const descricaoPorId = new Map(requisitos.map((req) => [req.id, req.descricao]));
+    return complementos.map((c) => ({
+        item: c.item,
+        texto: c.texto,
+        descricao: descricaoPorId.get(c.item) ?? c.item.replace(/_/g, " "),
+    }));
+}
+exports.formatarRelatorioComplementos = (0, https_1.onCall)({
+    region: "southamerica-east1",
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    secrets: [openaiApiKey],
+}, async (request) => {
+    if (!request.auth) {
+        throw new https_1.HttpsError("unauthenticated", "Autenticação obrigatória.");
+    }
+    const solicitacaoId = String(request.data?.solicitacaoId ?? "").trim();
+    if (!solicitacaoId) {
+        throw new https_1.HttpsError("invalid-argument", "solicitacaoId é obrigatório.");
+    }
+    const complementos = parseComplementos(request.data?.complementosChecklist);
+    if (complementos.length === 0) {
+        throw new https_1.HttpsError("invalid-argument", "Informe ao menos um complemento com texto.");
+    }
+    const apiKey = openaiApiKey.value()?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
+    if (!apiKey) {
+        throw new https_1.HttpsError("failed-precondition", "OPENAI_API_KEY não configurada.");
+    }
+    (0, openaiService_1.initOpenAI)(apiKey);
+    const docRef = db.collection(COLLECTION).doc(solicitacaoId);
+    const snapshot = await docRef.get();
+    if (!snapshot.exists) {
+        throw new https_1.HttpsError("not-found", "Solicitação não encontrada.");
+    }
+    const data = snapshot.data();
+    const checklistAnterior = typeof data.checklistConformidade === "string"
+        ? data.checklistConformidade
+        : "[]";
+    const parecerAnterior = typeof data.parecerTecnico === "string" ? data.parecerTecnico : "";
+    if (!checklistAnterior || checklistAnterior === "[]") {
+        throw new https_1.HttpsError("failed-precondition", "A solicitação precisa de uma análise prévia antes de complementar.");
+    }
+    let tipoBase;
+    if (isValidTipo(data.tipoRelatorio)) {
+        tipoBase = data.tipoRelatorio;
+    }
+    else {
+        tipoBase = "pit";
+    }
+    const tipoConfig = (0, normasService_1.getTipoProjetoConfig)(tipoBase);
+    const requisitosFormatados = (0, normasService_1.listarRequisitosFormatados)(tipoBase);
+    const tiposProjetoNome = tipoConfig?.nome ?? tipoBase;
+    const dadosForm = {
+        titulo: data.titulo ?? "",
+        tipoObra: data.tipoObra ?? "",
+        localizacao: data.localizacao ?? "",
+        descricao: data.descricao ?? "",
+        concessionariaId: data.concessionariaId ? String(data.concessionariaId) : null,
+        cliente: data.cliente,
+        interessado: data.interessado,
+        kilometragem: data.kilometragem,
+        nroProcessoErp: data.nroProcessoErp,
+        rodovia: data.rodovia,
+        nomeConcessionaria: data.nomeConcessionaria,
+        sentido: data.sentido,
+        ocupacao: data.ocupacao,
+        municipioEstado: data.municipioEstado,
+        uf: data.uf,
+        ocupacaoArea: data.ocupacaoArea,
+        responsavelTecnico: data.responsavelTecnico,
+        extensao: data.extensao,
+        numeroArt: data.numeroArt,
+        tipoIntervencaoDetalhado: data.tipoIntervencaoDetalhado,
+        faseProjeto: data.faseProjeto,
+        analistaResponsavel: data.analistaResponsavel,
+        memorial: data.memorial,
+        dataRecebimento: data.dataRecebimento,
+        numeroRevisao: data.numeroRevisao,
+    };
+    const complementosEnriquecidos = mapComplementosComDescricao(complementos, tipoBase);
+    const systemPrompt = (0, prompts_1.buildComplementacaoSystemPrompt)();
+    const complementacaoPrompt = (0, prompts_1.buildComplementacaoPrompt)(dadosForm, tiposProjetoNome, requisitosFormatados, checklistAnterior, parecerAnterior, complementosEnriquecidos);
+    const parts = [
+        (0, openaiService_1.buildTextInput)(systemPrompt),
+        (0, openaiService_1.buildTextInput)(complementacaoPrompt),
+    ];
+    console.log(`Formatando relatório com ${complementos.length} complemento(s) para ${solicitacaoId}`);
+    const result = await (0, openaiService_1.analyze)(parts, {
+        maxOutputTokens: 12000,
+        temperature: 0.1,
+        jsonMode: true,
+    });
+    const { checklist, parecerTecnico } = parseAIResponse(result.content);
+    const complementosSerializados = JSON.stringify(complementos);
+    await docRef.update({
+        status: "em_analise",
+        checklistConformidade: JSON.stringify(checklist),
+        parecerTecnico,
+        complementosChecklist: complementosSerializados,
+        relatorioIA: result.content,
+        analisadoPorIA: true,
+        analisadoEm: firestore_1.FieldValue.serverTimestamp(),
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    });
+    const updatedSnap = await docRef.get();
+    const updatedData = updatedSnap.data();
+    return {
+        id: solicitacaoId,
+        ...updatedData,
+        arquivos: Array.isArray(updatedData.arquivos) ? updatedData.arquivos : [],
+        createdAt: updatedData.createdAt?.toDate?.()?.toISOString() ?? null,
+        updatedAt: updatedData.updatedAt?.toDate?.()?.toISOString() ?? null,
+        analisadoEm: updatedData.analisadoEm?.toDate?.()?.toISOString() ?? null,
+    };
 });
 //# sourceMappingURL=index.js.map

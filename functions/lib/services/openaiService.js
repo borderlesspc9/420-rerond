@@ -43,6 +43,13 @@ async function analyze(parts, options) {
         ],
         max_output_tokens: maxTokens,
         temperature,
+        ...(options?.jsonMode
+            ? {
+                text: {
+                    format: { type: "json_object" },
+                },
+            }
+            : {}),
     });
     const content = response.output_text;
     if (!content) {

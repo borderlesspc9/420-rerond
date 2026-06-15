@@ -6,7 +6,8 @@
       "orgao": "ANTT/SUROD",
       "ano": 2025,
       "pdf": "portaria-surod-12-2025.pdf",
-      "descricao": "POP para análise técnica de estudos e projetos de obras e serviços de engenharia (concessões rodoviárias federais)"
+      "descricao": "POP para análise técnica de estudos e projetos de obras e serviços de engenharia (concessões rodoviárias federais)",
+      "requerPdf": false
     },
     {
       "id": "ANTT_SUROD_13_2025",
@@ -14,7 +15,8 @@
       "orgao": "ANTT/SUROD",
       "ano": 2025,
       "pdf": "portaria-surod-13-2025.pdf",
-      "descricao": "POP para análise técnica de Projetos de Interesse de Terceiros (PITs) em concessões rodoviárias federais"
+      "descricao": "POP para análise técnica de Projetos de Interesse de Terceiros (PITs) em concessões rodoviárias federais",
+      "requerPdf": false
     }
   ],
   "tiposProjeto": {
@@ -76,6 +78,78 @@
         { "id": "DECLARACAO_CUSTOS", "descricao": "Declaração de responsabilidade referente a serviços, quantitativos e custos (Art. 7º, §2º, VIII)" },
         { "id": "CODIFICACAO_DOCS", "descricao": "Codificação conforme Anexo (Art. 8º)" },
         { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
+      ]
+    }
+  },
+  "concessionarias": {
+    "eco101": {
+      "nome": "Ecovias / ECO101",
+      "requisitos": [
+        {
+          "id": "ECO101_ORGANIZACAO_PASTAS",
+          "descricao": "Documentação organizada em volumes conforme padrão ECO101: Volume I - Relatório Técnico, Volume II - Projetos, Volume III - Documentos Complementares.",
+          "categoria": "ORGANIZACAO"
+        },
+        {
+          "id": "ECO101_CODIFICACAO_ARQUIVOS",
+          "descricao": "Arquivos nomeados conforme codificação aplicável da ANTT/SUROD e diretrizes da concessionária.",
+          "categoria": "ORGANIZACAO"
+        },
+        {
+          "id": "ECO101_MEMORIAL_DESCRITIVO",
+          "descricao": "Memorial Descritivo contendo descrição da ocupação, localização quilométrica, características técnicas, materiais, método construtivo, parâmetros geométricos e justificativa técnica.",
+          "categoria": "VOLUME_I"
+        },
+        {
+          "id": "ECO101_PLANO_TRABALHO",
+          "descricao": "Plano de Trabalho contendo sequência das atividades, procedimentos construtivos, mobilização, sinalização, interferência no tráfego e recomposição da área afetada.",
+          "categoria": "VOLUME_I"
+        },
+        {
+          "id": "ECO101_PLANTA_BAIXA",
+          "descricao": "Planta Baixa com eixo da via, pista, acostamento, faixa de domínio, faixa non aedificandi, posição da ocupação, coordenadas e afastamentos laterais.",
+          "categoria": "VOLUME_II"
+        },
+        {
+          "id": "ECO101_PERFIL_OCUPACAO",
+          "descricao": "Perfil da Ocupação demonstrando relação geométrica com greide, terreno natural, altura livre ou cobrimento mínimo, conforme tipo de intervenção.",
+          "categoria": "VOLUME_II"
+        },
+        {
+          "id": "ECO101_PROJETO_SINALIZACAO",
+          "descricao": "Projeto de Sinalização de Obra compatível com o tipo de intervenção, contendo distâncias de pré-sinalização, dispositivos, sentidos de tráfego e áreas de atividade.",
+          "categoria": "VOLUME_II"
+        },
+        {
+          "id": "ECO101_ESPECIFICACOES_TECNICAS",
+          "descricao": "Especificações técnicas e referências normativas aplicáveis: DNIT, ANTT/SUROD, ABNT e diretrizes da concessionária.",
+          "categoria": "VOLUME_II"
+        },
+        {
+          "id": "ECO101_REQUERIMENTO",
+          "descricao": "Requerimento contendo identificação do interessado, contatos, data, descrição do pleito e localização quilométrica.",
+          "categoria": "VOLUME_III"
+        },
+        {
+          "id": "ECO101_DECLARACAO_VERACIDADE",
+          "descricao": "Declaração de Veracidade com identificação do interessado, responsável técnico, data e assinaturas.",
+          "categoria": "VOLUME_III"
+        },
+        {
+          "id": "ECO101_ART",
+          "descricao": "ART registrada e quitada, vinculada especificamente ao objeto, local, rodovia, km e ocupação em faixa de domínio.",
+          "categoria": "VOLUME_III"
+        },
+        {
+          "id": "ECO101_CRONOGRAMA",
+          "descricao": "Cronograma de execução em dias, com prazo total e etapas principais da implantação.",
+          "categoria": "VOLUME_III"
+        },
+        {
+          "id": "ECO101_LICENCA_AMBIENTAL",
+          "descricao": "Licença Ambiental ou documento de comprovação de inexigibilidade/dispensa, quando aplicável.",
+          "categoria": "VOLUME_III"
+        }
       ]
     }
   }

@@ -23,6 +23,10 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
+.relatorio-viewer-container-wide {
+  max-width: 1080px;
+}
+
 .relatorio-viewer-header {
   display: flex;
   justify-content: space-between;
@@ -31,11 +35,39 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.relatorio-viewer-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .relatorio-viewer-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.relatorio-viewer-subtitulo {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.relatorio-viewer-tipo {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2357c4;
+  background: #edf2fa;
 }
 
 .relatorio-viewer-close {
@@ -93,9 +125,28 @@
 
 .relatorio-viewer-content h4 {
   font-size: 18px;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  color: #1f2937;
 }
 
-.relatorio-viewer-content p {
+.relatorio-viewer-content h3 + h4,
+.relatorio-viewer-content h4:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.relatorio-viewer-content h4 + p strong,
+.relatorio-viewer-content p strong {
+  color: #111827;
+}
+
+.relatorio-viewer-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
   margin-bottom: 12px;
   line-height: 1.7;
   color: #4b5563;
@@ -559,4 +610,89 @@
 .conformidade-badge {
   border-radius: 999px;
   padding: 4px 10px;
+}
+
+.relatorio-extra-section {
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.relatorio-extra-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.relatorio-extra-dl {
+  margin: 0.75rem 0 0;
+}
+
+.relatorio-extra-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.relatorio-extra-row dt {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.relatorio-conferencia-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.relatorio-conferencia-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.relatorio-conferencia-status {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.relatorio-parecer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.relatorio-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+@media print {
+  .relatorio-viewer-overlay {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+
+  .relatorio-viewer-close,
+  .relatorio-tabs,
+  .relatorio-parecer-actions {
+    display: none !important;
+  }
+
+  .relatorio-viewer-container {
+    max-width: none;
+    max-height: none;
+    box-shadow: none;
+  }
 }

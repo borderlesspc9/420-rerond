@@ -1,9 +1,16 @@
-import { useState } from 'react'
-import { X, ClipboardList, FileText } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { X, ClipboardList, FileText, Copy, Printer } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ChecklistReportView from './ChecklistReportView'
-import type { ChecklistItem } from '../models/Solicitacao'
+import ChecklistConformidadeView from './ChecklistConformidadeView'
+import type { ComplementoChecklistItem, ConferenciaInput, DadosExtraidosAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao'
+import { formatarRelatorioComplementos } from '../services/solicitacao/solicitacaoService'
+import {
+  getTipoProjetoNome,
+  parseComplementosChecklist,
+  parseConformidadeChecklist,
+} from '../utils/checklistConformidade'
 import './RelatorioViewer.css'
 
 const CHECKLIST_KEYS = [
@@ -72,106 +79,61 @@ function parseChecklistJson(raw: string): Record<string, string> | null {
   return Object.keys(out).length ? out : null
 }
 
-function parseConformidadeChecklist(raw: string): ChecklistItem[] | null {
-  try {
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return null
-    if (parsed.length === 0) return null
-    if (!parsed[0].item || !parsed[0].status) return null
-    return parsed as ChecklistItem[]
-  } catch {
-    return null
-  }
-}
-
-function ChecklistConformidadeTable({ items }: { items: ChecklistItem[] }) {
-  const statusBadge = (status: string) => {
-    switch (status) {
-      case 'OK':
-        return <span className="conformidade-badge conformidade-ok">OK</span>
-      case 'NAO_CONFORME':
-        return <span className="conformidade-badge conformidade-nao-conforme">Não Conforme</span>
-      case 'INFORMACAO_AUSENTE':
-        return <span className="conformidade-badge conformidade-ausente">Info Ausente</span>
-      default:
-        return <span className="conformidade-badge">{status}</span>
-    }
-  }
-
-  const okItems = items.filter(i => i.status === 'OK')
-  const naoConformeItems = items.filter(i => i.status === 'NAO_CONFORME')
-  const ausenteItems = items.filter(i => i.status === 'INFORMACAO_AUSENTE')
-
-  return (
-    <div className="conformidade-checklist">
-      <div className="conformidade-summary">
-        <div className="conformidade-stat conformidade-stat-ok">
-          <span className="conformidade-stat-number">{okItems.length}</span>
-          <span className="conformidade-stat-label">Conformes</span>
-        </div>
-        <div className="conformidade-stat conformidade-stat-nao">
-          <span className="conformidade-stat-number">{naoConformeItems.length}</span>
-          <span className="conformidade-stat-label">Não Conformes</span>
-        </div>
-        <div className="conformidade-stat conformidade-stat-ausente">
-          <span className="conformidade-stat-number">{ausenteItems.length}</span>
-          <span className="conformidade-stat-label">Info Ausente</span>
-        </div>
-      </div>
-
-      <table className="conformidade-table">
-        <thead>
-          <tr>
-            <th>Requisito</th>
-            <th>Status</th>
-            <th>Fundamentação</th>
-            <th>Orientação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, idx) => (
-            <tr key={idx} className={`conformidade-row conformidade-row-${item.status.toLowerCase().replace('_', '-')}`}>
-              <td>
-                <strong>{item.item.replace(/_/g, ' ')}</strong>
-                {item.situacaoEncontrada && (
-                  <div className="conformidade-detalhe">{item.situacaoEncontrada}</div>
-                )}
-              </td>
-              <td>{statusBadge(item.status)}</td>
-              <td className="conformidade-fundamentacao">{item.fundamentacao || '—'}</td>
-              <td className="conformidade-orientacao">{item.orientacao || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 type TabId = 'parecer' | 'checklist'
 
 interface RelatorioViewerProps {
   relatorio: string
   titulo: string
   onClose: () => void
+  solicitacaoId?: string
   solicitacaoInfo?: { localizacao?: string; tipoObra?: string; descricao?: string }
   parecerTecnico?: string
   checklistConformidade?: string
+  complementosChecklist?: string
+  tipoRelatorio?: TipoRelatorio
+  concessionariaId?: string | null
+  dadosExtraidos?: DadosExtraidosAnalise | null
+  conferenciaInputs?: ConferenciaInput[]
+  onRelatorioAtualizado?: (resultado: SolicitacaoWithFiles) => void
 }
 
 export default function RelatorioViewer({
   relatorio,
   titulo,
   onClose,
+  solicitacaoId,
   solicitacaoInfo,
   parecerTecnico,
   checklistConformidade,
+  complementosChecklist,
+  tipoRelatorio,
+  concessionariaId,
+  dadosExtraidos,
+  conferenciaInputs,
+  onRelatorioAtualizado,
 }: RelatorioViewerProps) {
-  const conformidadeItems = checklistConformidade
-    ? parseConformidadeChecklist(checklistConformidade)
+  const [parecerAtual, setParecerAtual] = useState(parecerTecnico)
+  const [dadosExtraidosAtual, setDadosExtraidosAtual] = useState(dadosExtraidos)
+  const [conferenciaAtual, setConferenciaAtual] = useState(conferenciaInputs)
+  const [copiado, setCopiado] = useState(false)
+  const [checklistAtual, setChecklistAtual] = useState(checklistConformidade)
+  const [complementosAtual, setComplementosAtual] = useState(complementosChecklist)
+  const [gerando, setGerando] = useState(false)
+  const [erroGeracao, setErroGeracao] = useState<string | null>(null)
+
+  useEffect(() => {
+    setParecerAtual(parecerTecnico)
+    setChecklistAtual(checklistConformidade)
+    setComplementosAtual(complementosChecklist)
+    setDadosExtraidosAtual(dadosExtraidos)
+    setConferenciaAtual(conferenciaInputs)
+  }, [parecerTecnico, checklistConformidade, complementosChecklist, dadosExtraidos, conferenciaInputs])
+
+  const conformidadeItems = checklistAtual
+    ? parseConformidadeChecklist(checklistAtual)
     : null
   const hasConformidade = !!conformidadeItems && conformidadeItems.length > 0
-  const hasParecer = !!parecerTecnico
+  const hasParecer = !!parecerAtual
 
   const hasDualView = hasConformidade && hasParecer
   const [activeTab, setActiveTab] = useState<TabId>(hasParecer ? 'parecer' : 'checklist')
@@ -181,12 +143,135 @@ export default function RelatorioViewer({
     : null
   const isLegacyChecklist = legacyChecklistData !== null
 
+  const tipoProjetoNome = getTipoProjetoNome(tipoRelatorio)
+  const complementosIniciais = parseComplementosChecklist(complementosAtual)
+  const podeComplementar = !!solicitacaoId && hasConformidade
+
+  const handleCopiarParecer = async () => {
+    if (!parecerAtual) return
+    try {
+      await navigator.clipboard.writeText(parecerAtual)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      // fallback silencioso
+    }
+  }
+
+  const handleImprimir = () => {
+    window.print()
+  }
+
+  const renderConferenciaStatus = (status: ConferenciaInput['status']) => {
+    const labels: Record<ConferenciaInput['status'], string> = {
+      COMPATIVEL: 'Compatível',
+      DIVERGENTE: 'Divergente',
+      AUSENTE_NO_DOCUMENTO: 'Ausente no documento',
+      AUSENTE_NO_FORMULARIO: 'Ausente no formulário',
+    }
+    return labels[status] ?? status
+  }
+
+  const renderDadosExtraidos = () => {
+    if (!dadosExtraidosAtual) return null
+    const entries = Object.entries(dadosExtraidosAtual).filter(([, v]) => v)
+    if (entries.length === 0) return null
+
+    return (
+      <details className="relatorio-extra-section" open>
+        <summary>Dados extraídos dos documentos</summary>
+        <dl className="relatorio-extra-dl">
+          {entries.map(([key, value]) => (
+            <div key={key} className="relatorio-extra-row">
+              <dt>{key}</dt>
+              <dd>{String(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    )
+  }
+
+  const renderConferenciaInputs = () => {
+    if (!conferenciaAtual?.length) return null
+
+    return (
+      <details className="relatorio-extra-section" open>
+        <summary>Conferência entre formulário e documentos</summary>
+        <div className="relatorio-conferencia-list">
+          {conferenciaAtual.map((item) => (
+            <div key={item.campo} className={`relatorio-conferencia-item status-${item.status.toLowerCase()}`}>
+              <strong>{item.campo}</strong>
+              <span className="relatorio-conferencia-status">{renderConferenciaStatus(item.status)}</span>
+              <p>Formulário: {item.valorFormulario ?? '—'}</p>
+              <p>Documento: {item.valorDocumento ?? '—'}</p>
+              {item.observacao && <p className="relatorio-conferencia-obs">{item.observacao}</p>}
+            </div>
+          ))}
+        </div>
+      </details>
+    )
+  }
+
+  const renderParecerContent = () => (
+    <>
+      {renderDadosExtraidos()}
+      {renderConferenciaInputs()}
+      {hasParecer && (
+        <div className="relatorio-parecer-actions">
+          <button type="button" className="relatorio-action-btn" onClick={handleCopiarParecer}>
+            <Copy size={16} />
+            {copiado ? 'Copiado!' : 'Copiar parecer'}
+          </button>
+          <button type="button" className="relatorio-action-btn" onClick={handleImprimir}>
+            <Printer size={16} />
+            Imprimir
+          </button>
+        </div>
+      )}
+      {parecerAtual && <ReactMarkdown remarkPlugins={[remarkGfm]}>{parecerAtual}</ReactMarkdown>}
+    </>
+  )
+
+  const handleGerarRelatorio = async (complementos: ComplementoChecklistItem[]) => {
+    if (!solicitacaoId) return
+
+    setGerando(true)
+    setErroGeracao(null)
+
+    try {
+      const resultado = await formatarRelatorioComplementos(solicitacaoId, complementos)
+      setParecerAtual(resultado.parecerTecnico)
+      setChecklistAtual(resultado.checklistConformidade)
+      setComplementosAtual(resultado.complementosChecklist)
+      setDadosExtraidosAtual(resultado.dadosExtraidos)
+      setConferenciaAtual(resultado.conferenciaInputs)
+      setActiveTab('parecer')
+      onRelatorioAtualizado?.(resultado)
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Erro ao gerar relatório com complementos.'
+      setErroGeracao(message)
+    } finally {
+      setGerando(false)
+    }
+  }
+
   return (
     <div className="relatorio-viewer-overlay" onClick={onClose}>
-      <div className="relatorio-viewer-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`relatorio-viewer-container ${hasConformidade ? 'relatorio-viewer-container-wide' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="relatorio-viewer-header">
-          <h2>Relatório de Conformidade - {titulo}</h2>
-          <button className="relatorio-viewer-close" onClick={onClose}>
+          <div className="relatorio-viewer-heading">
+            <h2>Análise de Conformidade</h2>
+            <p className="relatorio-viewer-subtitulo">{titulo}</p>
+            {tipoProjetoNome && (
+              <span className="relatorio-viewer-tipo">{tipoProjetoNome}</span>
+            )}
+          </div>
+          <button className="relatorio-viewer-close" onClick={onClose} aria-label="Fechar">
             <X size={24} />
           </button>
         </div>
@@ -213,14 +298,32 @@ export default function RelatorioViewer({
         <div className="relatorio-viewer-content">
           {hasDualView ? (
             activeTab === 'parecer' ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{parecerTecnico!}</ReactMarkdown>
+              renderParecerContent()
             ) : (
-              <ChecklistConformidadeTable items={conformidadeItems!} />
+              <ChecklistConformidadeView
+                items={conformidadeItems!}
+                tipoRelatorio={tipoRelatorio}
+                concessionariaId={concessionariaId}
+                editavel={podeComplementar}
+                complementosIniciais={complementosIniciais}
+                gerando={gerando}
+                erroGeracao={erroGeracao}
+                onGerarRelatorio={handleGerarRelatorio}
+              />
             )
           ) : hasParecer ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{parecerTecnico!}</ReactMarkdown>
+            renderParecerContent()
           ) : hasConformidade ? (
-            <ChecklistConformidadeTable items={conformidadeItems!} />
+            <ChecklistConformidadeView
+              items={conformidadeItems!}
+              tipoRelatorio={tipoRelatorio}
+              concessionariaId={concessionariaId}
+              editavel={podeComplementar}
+              complementosIniciais={complementosIniciais}
+              gerando={gerando}
+              erroGeracao={erroGeracao}
+              onGerarRelatorio={handleGerarRelatorio}
+            />
           ) : isLegacyChecklist ? (
             <ChecklistReportView
               data={legacyChecklistData}

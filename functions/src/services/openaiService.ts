@@ -50,7 +50,7 @@ export function buildTextInput(text: string): InputTextPart {
 
 export async function analyze(
   parts: InputPart[],
-  options?: { maxOutputTokens?: number; temperature?: number },
+  options?: { maxOutputTokens?: number; temperature?: number; jsonMode?: boolean },
 ): Promise<AnaliseResult> {
   const ai = getClient();
   const maxTokens = options?.maxOutputTokens ?? 8000;
@@ -66,6 +66,13 @@ export async function analyze(
     ],
     max_output_tokens: maxTokens,
     temperature,
+    ...(options?.jsonMode
+      ? {
+          text: {
+            format: { type: "json_object" as const },
+          },
+        }
+      : {}),
   });
 
   const content = response.output_text;

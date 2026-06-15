@@ -3,10 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { Upload } from 'lucide-react'
 import { createSolicitacao } from '../services/solicitacao/solicitacaoService'
 import {
+  CONCESSIONARIAS,
+  ECO101_SELECT_VALUE,
+  OUTRA_CONCESSIONARIA_VALUE,
+} from '../config/concessionarias'
+import {
   addConcessionaria,
   loadConcessionarias,
   saveConcessionarias,
 } from '../utils/concessionariasStorage'
+import { TIPOS_DOCUMENTO_OPTIONS, getFileKey } from '../config/tiposDocumento'
+import type { TipoDocumentoAnexo } from '../models/Solicitacao'
 import './NovaSolicitacao.css'
 
 const TIPOS_PROJETO_NORMATIVO = [
@@ -35,15 +42,22 @@ const PORTES_POR_CLASSIFICACAO: Record<string, string[]> = {
 
 type FormData = {
   cliente: string
+  interessado: string
   kilometragem: string
   nroProcessoErp: string
   rodovia: string
   nomeConcessionaria: string
+  concessionariaId: string
+  concessionariaSelect: string
   sentido: string
   ocupacao: string
   municipioEstado: string
+  uf: string
   ocupacaoArea: string
   responsavelTecnico: string
+  extensao: string
+  numeroArt: string
+  tipoIntervencaoDetalhado: string
   faseProjeto: string
   analistaResponsavel: string
   memorial: string
@@ -94,15 +108,22 @@ export default function NovaSolicitacao() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<FormData>({
     cliente: '',
+    interessado: '',
     kilometragem: '',
     nroProcessoErp: '',
     rodovia: '',
     nomeConcessionaria: '',
+    concessionariaId: '',
+    concessionariaSelect: '',
     sentido: '',
     ocupacao: '',
     municipioEstado: '',
+    uf: '',
     ocupacaoArea: '',
     responsavelTecnico: '',
+    extensao: '',
+    numeroArt: '',
+    tipoIntervencaoDetalhado: '',
     faseProjeto: '',
     analistaResponsavel: '',
     memorial: '',
@@ -114,6 +135,7 @@ export default function NovaSolicitacao() {
   const [concessionarias, setConcessionarias] = useState<string[]>(() => loadConcessionarias())
   const [novaConcessionaria, setNovaConcessionaria] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [fileDocumentTypes, setFileDocumentTypes] = useState<Record<string, TipoDocumentoAnexo>>({})
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -126,6 +148,39 @@ export default function NovaSolicitacao() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
+
+    if (name === 'concessionariaSelect') {
+      if (value === ECO101_SELECT_VALUE) {
+        const eco101 = CONCESSIONARIAS[0]
+        setFormData((prev) => ({
+          ...prev,
+          concessionariaSelect: value,
+          concessionariaId: eco101.id,
+          nomeConcessionaria: eco101.nome,
+          tipoRelatorio: prev.tipoRelatorio || 'pit',
+        }))
+        return
+      }
+
+      if (value === OUTRA_CONCESSIONARIA_VALUE) {
+        setFormData((prev) => ({
+          ...prev,
+          concessionariaSelect: value,
+          concessionariaId: 'outra',
+          nomeConcessionaria: '',
+        }))
+        return
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        concessionariaSelect: value,
+        concessionariaId: 'outra',
+        nomeConcessionaria: value,
+      }))
+      return
+    }
+
     setFormData(prev => {
       if (name === 'ocupacao') {
         return {
@@ -140,6 +195,11 @@ export default function NovaSolicitacao() {
         [name]: value
       }
     })
+  }
+
+  const handleFileDocumentTypeChange = (file: File, tipoDocumento: TipoDocumentoAnexo) => {
+    const key = getFileKey(file)
+    setFileDocumentTypes((prev) => ({ ...prev, [key]: tipoDocumento }))
   }
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
@@ -163,6 +223,10 @@ export default function NovaSolicitacao() {
     })
 
     setFiles(prev => [...prev, ...validFiles])
+    validFiles.forEach((file) => {
+      const key = getFileKey(file)
+      setFileDocumentTypes((prev) => ({ ...prev, [key]: prev[key] ?? 'desconhecido' }))
+    })
   }
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,7 +250,18 @@ export default function NovaSolicitacao() {
   }
 
   const handleRemoveFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index))
+    setFiles(prev => {
+      const removed = prev[index]
+      if (removed) {
+        const key = getFileKey(removed)
+        setFileDocumentTypes((types) => {
+          const next = { ...types }
+          delete next[key]
+          return next
+        })
+      }
+      return prev.filter((_, i) => i !== index)
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -203,7 +278,9 @@ export default function NovaSolicitacao() {
           localizacao: obra.localizacao,
           descricao: obra.descricao,
           status: 'pendente',
+          concessionariaId: formData.concessionariaId || null,
           cliente: formData.cliente || undefined,
+          interessado: formData.interessado || formData.cliente || undefined,
           kilometragem: formData.kilometragem || undefined,
           nroProcessoErp: formData.nroProcessoErp || undefined,
           rodovia: formData.rodovia || undefined,
@@ -211,8 +288,12 @@ export default function NovaSolicitacao() {
           sentido: formData.sentido || undefined,
           ocupacao: formData.ocupacao || undefined,
           municipioEstado: formData.municipioEstado || undefined,
+          uf: formData.uf || undefined,
           ocupacaoArea: formData.ocupacaoArea || undefined,
           responsavelTecnico: formData.responsavelTecnico || undefined,
+          extensao: formData.extensao || undefined,
+          numeroArt: formData.numeroArt || undefined,
+          tipoIntervencaoDetalhado: formData.tipoIntervencaoDetalhado || undefined,
           faseProjeto: formData.faseProjeto || undefined,
           analistaResponsavel: formData.analistaResponsavel || undefined,
           memorial: formData.memorial || undefined,
@@ -220,7 +301,8 @@ export default function NovaSolicitacao() {
           numeroRevisao: formData.numeroRevisao || undefined,
           tipoRelatorio: (formData.tipoRelatorio || undefined) as any,
         },
-        files
+        files,
+        fileDocumentTypes
       )
       navigate('/solicitacao-registrada', {
         state: { solicitacaoId: id, titulo: obra.titulo },
@@ -244,6 +326,8 @@ export default function NovaSolicitacao() {
     setConcessionarias(resultado.concessionarias)
     setFormData((prev) => ({
       ...prev,
+      concessionariaSelect: resultado.nome,
+      concessionariaId: 'outra',
       nomeConcessionaria: resultado.nome,
     }))
     setNovaConcessionaria('')
@@ -275,6 +359,20 @@ export default function NovaSolicitacao() {
               />
             </div>
             <div className="form-group">
+              <label htmlFor="interessado">Interessado</label>
+              <input
+                type="text"
+                id="interessado"
+                name="interessado"
+                value={formData.interessado}
+                onChange={handleInputChange}
+                placeholder="Ex: EDP Espírito Santo Distribuição de Energia S.A."
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label htmlFor="kilometragem">Kilometragem</label>
               <input
                 type="text"
@@ -282,7 +380,18 @@ export default function NovaSolicitacao() {
                 name="kilometragem"
                 value={formData.kilometragem}
                 onChange={handleInputChange}
-                placeholder="Ex: km 23+880 a km 68+503"
+                placeholder="Ex: km 123+424"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="extensao">Extensão</label>
+              <input
+                type="text"
+                id="extensao"
+                name="extensao"
+                value={formData.extensao}
+                onChange={handleInputChange}
+                placeholder="Ex: 145,25 m"
               />
             </div>
           </div>
@@ -314,19 +423,27 @@ export default function NovaSolicitacao() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="nomeConcessionaria">Nome Concessionária</label>
+              <label htmlFor="concessionariaSelect">Concessionária</label>
               <select
-                id="nomeConcessionaria"
-                name="nomeConcessionaria"
-                value={formData.nomeConcessionaria}
+                id="concessionariaSelect"
+                name="concessionariaSelect"
+                value={formData.concessionariaSelect}
                 onChange={handleInputChange}
               >
                 <option value="">Selecione...</option>
+                {CONCESSIONARIAS.map((item) => (
+                  <option key={item.id} value={ECO101_SELECT_VALUE}>
+                    {item.nome}
+                  </option>
+                ))}
                 {concessionarias.map((concessionaria) => (
                   <option key={concessionaria} value={concessionaria}>
                     {concessionaria}
                   </option>
                 ))}
+                <option value={OUTRA_CONCESSIONARIA_VALUE}>
+                  Outra concessionária / cadastrar manualmente
+                </option>
               </select>
               <div className="add-concessionaria-row">
                 <input
@@ -405,9 +522,49 @@ export default function NovaSolicitacao() {
                 name="municipioEstado"
                 value={formData.municipioEstado}
                 onChange={handleInputChange}
-                placeholder="Ex: Curitiba - PR"
+                placeholder="Ex: Sooretama - ES"
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="uf">UF</label>
+              <input
+                type="text"
+                id="uf"
+                name="uf"
+                value={formData.uf}
+                onChange={handleInputChange}
+                placeholder="Ex: ES"
+                maxLength={2}
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="tipoIntervencaoDetalhado">Tipo de intervenção detalhado</label>
+              <input
+                type="text"
+                id="tipoIntervencaoDetalhado"
+                name="tipoIntervencaoDetalhado"
+                value={formData.tipoIntervencaoDetalhado}
+                onChange={handleInputChange}
+                placeholder="Ex: ocupação de faixa e travessia aérea..."
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="numeroArt">Número da ART</label>
+              <input
+                type="text"
+                id="numeroArt"
+                name="numeroArt"
+                value={formData.numeroArt}
+                onChange={handleInputChange}
+                placeholder="Ex: ART-123456"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="responsavelTecnico">Responsável Técnico</label>
               <input
@@ -419,6 +576,7 @@ export default function NovaSolicitacao() {
                 placeholder="Ex: Rerond Goulart Carvalho"
               />
             </div>
+            <div className="form-group" />
           </div>
 
           <div className="form-row">
@@ -540,21 +698,37 @@ export default function NovaSolicitacao() {
 
           {files.length > 0 && (
             <div className="files-list">
-              {files.map((file, index) => (
-                <div key={index} className="file-item">
-                  <span className="file-name">{file.name}</span>
-                  <span className="file-size">
-                    {(file.size / (1024 * 1024)).toFixed(2)} MB
-                  </span>
-                  <button
-                    type="button"
-                    className="remove-file-button"
-                    onClick={() => handleRemoveFile(index)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {files.map((file, index) => {
+                const fileKey = getFileKey(file)
+                return (
+                  <div key={fileKey} className="file-item">
+                    <span className="file-name">{file.name}</span>
+                    <select
+                      className="file-type-select"
+                      value={fileDocumentTypes[fileKey] ?? 'desconhecido'}
+                      onChange={(e) =>
+                        handleFileDocumentTypeChange(file, e.target.value as TipoDocumentoAnexo)
+                      }
+                    >
+                      {TIPOS_DOCUMENTO_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="file-size">
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                    <button
+                      type="button"
+                      className="remove-file-button"
+                      onClick={() => handleRemoveFile(index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

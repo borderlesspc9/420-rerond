@@ -4,16 +4,15 @@ import type { EscopoAnalise } from '../models/Solicitacao'
 import './ModalReanalise.css'
 
 const TIPOS_PROJETO_OPTIONS = [
-  { value: 'duplicacao', label: 'Duplicação' },
-  { value: 'recapeamento', label: 'Recapeamento' },
-  { value: 'reforma', label: 'Reforma' },
-  { value: 'construcao', label: 'Construção' },
-  { value: 'manutencao', label: 'Manutenção' },
-]
+  { value: 'pit', label: 'PIT — Projeto de Interesse de Terceiros' },
+  { value: 'obra_per', label: 'Obra prevista no PER' },
+  { value: 'obra_nao_per', label: 'Obra não PER' },
+] as const
 
 interface ModalReanaliseProps {
   titulo: string
-  tipoObraAtual?: string
+  tipoRelatorioAtual?: string
+  concessionariaId?: string | null
   primeiraAnalise: boolean
   onConfirm: (
     promptCustomizado?: string,
@@ -26,7 +25,8 @@ interface ModalReanaliseProps {
 
 export default function ModalReanalise({ 
   titulo, 
-  tipoObraAtual,
+  tipoRelatorioAtual,
+  concessionariaId,
   primeiraAnalise,
   onConfirm, 
   onClose 
@@ -46,15 +46,23 @@ export default function ModalReanalise({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const tipoNormalizado = (tipoObraAtual || '').trim().toLowerCase()
-    if (!tipoNormalizado) {
-      setTiposProjetoSelecionados([])
+    const tipoNormalizado = (tipoRelatorioAtual || '').trim().toLowerCase()
+    const existeNoCatalogo = TIPOS_PROJETO_OPTIONS.some(
+      (option) => option.value === tipoNormalizado,
+    )
+
+    if (existeNoCatalogo) {
+      setTiposProjetoSelecionados([tipoNormalizado])
       return
     }
 
-    const existeNoCatalogo = TIPOS_PROJETO_OPTIONS.some(option => option.value === tipoNormalizado)
-    setTiposProjetoSelecionados(existeNoCatalogo ? [tipoNormalizado] : [])
-  }, [tipoObraAtual])
+    if (concessionariaId === 'eco101') {
+      setTiposProjetoSelecionados(['pit'])
+      return
+    }
+
+    setTiposProjetoSelecionados([])
+  }, [tipoRelatorioAtual, concessionariaId])
 
   const handleTipoProjetoChange = (selectedOptions: HTMLSelectElement['selectedOptions']) => {
     const values = Array.from(selectedOptions).map(option => option.value)
