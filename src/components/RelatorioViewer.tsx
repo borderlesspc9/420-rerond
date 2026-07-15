@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { X, ClipboardList, FileText, Copy, Printer } from 'lucide-react'
+import { X, ClipboardList, FileText, Copy, Printer, FileOutput } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ChecklistReportView from './ChecklistReportView'
 import ChecklistConformidadeView from './ChecklistConformidadeView'
+import RelatorioConformidadeView from './RelatorioConformidadeView'
 import type { ComplementoChecklistItem, ConferenciaInput, DadosExtraidosAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao'
 import { formatarRelatorioComplementos } from '../services/solicitacao/solicitacaoService'
 import {
@@ -79,14 +80,26 @@ function parseChecklistJson(raw: string): Record<string, string> | null {
   return Object.keys(out).length ? out : null
 }
 
-type TabId = 'parecer' | 'checklist'
+type TabId = 'parecer' | 'checklist' | 'relatorio'
 
 interface RelatorioViewerProps {
   relatorio: string
   titulo: string
   onClose: () => void
   solicitacaoId?: string
-  solicitacaoInfo?: { localizacao?: string; tipoObra?: string; descricao?: string }
+  solicitacaoInfo?: {
+    localizacao?: string
+    tipoObra?: string
+    descricao?: string
+    nomeConcessionaria?: string | null
+    nroProcessoErp?: string | null
+    rodovia?: string | null
+    kilometragem?: string | null
+    responsavelTecnico?: string | null
+    analistaResponsavel?: string | null
+    cliente?: string | null
+    analisadoEm?: Date | string | null
+  }
   parecerTecnico?: string
   checklistConformidade?: string
   complementosChecklist?: string
@@ -95,6 +108,7 @@ interface RelatorioViewerProps {
   dadosExtraidos?: DadosExtraidosAnalise | null
   conferenciaInputs?: ConferenciaInput[]
   onRelatorioAtualizado?: (resultado: SolicitacaoWithFiles) => void
+  initialTab?: TabId
 }
 
 export default function RelatorioViewer({
@@ -111,6 +125,7 @@ export default function RelatorioViewer({
   dadosExtraidos,
   conferenciaInputs,
   onRelatorioAtualizado,
+  initialTab,
 }: RelatorioViewerProps) {
   const [parecerAtual, setParecerAtual] = useState(parecerTecnico)
   const [dadosExtraidosAtual, setDadosExtraidosAtual] = useState(dadosExtraidos)
@@ -134,9 +149,25 @@ export default function RelatorioViewer({
     : null
   const hasConformidade = !!conformidadeItems && conformidadeItems.length > 0
   const hasParecer = !!parecerAtual
+  const hasRelatorioPdf = hasConformidade && !!solicitacaoId
 
   const hasDualView = hasConformidade && hasParecer
-  const [activeTab, setActiveTab] = useState<TabId>(hasParecer ? 'parecer' : 'checklist')
+  const defaultTab: TabId = initialTab
+    ? initialTab
+    : hasRelatorioPdf
+      ? 'relatorio'
+      : hasParecer
+        ? 'parecer'
+        : 'checklist'
+  const [activeTab, setActiveTab] = useState<TabId>(defaultTab)
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    } else if (hasRelatorioPdf) {
+      setActiveTab('relatorio')
+    }
+  }, [initialTab, hasRelatorioPdf, solicitacaoId])
 
   const legacyChecklistData = !hasParecer && !hasConformidade
     ? parseChecklistJson(relatorio)
@@ -246,7 +277,7 @@ export default function RelatorioViewer({
       setComplementosAtual(resultado.complementosChecklist)
       setDadosExtraidosAtual(resultado.dadosExtraidos)
       setConferenciaAtual(resultado.conferenciaInputs)
-      setActiveTab('parecer')
+      setActiveTab('relatorio')
       onRelatorioAtualizado?.(resultado)
     } catch (error: unknown) {
       const message =
@@ -255,6 +286,37 @@ export default function RelatorioViewer({
     } finally {
       setGerando(false)
     }
+  }
+
+  const showTabs = hasDualView || hasRelatorioPdf
+
+  const renderRelatorioPdf = () => {
+    if (!hasRelatorioPdf || !conformidadeItems) return null
+    return (
+      <RelatorioConformidadeView
+        solicitacaoId={solicitacaoId!}
+        titulo={titulo}
+        checklistItems={conformidadeItems}
+        checklistConformidadeRaw={checklistAtual}
+        parecerTecnico={parecerAtual}
+        relatorioIA={relatorio}
+        tipoRelatorio={tipoRelatorio}
+        concessionariaId={concessionariaId}
+        nomeConcessionaria={solicitacaoInfo?.nomeConcessionaria}
+        nroProcessoErp={solicitacaoInfo?.nroProcessoErp}
+        rodovia={solicitacaoInfo?.rodovia}
+        kilometragem={solicitacaoInfo?.kilometragem}
+        localizacao={solicitacaoInfo?.localizacao}
+        descricao={solicitacaoInfo?.descricao}
+        tipoObra={solicitacaoInfo?.tipoObra}
+        responsavelTecnico={solicitacaoInfo?.responsavelTecnico}
+        analistaResponsavel={solicitacaoInfo?.analistaResponsavel}
+        cliente={solicitacaoInfo?.cliente}
+        analisadoEm={solicitacaoInfo?.analisadoEm}
+        dadosExtraidos={dadosExtraidosAtual}
+        conferenciaInputs={conferenciaAtual}
+      />
+    )
   }
 
   return (
@@ -276,28 +338,49 @@ export default function RelatorioViewer({
           </button>
         </div>
 
-        {hasDualView && (
-          <div className="relatorio-tabs">
-            <button
-              className={`relatorio-tab ${activeTab === 'parecer' ? 'relatorio-tab-active' : ''}`}
-              onClick={() => setActiveTab('parecer')}
-            >
-              <FileText size={16} />
-              Parecer Técnico
-            </button>
-            <button
-              className={`relatorio-tab ${activeTab === 'checklist' ? 'relatorio-tab-active' : ''}`}
-              onClick={() => setActiveTab('checklist')}
-            >
-              <ClipboardList size={16} />
-              Checklist de Conformidade
-            </button>
+        {showTabs && (
+          <div className="relatorio-tabs" role="tablist">
+            {hasRelatorioPdf && (
+              <button
+                role="tab"
+                aria-selected={activeTab === 'relatorio'}
+                className={`relatorio-tab ${activeTab === 'relatorio' ? 'relatorio-tab-active' : ''}`}
+                onClick={() => setActiveTab('relatorio')}
+              >
+                <FileOutput size={16} />
+                Relatório PDF
+              </button>
+            )}
+            {hasParecer && (
+              <button
+                role="tab"
+                aria-selected={activeTab === 'parecer'}
+                className={`relatorio-tab ${activeTab === 'parecer' ? 'relatorio-tab-active' : ''}`}
+                onClick={() => setActiveTab('parecer')}
+              >
+                <FileText size={16} />
+                Parecer Técnico
+              </button>
+            )}
+            {hasConformidade && (
+              <button
+                role="tab"
+                aria-selected={activeTab === 'checklist'}
+                className={`relatorio-tab ${activeTab === 'checklist' ? 'relatorio-tab-active' : ''}`}
+                onClick={() => setActiveTab('checklist')}
+              >
+                <ClipboardList size={16} />
+                Checklist de Conformidade
+              </button>
+            )}
           </div>
         )}
 
         <div className="relatorio-viewer-content">
-          {hasDualView ? (
-            activeTab === 'parecer' ? (
+          {showTabs ? (
+            activeTab === 'relatorio' ? (
+              renderRelatorioPdf()
+            ) : activeTab === 'parecer' ? (
               renderParecerContent()
             ) : (
               <ChecklistConformidadeView
@@ -314,16 +397,19 @@ export default function RelatorioViewer({
           ) : hasParecer ? (
             renderParecerContent()
           ) : hasConformidade ? (
-            <ChecklistConformidadeView
-              items={conformidadeItems!}
-              tipoRelatorio={tipoRelatorio}
-              concessionariaId={concessionariaId}
-              editavel={podeComplementar}
-              complementosIniciais={complementosIniciais}
-              gerando={gerando}
-              erroGeracao={erroGeracao}
-              onGerarRelatorio={handleGerarRelatorio}
-            />
+            <>
+              {renderRelatorioPdf()}
+              <ChecklistConformidadeView
+                items={conformidadeItems!}
+                tipoRelatorio={tipoRelatorio}
+                concessionariaId={concessionariaId}
+                editavel={podeComplementar}
+                complementosIniciais={complementosIniciais}
+                gerando={gerando}
+                erroGeracao={erroGeracao}
+                onGerarRelatorio={handleGerarRelatorio}
+              />
+            </>
           ) : isLegacyChecklist ? (
             <ChecklistReportView
               data={legacyChecklistData}

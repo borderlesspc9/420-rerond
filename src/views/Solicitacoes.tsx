@@ -17,7 +17,19 @@ export default function Solicitacoes() {
     solicitacaoId: string
     relatorio: string
     titulo: string
-    solicitacaoInfo?: { localizacao?: string; tipoObra?: string; descricao?: string }
+    solicitacaoInfo?: {
+      localizacao?: string
+      tipoObra?: string
+      descricao?: string
+      nomeConcessionaria?: string | null
+      nroProcessoErp?: string | null
+      rodovia?: string | null
+      kilometragem?: string | null
+      responsavelTecnico?: string | null
+      analistaResponsavel?: string | null
+      cliente?: string | null
+      analisadoEm?: Date | string | null
+    }
     parecerTecnico?: string
     checklistConformidade?: string
     complementosChecklist?: string
@@ -110,25 +122,35 @@ export default function Solicitacoes() {
     return tipos[tipo] || tipo
   }
 
+  const buildRelatorioAberto = (solicitacao: SolicitacaoWithFiles) => ({
+    solicitacaoId: solicitacao.id!,
+    relatorio: solicitacao.relatorioIA || '',
+    titulo: solicitacao.titulo,
+    solicitacaoInfo: {
+      localizacao: solicitacao.localizacao,
+      tipoObra: solicitacao.tipoObra,
+      descricao: solicitacao.descricao,
+      nomeConcessionaria: solicitacao.nomeConcessionaria,
+      nroProcessoErp: solicitacao.nroProcessoErp,
+      rodovia: solicitacao.rodovia,
+      kilometragem: solicitacao.kilometragem,
+      responsavelTecnico: solicitacao.responsavelTecnico,
+      analistaResponsavel: solicitacao.analistaResponsavel,
+      cliente: solicitacao.cliente,
+      analisadoEm: solicitacao.analisadoEm,
+    },
+    parecerTecnico: solicitacao.parecerTecnico,
+    checklistConformidade: solicitacao.checklistConformidade,
+    complementosChecklist: solicitacao.complementosChecklist,
+    tipoRelatorio: solicitacao.tipoRelatorio,
+    concessionariaId: solicitacao.concessionariaId,
+    dadosExtraidos: solicitacao.dadosExtraidos,
+    conferenciaInputs: solicitacao.conferenciaInputs,
+  })
+
   const handleVerRelatorio = (solicitacao: SolicitacaoWithFiles) => {
     if (solicitacao.relatorioIA || solicitacao.parecerTecnico || solicitacao.checklistConformidade) {
-      setRelatorioAberto({
-        solicitacaoId: solicitacao.id!,
-        relatorio: solicitacao.relatorioIA || '',
-        titulo: solicitacao.titulo,
-        solicitacaoInfo: {
-          localizacao: solicitacao.localizacao,
-          tipoObra: solicitacao.tipoObra,
-          descricao: solicitacao.descricao,
-        },
-        parecerTecnico: solicitacao.parecerTecnico,
-        checklistConformidade: solicitacao.checklistConformidade,
-        complementosChecklist: solicitacao.complementosChecklist,
-        tipoRelatorio: solicitacao.tipoRelatorio,
-        concessionariaId: solicitacao.concessionariaId,
-        dadosExtraidos: solicitacao.dadosExtraidos,
-        conferenciaInputs: solicitacao.conferenciaInputs,
-      })
+      setRelatorioAberto(buildRelatorioAberto(solicitacao))
     }
   }
 
@@ -156,23 +178,7 @@ export default function Solicitacoes() {
       )
       
       if (resultado.relatorioIA || resultado.parecerTecnico || resultado.checklistConformidade) {
-        setRelatorioAberto({
-          solicitacaoId: resultado.id!,
-          relatorio: resultado.relatorioIA || '',
-          titulo: resultado.titulo,
-          solicitacaoInfo: {
-            localizacao: resultado.localizacao,
-            tipoObra: resultado.tipoObra,
-            descricao: resultado.descricao,
-          },
-          parecerTecnico: resultado.parecerTecnico,
-          checklistConformidade: resultado.checklistConformidade,
-          complementosChecklist: resultado.complementosChecklist,
-          tipoRelatorio: resultado.tipoRelatorio,
-          concessionariaId: resultado.concessionariaId,
-          dadosExtraidos: resultado.dadosExtraidos,
-          conferenciaInputs: resultado.conferenciaInputs,
-        })
+        setRelatorioAberto(buildRelatorioAberto(resultado))
       }
       
       setModalReanaliseAberto(null)

@@ -24,9 +24,57 @@ import {
   montarBlocoNormativoParaPrompt,
 } from "./services/normasService.js";
 import { solicitacaoStore } from "./services/solicitacaoStore.js";
+import {
+  createReportId,
+  generateRelatorioConformidadePdf,
+  type RelatorioPdfInput,
+} from "./services/relatorioConformidadePdf.js";
+import { relatorioPdfStore } from "./services/relatorioPdfStore.js";
+import {
+  requireFirebaseAuth,
+  type AuthedRequest,
+} from "./middleware/authMiddleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const RELATORIOS_DIR = path.join(__dirname, "../uploads/relatorios");
+const LOGOS_DIR = path.join(__dirname, "../uploads/logos-concessionarias");
+
+const ensureDir = (dir: string) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_MIMES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+]);
+
+const uploadLogoConcessionaria = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_LOGO_BYTES },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_LOGO_MIMES.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Formato de logotipo inválido. Use PNG ou JPG/JPEG."));
+    }
+  },
+});
+
+function validateRelatorioPayload(body: unknown): RelatorioPdfInput | null {
+  if (!body || typeof body !== "object") return null;
+  const raw = body as Record<string, unknown>;
+  if (!raw.solicitacaoId || !raw.identificadorRelatorio || !raw.metadados) {
+    return null;
+  }
+  if (!raw.indicadores || !Array.isArray(raw.itens)) return null;
+  return raw as unknown as RelatorioPdfInput;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,7 +113,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Health check
@@ -628,6 +676,207 @@ app.get("/api/solicitacoes/:id/download", async (req, res) => {
     res.status(500).json({ error: "Erro ao baixar anexos" });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Relatório de Análise de Conformidade (PDF)
+// ---------------------------------------------------------------------------
+
+// POST /api/solicitacoes/:id/relatorio-pdf — gera PDF profissional
+app.post(
+  "/api/solicitacoes/:id/relatorio-pdf",
+  requireFirebaseAuth,
+  async (req: AuthedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const payload = validateRelatorioPayload(req.body?.relatorio ?? req.body);
+
+      if (!payload || payload.solicitacaoId !== id) {
+        return res.status(400).json({
+          error: "Payload do relatório inválido ou incompatível com a solicitação.",
+        });
+      }
+
+      // Payload já traz os dados da análise; não bloqueia se o doc não existir no store legado
+      const solicitacao = await solicitacaoStore.findUnique(id).catch(() => null);
+
+      if (
+        solicitacao?.createdBy &&
+        req.user?.uid &&
+        solicitacao.createdBy !== req.user.uid &&
+        process.env.STRICT_REPORT_OWNERSHIP === "true"
+      ) {
+        return res.status(403).json({
+          error: "Sem permissão para gerar relatório desta solicitação.",
+        });
+      }
+
+      const versao = await relatorioPdfStore.getNextVersion(id);
+      const reportId = createReportId();
+      const { buffer, fileName } =
+        await generateRelatorioConformidadePdf(payload);
+
+      ensureDir(RELATORIOS_DIR);
+      const safeName = `${reportId}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const storagePath = path.join(RELATORIOS_DIR, safeName);
+      fs.writeFileSync(storagePath, buffer);
+
+      const downloadUrl = `${getPublicBaseUrl(req)}/api/solicitacoes/${id}/relatorio-pdf/${reportId}/download`;
+
+      const record = await relatorioPdfStore.create(id, {
+        identificadorRelatorio: payload.identificadorRelatorio,
+        versao,
+        fileName,
+        storagePath: safeName,
+        downloadUrl,
+        geradoPorUid: req.user?.uid ?? null,
+        geradoPorNome: req.user?.name ?? req.user?.email ?? null,
+        nomeConcessionaria: payload.metadados.nomeConcessionaria || "",
+        nomeProjeto: payload.metadados.nomeProjeto || "",
+        percentualConformidade: payload.indicadores.percentualConformidade,
+        statusGeral: payload.statusGeral,
+        metadadosApresentacao: { ...payload.metadados },
+        resultadoOriginalIa:
+          (req.body?.resultadoOriginalIa as Record<string, unknown>) ?? null,
+      });
+
+      res.status(201).json({
+        reportId: record.id,
+        versao: record.versao,
+        fileName: record.fileName,
+        downloadUrl: record.downloadUrl,
+        identificadorRelatorio: record.identificadorRelatorio,
+        geradoEm: record.geradoEm.toISOString(),
+        message: `Relatório v${versao} gerado com sucesso.`,
+      });
+    } catch (error: unknown) {
+      console.error("Erro ao gerar PDF de conformidade:", error);
+      const message =
+        error instanceof Error ? error.message : "Erro ao gerar relatório PDF";
+      res.status(500).json({ error: message });
+    }
+  },
+);
+
+// GET /api/solicitacoes/:id/relatorio-pdf — lista histórico
+app.get(
+  "/api/solicitacoes/:id/relatorio-pdf",
+  requireFirebaseAuth,
+  async (req: AuthedRequest, res) => {
+    try {
+      const { id } = req.params;
+      // Lista mesmo sem documento pai (histórico pode existir na subcoleção)
+      const items = await relatorioPdfStore.listBySolicitacao(id);
+      res.json(
+        items.map((item) => ({
+          id: item.id,
+          solicitacaoId: item.solicitacaoId,
+          identificadorRelatorio: item.identificadorRelatorio,
+          versao: item.versao,
+          fileName: item.fileName,
+          downloadUrl: item.downloadUrl,
+          geradoEm: item.geradoEm.toISOString(),
+          geradoPorUid: item.geradoPorUid,
+          geradoPorNome: item.geradoPorNome,
+          nomeConcessionaria: item.nomeConcessionaria,
+          nomeProjeto: item.nomeProjeto,
+          percentualConformidade: item.percentualConformidade,
+          statusGeral: item.statusGeral,
+        })),
+      );
+    } catch (error) {
+      console.error("Erro ao listar relatórios PDF:", error);
+      res.status(500).json({ error: "Erro ao listar relatórios" });
+    }
+  },
+);
+
+// GET /api/solicitacoes/:id/relatorio-pdf/:reportId/download
+app.get(
+  "/api/solicitacoes/:id/relatorio-pdf/:reportId/download",
+  requireFirebaseAuth,
+  async (req: AuthedRequest, res) => {
+    try {
+      const { id, reportId } = req.params;
+      const record = await relatorioPdfStore.findById(id, reportId);
+      if (!record) {
+        return res.status(404).json({ error: "Relatório não encontrado" });
+      }
+
+      const filePath = path.join(RELATORIOS_DIR, path.basename(record.storagePath));
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "Arquivo do relatório indisponível" });
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${record.fileName}"`,
+      );
+      res.setHeader("Cache-Control", "private, no-store");
+      fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+      console.error("Erro ao baixar relatório PDF:", error);
+      res.status(500).json({ error: "Erro ao baixar relatório" });
+    }
+  },
+);
+
+// POST /api/logos-concessionaria — upload validado de logotipo
+app.post(
+  "/api/logos-concessionaria",
+  requireFirebaseAuth,
+  uploadLogoConcessionaria.single("logo"),
+  async (req: AuthedRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Arquivo de logotipo não enviado." });
+      }
+
+      const mime = req.file.mimetype;
+      if (!ALLOWED_LOGO_MIMES.has(mime)) {
+        return res.status(400).json({
+          error: "Formato inválido. Aceitos: PNG, JPG/JPEG.",
+        });
+      }
+
+      if (req.file.size > MAX_LOGO_BYTES) {
+        return res.status(400).json({
+          error: "Logotipo excede o limite de 2 MB.",
+        });
+      }
+
+      // SVG propositalmente não aceito sem sanitização dedicada
+      const ext = mime.includes("png") ? ".png" : ".jpg";
+      ensureDir(LOGOS_DIR);
+      const nome =
+        String(req.body?.nomeConcessionaria || "concessionaria")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .slice(0, 40) || "concessionaria";
+      const filename = `${Date.now()}-${nome}${ext}`;
+      const filePath = path.join(LOGOS_DIR, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      const dataUrl = `data:${mime};base64,${req.file.buffer.toString("base64")}`;
+      const url = `${getPublicBaseUrl(req)}/uploads/logos-concessionarias/${filename}`;
+
+      res.status(201).json({
+        url,
+        dataUrl,
+        fileName: filename,
+        mimeType: mime,
+        sizeBytes: req.file.size,
+      });
+    } catch (error: unknown) {
+      console.error("Erro no upload do logotipo:", error);
+      const message =
+        error instanceof Error ? error.message : "Erro ao enviar logotipo";
+      res.status(500).json({ error: message });
+    }
+  },
+);
 
 // DELETE /api/solicitacoes/:id - Deletar solicitação
 app.delete("/api/solicitacoes/:id", async (req, res) => {
