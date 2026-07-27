@@ -56,7 +56,7 @@ export default function ModalReanalise({
       return
     }
 
-    if (concessionariaId === 'eco101') {
+    if (concessionariaId === 'eco101' || concessionariaId === 'motiva' || concessionariaId === 'arteris') {
       setTiposProjetoSelecionados(['pit'])
       return
     }
@@ -128,14 +128,22 @@ export default function ModalReanalise({
   }
 
   return (
-    <div className="modal-reanalise-overlay" onClick={onClose}>
+    <div
+      className="modal-reanalise-overlay"
+      onClick={loading ? undefined : onClose}
+    >
       <div className="modal-reanalise-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-reanalise-header">
           <div className="modal-reanalise-header-content">
             <Sparkles size={24} className="modal-reanalise-icon" />
             <h2>{primeiraAnalise ? 'Primeira Análise' : 'Reanalisar com IA'}</h2>
           </div>
-          <button className="modal-reanalise-close" onClick={onClose}>
+          <button
+            className="modal-reanalise-close"
+            onClick={onClose}
+            disabled={loading}
+            aria-disabled={loading}
+          >
             <X size={24} />
           </button>
         </div>

@@ -1,0 +1,237 @@
+.apo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(35, 87, 196, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 90%, rgba(241, 183, 38, 0.16), transparent 50%),
+    rgba(15, 47, 115, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: apo-fade-in 220ms ease-out;
+}
+
+.apo-card {
+  width: min(560px, 100%);
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #d5e3f5;
+  box-shadow:
+    0 24px 60px rgba(15, 47, 115, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+  padding: 28px 28px 24px;
+  font-family: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  color: #14233d;
+}
+
+.apo-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.apo-brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
+.apo-brand-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f2f73;
+  background: #ddeaff;
+  border: 1px solid #b8d0f5;
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.apo-title {
+  margin: 0 0 8px;
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f2f73;
+}
+
+.apo-subtitle {
+  margin: 0 0 22px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #5d708e;
+}
+
+.apo-subtitle strong {
+  color: #14233d;
+  font-weight: 650;
+}
+
+.apo-concessionaria {
+  color: #2357c4;
+  font-weight: 650;
+}
+
+.apo-percent-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.apo-percent {
+  flex-shrink: 0;
+  min-width: 72px;
+  font-size: 2rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: #0f2f73;
+  font-variant-numeric: tabular-nums;
+}
+
+.apo-current-stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.apo-current-label {
+  font-size: 0.98rem;
+  font-weight: 650;
+  color: #14233d;
+}
+
+.apo-current-detail {
+  margin-top: 2px;
+  font-size: 0.82rem;
+  color: #5d708e;
+  line-height: 1.35;
+}
+
+.apo-stage-icon {
+  color: #8aa0c2;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.apo-stage-icon-active {
+  color: #2357c4;
+}
+
+.apo-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #e8f0fb;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.apo-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f2f73 0%, #2357c4 55%, #f1b726 100%);
+  transition: width 280ms ease-out;
+}
+
+.apo-bar-glow {
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  border-radius: 50%;
+  background: rgba(241, 183, 38, 0.45);
+  filter: blur(8px);
+  pointer-events: none;
+  transition: left 280ms ease-out;
+}
+
+.apo-stages {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.apo-stage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: #8aa0c2;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.apo-stage-text {
+  font-size: 0.86rem;
+  font-weight: 550;
+}
+
+.apo-stage-marker {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.apo-stage-current {
+  background: #f2f8ff;
+  border-color: #d5e3f5;
+  color: #0f2f73;
+}
+
+.apo-stage-done {
+  color: #1e9f63;
+}
+
+.apo-stage-done .apo-stage-text {
+  color: #1e9f63;
+}
+
+.apo-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #5d708e;
+  text-align: center;
+  padding-top: 4px;
+  border-top: 1px solid #e8f0fb;
+}
+
+@keyframes apo-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .apo-card {
+    padding: 22px 18px 18px;
+  }
+
+  .apo-percent {
+    font-size: 1.7rem;
+    min-width: 60px;
+  }
+
+  .apo-title {
+    font-size: 1.25rem;
+  }
+}

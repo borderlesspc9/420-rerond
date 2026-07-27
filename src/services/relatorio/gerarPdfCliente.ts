@@ -2,9 +2,10 @@ import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage, type RGB }
 import type { RelatorioConformidadePayload } from '../../models/RelatorioConformidade'
 import {
   BASEINFRA_THEME,
+  getLogoConcessionariaPath,
   hexToRgbTuple,
-  shouldUseEcoviasLogo,
 } from '../../config/baseinfraTheme'
+import { getLogoConcessionariaCadastrada } from '../../utils/concessionariasStorage'
 import { buildRelatorioPdfFileName } from '../../utils/sanitizeText'
 import { STATUS_CONFORMIDADE_LABELS } from '../../utils/relatorioConformidade'
 
@@ -139,11 +140,22 @@ export async function gerarPdfConformidadeNoCliente(
   if (!concLogoBytes && payload.metadados.logoConcessionariaUrl) {
     concLogoBytes = await fetchImageBytes(payload.metadados.logoConcessionariaUrl)
   }
-  if (
-    !concLogoBytes &&
-    shouldUseEcoviasLogo(payload.metadados.nomeConcessionaria, payload.concessionariaId)
-  ) {
-    concLogoBytes = await fetchImageBytes(BASEINFRA_THEME.logoConcessionariaDefaultPath)
+  if (!concLogoBytes) {
+    const cadastrada = getLogoConcessionariaCadastrada(payload.metadados.nomeConcessionaria)
+    if (cadastrada?.dataUrl) {
+      concLogoBytes = dataUrlToBytes(cadastrada.dataUrl)
+    } else if (cadastrada?.url) {
+      concLogoBytes = await fetchImageBytes(cadastrada.url)
+    }
+  }
+  if (!concLogoBytes) {
+    const logoPath = getLogoConcessionariaPath(
+      payload.metadados.nomeConcessionaria,
+      payload.concessionariaId,
+    )
+    if (logoPath) {
+      concLogoBytes = await fetchImageBytes(logoPath)
+    }
   }
 
   const baseLogo = baseLogoBytes ? await safeEmbedPng(doc, baseLogoBytes) : null

@@ -27,7 +27,8 @@ import {
   formatPercent,
   montarRelatorioConformidade,
 } from '../utils/relatorioConformidade'
-import { BASEINFRA_THEME, shouldUseEcoviasLogo } from '../config/baseinfraTheme'
+import { BASEINFRA_THEME, getLogoConcessionariaPath } from '../config/baseinfraTheme'
+import { getLogoConcessionariaCadastrada, addConcessionaria, loadConcessionarias } from '../utils/concessionariasStorage'
 import { auth } from '../lib/firebase'
 import {
   baixarRelatorioPdf,
@@ -127,29 +128,41 @@ export default function RelatorioConformidadeView(props: RelatorioConformidadeVi
     setMetadados(payloadBase.metadados)
   }, [payloadBase.metadados])
 
-  // Carrega logo Ecovias cadastrada em /public quando aplicável
+  // Carrega logo da concessionária (public/ ou cadastro local) quando aplicável
   useEffect(() => {
     const nome = metadados.nomeConcessionaria || props.nomeConcessionaria
     const id = props.concessionariaId
     if (metadados.logoConcessionariaDataUrl || metadados.logoConcessionariaUrl) return
-    if (!shouldUseEcoviasLogo(nome, id)) return
+
+    const cadastrada = getLogoConcessionariaCadastrada(nome)
+    if (cadastrada?.dataUrl || cadastrada?.url) {
+      setMetadados((prev) => ({
+        ...prev,
+        logoConcessionariaUrl: cadastrada.url || null,
+        logoConcessionariaDataUrl: cadastrada.dataUrl || null,
+      }))
+      return
+    }
+
+    const logoPath = getLogoConcessionariaPath(nome, id)
+    if (!logoPath) return
 
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(BASEINFRA_THEME.logoConcessionariaDefaultPath)
+        const res = await fetch(logoPath)
         if (!res.ok) return
         const blob = await res.blob()
         const reader = new FileReader()
         const dataUrl = await new Promise<string>((resolve, reject) => {
           reader.onload = () => resolve(String(reader.result))
-          reader.onerror = () => reject(new Error('Falha ao ler logo Ecovias'))
+          reader.onerror = () => reject(new Error(`Falha ao ler logo ${logoPath}`))
           reader.readAsDataURL(blob)
         })
         if (!cancelled) {
           setMetadados((prev) => ({
             ...prev,
-            logoConcessionariaUrl: BASEINFRA_THEME.logoConcessionariaDefaultPath,
+            logoConcessionariaUrl: logoPath,
             logoConcessionariaDataUrl: dataUrl,
           }))
         }
@@ -235,6 +248,12 @@ export default function RelatorioConformidadeView(props: RelatorioConformidadeVi
         logoConcessionariaUrl: result.url || prev.logoConcessionariaUrl,
         logoConcessionariaDataUrl: result.dataUrl,
       }))
+      if (metadados.nomeConcessionaria?.trim()) {
+        addConcessionaria(loadConcessionarias(), metadados.nomeConcessionaria, {
+          dataUrl: result.dataUrl,
+          url: result.url || null,
+        })
+      }
       setSucesso('Logotipo da concessionária atualizado.')
     } catch (error: unknown) {
       setErro(error instanceof Error ? error.message : 'Falha no upload do logotipo.')
@@ -411,8 +430,8 @@ export default function RelatorioConformidadeView(props: RelatorioConformidadeVi
       {ultimoGerado && (
         <div className="rc-alert rc-alert-success" role="status">
           Arquivo baixado com logos BaseInfra
-          {shouldUseEcoviasLogo(metadados.nomeConcessionaria, props.concessionariaId)
-            ? ' e Ecovias'
+          {getLogoConcessionariaPath(metadados.nomeConcessionaria, props.concessionariaId)
+            ? ` e ${metadados.nomeConcessionaria || 'concessionária'}`
             : ''}
           . Título: Relatório de Análise Técnica – Ocupação em Faixa de Domínio.
         </div>

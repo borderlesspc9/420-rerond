@@ -97,6 +97,50 @@
         { "id": "ECO101_CRONOGRAMA", "descricao": "Cronograma de execução em dias, com prazo total e etapas principais da implantação.", "categoria": "VOLUME_III" },
         { "id": "ECO101_LICENCA_AMBIENTAL", "descricao": "Licença Ambiental ou documento de comprovação de inexigibilidade/dispensa, quando aplicável.", "categoria": "VOLUME_III" }
       ]
+    },
+    "motiva": {
+      "nome": "Motiva",
+      "requisitos": [
+        { "id": "MOTIVA_ORGANIZACAO_VOLUMES", "descricao": "Documentação organizada conforme fluxo Motiva: Viabilidade/Funcional, Volume 1 (Relatórios Técnicos), Volume 2 (Projetos) e Volume 3 (documentos do interessado/RT para protocolo ANTT).", "categoria": "ORGANIZACAO" },
+        { "id": "MOTIVA_CODIFICACAO_REVISAO", "descricao": "Documentos devidamente codificados e com controle de revisão, conforme Portaria ANTT/SUINF nº 028/2019 e procedimento Motiva.", "categoria": "ORGANIZACAO" },
+        { "id": "MOTIVA_INDICE_DOCUMENTOS", "descricao": "Índice de documentos apresentando o rol completo exigido para a etapa (aba Ocupações / Projetos Executivos).", "categoria": "ORGANIZACAO" },
+        { "id": "MOTIVA_CADASTRO_INTERESSADO", "descricao": "Formulário/cadastro do interessado (e do terceiro elaborador/executor, se houver) com dados completos.", "categoria": "FASE_VIABILIDADE" },
+        { "id": "MOTIVA_REQUERIMENTO_VIABILIDADE", "descricao": "Requerimento de viabilidade assinado, com identificação, km início/fim, município, implantação ou regularização e tipo de ocupação.", "categoria": "FASE_VIABILIDADE" },
+        { "id": "MOTIVA_KMZ_TRACADO", "descricao": "Arquivo KMZ/KML com o traçado da ocupação.", "categoria": "FASE_VIABILIDADE" },
+        { "id": "MOTIVA_PROJETO_FUNCIONAL", "descricao": "Projeto funcional/básico em planta e perfil com marcos quilométricos, faixa de domínio e área não edificante.", "categoria": "FASE_VIABILIDADE" },
+        { "id": "MOTIVA_MEMORIAL_DESCRITIVO", "descricao": "Memorial descritivo com km, implantação/regularização, objetivo, normas, elementos, materiais, método construtivo e extensão total e em Faixa de Domínio.", "categoria": "VOLUME_I" },
+        { "id": "MOTIVA_ART", "descricao": "ART registrada e quitada, vinculada ao objeto, rodovia, km e ocupação em faixa de domínio.", "categoria": "VOLUME_I" },
+        { "id": "MOTIVA_PBA_LICENCA", "descricao": "Plano Básico Ambiental e Licença Ambiental, ou documento de inexigibilidade/dispensa quando aplicável.", "categoria": "VOLUME_I" },
+        { "id": "MOTIVA_SONDAGEM", "descricao": "Boletins e relatórios de sondagem quando existentes/necessários ao tipo de ocupação.", "categoria": "VOLUME_I" },
+        { "id": "MOTIVA_PROJETO_PLANTA_PERFIL", "descricao": "Projeto de implantação em planta e perfil com plataforma, FXD e non aedificandi cotadas, sentido, extensões e detalhes de cabeamento (alturas, catenárias, fixações) quando aplicável.", "categoria": "VOLUME_II" },
+        { "id": "MOTIVA_SINALIZACAO_OBRAS", "descricao": "Projeto de sinalização de obras e desvios de tráfego quando houver interferência operacional.", "categoria": "VOLUME_II" },
+        { "id": "MOTIVA_CRONOGRAMA", "descricao": "Cronograma físico com etapas de execução, formalização contratual, mobilização e desmobilização.", "categoria": "VOLUME_II" },
+        { "id": "MOTIVA_DECLARACAO_VERACIDADE", "descricao": "Declaração de Veracidade assinada pelo requerente e pelo responsável técnico.", "categoria": "VOLUME_III" },
+        { "id": "MOTIVA_DOCS_INTERESSADO_RT", "descricao": "Atos constitutivos/documentos de identificação do interessado e credenciais do profissional/empresa responsável técnica.", "categoria": "VOLUME_III" }
+      ]
+    },
+    "arteris": {
+      "nome": "Arteris",
+      "requisitos": [
+        { "id": "ARTERIS_ORGANIZACAO_VOLUMES", "descricao": "Documentação organizada em Volume 1 (Relatórios Técnicos) e Volume 2 (Projeto), em meio digital, conforme diretrizes Arteris/PIT e Portaria 028/2019.", "categoria": "ORGANIZACAO" },
+        { "id": "ARTERIS_ARQUIVOS_FONTES", "descricao": "Entrega de arquivos fontes (.doc, .xls, .dwg etc.) e de impressão (.pdf etc.), com correlação entre DWG e peças apresentadas.", "categoria": "ORGANIZACAO" },
+        { "id": "ARTERIS_CARTA_INTERESSADO", "descricao": "Carta do interessado com identificação, contatos, motivo, discriminação do uso da ocupação e documentos protocolados.", "categoria": "VOLUME_I" },
+        { "id": "ARTERIS_MEMORIAL_DESCRITIVO", "descricao": "Memorial descritivo com descrição da obra, impactos na rodovia, parâmetros/premissas, quadro resumo e etapas de execução.", "categoria": "VOLUME_I" },
+        { "id": "ARTERIS_ESTUDOS_APOIO", "descricao": "Estudos de apoio pertinentes ao tipo de obra (tráfego/capacidade, topografia, traçado/geometria, geotécnica, hidrologia), quando aplicáveis.", "categoria": "VOLUME_I" },
+        { "id": "ARTERIS_ART", "descricao": "ART do projeto assinada, com comprovante de pagamento, vinculada ao objeto/local/rodovia/km.", "categoria": "VOLUME_I" },
+        { "id": "ARTERIS_QUADRO_COORDENADAS", "descricao": "Quadro de coordenadas (.xlsx/tabela) conforme modelo Arteris, com vértices da ocupação/interferência.", "categoria": "VOLUME_I" },
+        { "id": "ARTERIS_TOPOGRAFICO", "descricao": "Projeto topográfico referenciado ao DATUM SIRGAS2000.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_GEOMETRICO", "descricao": "Projeto geométrico com km+m, rodovia/sentido, FXD e non aedificandi, características da ocupação, seções transversais e perfil longitudinal.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_DRENAGEM", "descricao": "Projeto de drenagem (bacias, declividade, deságue, materiais/dimensões, dimensionamento e verificação hidráulica se usar dispositivo existente), quando aplicável.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_SINALIZACAO_OBRAS", "descricao": "Projeto de sinalização da rodovia durante obras e serviços, inclusive desvios de tráfego quando necessário.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_PROTECAO_SEGURANCA", "descricao": "Dispositivos de proteção e segurança conforme NBR 15486, NBR 6971 e NBR 14885, com planta e detalhes de implantação.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_INTERFERENCIAS", "descricao": "Projeto de interferências (água, esgoto, energia, gás, fibra óptica) quando houver.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_KMZ_KML", "descricao": "Arquivo KMZ/KML com identificação da faixa de domínio e da área de interferência da ocupação.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_CRONOGRAMA", "descricao": "Cronograma com etapas de serviços e períodos de interrupção de tráfego, se for o caso.", "categoria": "VOLUME_II" },
+        { "id": "ARTERIS_LICENCA_AMBIENTAL", "descricao": "Licença ambiental da obra ou documento comprobatório de dispensa/inexigibilidade.", "categoria": "COMPLEMENTARES" },
+        { "id": "ARTERIS_INVENTARIO_FLORESTAL", "descricao": "Inventário florestal quando houver necessidade de supressão de vegetação em faixa de domínio.", "categoria": "COMPLEMENTARES" },
+        { "id": "ARTERIS_TERMO_RESPONSABILIDADE", "descricao": "Termo de Responsabilidade para atividades em FXD (topo, contagens, ensaios etc.), quando aplicável à etapa.", "categoria": "COMPLEMENTARES" }
+      ]
     }
   }
 }

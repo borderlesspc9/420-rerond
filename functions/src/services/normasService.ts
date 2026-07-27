@@ -49,21 +49,20 @@ export function getFontesParaTipo(tipo: TipoRelatorio): FonteNormativa[] {
 export function getRequisitosParaConcessionaria(
   concessionariaId?: string | null,
 ): RequisitoNormativo[] {
-  if (concessionariaId !== "eco101") return [];
+  if (!concessionariaId) return [];
 
-  const cfg =
-    normasCatalogo.concessionarias?.eco101 as
-      | { requisitos?: RequisitoNormativo[] }
-      | undefined;
-  return cfg?.requisitos ?? [];
+  const catalog = normasCatalogo.concessionarias as
+    | Record<string, { requisitos?: RequisitoNormativo[] }>
+    | undefined;
+  return catalog?.[concessionariaId]?.requisitos ?? [];
 }
 
 export function getRequisitosParaTipo(
   tipo: TipoRelatorio,
   concessionariaId?: string | null,
 ): RequisitoNormativo[] {
-  const eco101 = getRequisitosParaConcessionaria(concessionariaId);
-  if (eco101.length > 0) return eco101;
+  const daConcessionaria = getRequisitosParaConcessionaria(concessionariaId);
+  if (daConcessionaria.length > 0) return daConcessionaria;
 
   const config = getTipoProjetoConfig(tipo);
   return config?.requisitos ?? [];

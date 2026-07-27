@@ -1,3 +1,8 @@
+import {
+  getLogoPathForConcessionaria,
+  resolveConcessionaria,
+} from './concessionarias'
+
 /**
  * Identidade visual BaseInfra para relatórios PDF e UI.
  */
@@ -5,6 +10,7 @@ export const BASEINFRA_THEME = {
   brandName: 'BaseInfra',
   brandFullName: 'BaseInfra Projetos e Consultoria',
   logoPath: '/logo420.png',
+  /** Fallback histórico (Ecovias). Preferir getLogoConcessionariaPath(). */
   logoConcessionariaDefaultPath: '/logo-ecovias.png',
   tituloPadraoRelatorio: 'Relatório de Análise Técnica – Ocupação em Faixa de Domínio',
   fontFamily: "'Avenir Next', Avenir, 'Segoe UI', sans-serif",
@@ -52,8 +58,17 @@ export function hexToRgbTuple(hex: string): [number, number, number] {
   ]
 }
 
-export function shouldUseEcoviasLogo(nomeConcessionaria?: string | null, concessionariaId?: string | null) {
-  if (concessionariaId === 'eco101') return true
-  const n = (nomeConcessionaria || '').toLowerCase()
-  return n.includes('ecovias') || n.includes('eco101') || n.includes('eco 101')
+export function getLogoConcessionariaPath(
+  nomeConcessionaria?: string | null,
+  concessionariaId?: string | null,
+): string | null {
+  return getLogoPathForConcessionaria(nomeConcessionaria, concessionariaId)
+}
+
+/** @deprecated Preferir getLogoConcessionariaPath */
+export function shouldUseEcoviasLogo(
+  nomeConcessionaria?: string | null,
+  concessionariaId?: string | null,
+) {
+  return resolveConcessionaria(nomeConcessionaria, concessionariaId)?.id === 'eco101'
 }

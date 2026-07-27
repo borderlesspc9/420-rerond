@@ -5,6 +5,7 @@ import { getAllSolicitacoes, analisarSolicitacaoComIA, updateSolicitacao } from 
 import type { EscopoAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao.js'
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
+import AnaliseProgressOverlay from '../components/AnaliseProgressOverlay'
 import './Solicitacoes.css'
 
 export default function Solicitacoes() {
@@ -243,8 +244,18 @@ export default function Solicitacoes() {
     )
   }
 
+  const solicitacaoEmAnalise = analisandoId
+    ? solicitacoes.find((s) => s.id === analisandoId) ?? modalReanaliseAberto
+    : null
+
   return (
     <div className="solicitacoes-container">
+      <AnaliseProgressOverlay
+        active={!!analisandoId}
+        titulo={solicitacaoEmAnalise?.titulo}
+        nomeConcessionaria={solicitacaoEmAnalise?.nomeConcessionaria}
+        concessionariaId={solicitacaoEmAnalise?.concessionariaId}
+      />
       <div className="solicitacoes-header">
         <h1>Solicitações</h1>
         <button

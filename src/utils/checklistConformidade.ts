@@ -9,9 +9,11 @@ export interface RequisitoCatalogo {
 
 export const CATEGORIA_LABELS: Record<string, string> = {
   ORGANIZACAO: 'Organização',
+  FASE_VIABILIDADE: 'Fase de Viabilidade / Projeto Funcional',
   VOLUME_I: 'Volume I — Relatório Técnico',
   VOLUME_II: 'Volume II — Projetos',
   VOLUME_III: 'Volume III — Documentos Complementares',
+  COMPLEMENTARES: 'Documentos Complementares',
   REFERENCIAS: 'Referências',
 }
 
@@ -57,10 +59,19 @@ export function getRequisitosCatalogo(tipos: TipoRelatorio[]): RequisitoCatalogo
   return result
 }
 
-export function getRequisitosEco101(): RequisitoCatalogo[] {
-  const cfg = (normasData as { concessionarias?: { eco101?: { requisitos?: RequisitoCatalogo[] } } })
-    .concessionarias?.eco101
+export function getRequisitosConcessionaria(concessionariaId?: string | null): RequisitoCatalogo[] {
+  if (!concessionariaId) return []
+  const cfg = (
+    normasData as {
+      concessionarias?: Record<string, { requisitos?: RequisitoCatalogo[] }>
+    }
+  ).concessionarias?.[concessionariaId]
   return cfg?.requisitos ?? []
+}
+
+/** @deprecated Preferir getRequisitosConcessionaria */
+export function getRequisitosEco101(): RequisitoCatalogo[] {
+  return getRequisitosConcessionaria('eco101')
 }
 
 export function hasCategoriaGrouping(items: ChecklistItem[]): boolean {
@@ -93,8 +104,16 @@ export function groupItemsByCategoria(
 }
 
 export function getRequisitoDescricao(id: string, tipos?: TipoRelatorio[]): string {
-  const eco101Req = getRequisitosEco101().find((r) => r.id === id)
-  if (eco101Req) return eco101Req.descricao
+  const concessoes = (normasData as {
+    concessionarias?: Record<string, { requisitos?: RequisitoCatalogo[] }>
+  }).concessionarias
+
+  if (concessoes) {
+    for (const cfg of Object.values(concessoes)) {
+      const req = cfg.requisitos?.find((r) => r.id === id)
+      if (req) return req.descricao
+    }
+  }
 
   const tiposBusca =
     tipos && tipos.length > 0
@@ -125,12 +144,11 @@ export function enriquecerChecklist(
   tipoRelatorio?: TipoRelatorio,
   concessionariaId?: string | null,
 ): ChecklistItemEnriquecido[] {
-  const eco101Catalogo =
-    concessionariaId === 'eco101' ? getRequisitosEco101() : []
+  const catalogoConcessionaria = getRequisitosConcessionaria(concessionariaId)
   const tipos: TipoRelatorio[] = tipoRelatorio ? [tipoRelatorio] : []
   const catalogo =
-    eco101Catalogo.length > 0
-      ? eco101Catalogo
+    catalogoConcessionaria.length > 0
+      ? catalogoConcessionaria
       : tipos.length > 0
         ? getRequisitosCatalogo(tipos)
         : []

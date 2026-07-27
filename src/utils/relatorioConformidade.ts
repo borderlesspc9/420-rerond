@@ -10,6 +10,7 @@ import type {
 } from '../models/RelatorioConformidade'
 import type { CriticidadeNivel } from '../config/baseinfraTheme'
 import { BASEINFRA_THEME } from '../config/baseinfraTheme'
+import { getConcessionariaById } from '../config/concessionarias'
 import { enriquecerChecklist } from './checklistConformidade'
 import { formatDateIsoLocal, sanitizeText } from './sanitizeText'
 
@@ -197,7 +198,8 @@ export function montarRelatorioConformidade(
 
   const nomeConcessionaria =
     sanitizeText(input.nomeConcessionaria || '') ||
-    (input.concessionariaId === 'eco101' ? 'Ecovias / ECO101' : '')
+    getConcessionariaById(input.concessionariaId)?.nome ||
+    ''
 
   const metadadosBase: RelatorioMetadadosEditaveis = {
     tituloRelatorio: BASEINFRA_THEME.tituloPadraoRelatorio,

@@ -18,8 +18,6 @@ import {
   type TipoRelatorio,
 } from "./services/normasService";
 import {
-  buildSystemPrompt,
-  buildAnalysisPrompt,
   buildInferTipoPrompt,
   buildComplementacaoSystemPrompt,
   buildComplementacaoPrompt,
@@ -28,10 +26,12 @@ import {
   type EscopoAnalisePrompt,
 } from "./config/prompts";
 import {
-  buildEco101AnalysisPrompt,
-  buildEco101SystemPrompt,
-  isEco101Concessionaria,
-} from "./config/eco101.prompt";
+  buildProfileAnalysisPrompt,
+  buildProfileSystemPrompt,
+  getProfileTipoProjetoNome,
+  isProfileConcessionaria,
+  resolveConcessionariaPromptProfile,
+} from "./config/concessionariaProfiles";
 import {
   complementarConferenciaDeterministica,
   type ConferenciaInput,
@@ -371,7 +371,8 @@ export const analisarSolicitacao = onCall(
     const concessionariaId = data.concessionariaId
       ? String(data.concessionariaId)
       : null;
-    const isEco101 = isEco101Concessionaria(concessionariaId);
+    const promptProfile = resolveConcessionariaPromptProfile(concessionariaId);
+    const isProfile = isProfileConcessionaria(concessionariaId);
 
     await docRef.update({
       status: "em_analise",
@@ -479,7 +480,11 @@ export const analisarSolicitacao = onCall(
         numeroRevisao: data.numeroRevisao,
       };
 
-      const requisitosFormatados = isEco101
+      console.log(
+        `Perfil de análise: ${promptProfile} | concessionariaId=${concessionariaId ?? "n/a"}`,
+      );
+
+      const requisitosFormatados = isProfile
         ? listarRequisitosFormatados(tipoBase, concessionariaId)
         : tiposConfig
             .map(
@@ -487,28 +492,20 @@ export const analisarSolicitacao = onCall(
                 `### ${config.nome} (${tipo})\n${listarRequisitosFormatados(tipo, concessionariaId)}`,
             )
             .join("\n\n");
-      const tiposProjetoNome = isEco101
-        ? "Ecovias / ECO101 — Ocupação em Faixa de Domínio"
-        : tiposConfig.map(({ config }) => config.nome).join(", ");
+      const tiposProjetoNome =
+        getProfileTipoProjetoNome(promptProfile) ??
+        tiposConfig.map(({ config }) => config.nome).join(", ");
 
-      const systemPrompt = isEco101
-        ? buildEco101SystemPrompt()
-        : buildSystemPrompt();
-      const analysisPrompt = isEco101
-        ? buildEco101AnalysisPrompt(
-            dadosForm,
-            requisitosFormatados,
-            escopoAnalise,
-            promptCustomizado,
-          )
-        : buildAnalysisPrompt(
-            dadosForm,
-            tiposAnalise,
-            requisitosFormatados,
-            tiposProjetoNome,
-            escopoAnalise,
-            promptCustomizado,
-          );
+      const systemPrompt = buildProfileSystemPrompt(promptProfile);
+      const analysisPrompt = buildProfileAnalysisPrompt({
+        profile: promptProfile,
+        dados: dadosForm,
+        requisitosFormatados,
+        tiposAnalise,
+        tiposProjetoNome,
+        escopo: escopoAnalise,
+        promptCustomizado,
+      });
 
       const parts: InputPart[] = [];
 
@@ -549,7 +546,7 @@ export const analisarSolicitacao = onCall(
         } PDF(s) do projeto`,
       );
       const result = await analyze(parts, {
-        maxOutputTokens: isEco101 ? 16000 : 12000,
+        maxOutputTokens: isProfile ? 16000 : 12000,
         temperature: 0.1,
         jsonMode: true,
       });

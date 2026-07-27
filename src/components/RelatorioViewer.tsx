@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import ChecklistReportView from './ChecklistReportView'
 import ChecklistConformidadeView from './ChecklistConformidadeView'
 import RelatorioConformidadeView from './RelatorioConformidadeView'
+import AnaliseProgressOverlay from './AnaliseProgressOverlay'
 import type { ComplementoChecklistItem, ConferenciaInput, DadosExtraidosAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao'
 import { formatarRelatorioComplementos } from '../services/solicitacao/solicitacaoService'
 import {
@@ -321,6 +322,12 @@ export default function RelatorioViewer({
 
   return (
     <div className="relatorio-viewer-overlay" onClick={onClose}>
+      <AnaliseProgressOverlay
+        active={gerando}
+        titulo={titulo}
+        nomeConcessionaria={solicitacaoInfo?.nomeConcessionaria}
+        concessionariaId={concessionariaId}
+      />
       <div
         className={`relatorio-viewer-container ${hasConformidade ? 'relatorio-viewer-container-wide' : ''}`}
         onClick={(e) => e.stopPropagation()}

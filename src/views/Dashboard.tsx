@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FileText,
@@ -13,11 +13,14 @@ import {
   Zap,
   BarChart3,
   Building2,
+  ImagePlus,
 } from 'lucide-react'
 import { getAllSolicitacoes } from '../services/solicitacao/solicitacaoService'
+import { uploadLogoConcessionaria } from '../services/relatorio/relatorioConformidadeService'
 import {
   addConcessionaria,
   loadConcessionarias,
+  type ConcessionariaCadastrada,
 } from '../utils/concessionariasStorage'
 import type { SolicitacaoWithFiles } from '../models/Solicitacao'
 import './Dashboard.css'
@@ -32,9 +35,15 @@ export default function Dashboard() {
   >('todas')
   const [busca, setBusca] = useState('')
   const [showConcessionariaModal, setShowConcessionariaModal] = useState(false)
-  const [concessionarias, setConcessionarias] = useState<string[]>(() => loadConcessionarias())
+  const [concessionarias, setConcessionarias] = useState<ConcessionariaCadastrada[]>(() =>
+    loadConcessionarias(),
+  )
   const [novaConcessionaria, setNovaConcessionaria] = useState('')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [concessionariaFeedback, setConcessionariaFeedback] = useState<string | null>(null)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadSolicitacoes()
@@ -132,9 +141,16 @@ export default function Dashboard() {
     }
   }
 
+  const resetLogoForm = () => {
+    setLogoFile(null)
+    setLogoPreview(null)
+    if (logoInputRef.current) logoInputRef.current.value = ''
+  }
+
   const openConcessionariaModal = () => {
     setConcessionarias(loadConcessionarias())
     setNovaConcessionaria('')
+    resetLogoForm()
     setConcessionariaFeedback(null)
     setShowConcessionariaModal(true)
   }
@@ -142,31 +158,77 @@ export default function Dashboard() {
   const closeConcessionariaModal = () => {
     setShowConcessionariaModal(false)
     setNovaConcessionaria('')
+    resetLogoForm()
     setConcessionariaFeedback(null)
   }
 
-  const handleAddConcessionaria = () => {
-    const resultado = addConcessionaria(concessionarias, novaConcessionaria)
-    if (!resultado.nome) {
+  const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    setLogoFile(file)
+    setConcessionariaFeedback(null)
+
+    if (!file) {
+      setLogoPreview(null)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => setLogoPreview(String(reader.result))
+    reader.onerror = () => {
+      setLogoPreview(null)
+      setConcessionariaFeedback('Não foi possível pré-visualizar a logo.')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleAddConcessionaria = async () => {
+    const nome = novaConcessionaria.trim()
+    if (!nome) {
       setConcessionariaFeedback('Informe o nome da concessionária.')
       return
     }
 
-    setConcessionarias(resultado.concessionarias)
-    setNovaConcessionaria('')
+    setUploadingLogo(true)
+    setConcessionariaFeedback(null)
 
-    if (resultado.added) {
-      setConcessionariaFeedback(`Concessionária "${resultado.nome}" cadastrada.`)
-      return
+    try {
+      let logo: { dataUrl?: string | null; url?: string | null } | null = null
+      if (logoFile) {
+        logo = await uploadLogoConcessionaria(logoFile, nome)
+      }
+
+      const resultado = addConcessionaria(concessionarias, nome, logo)
+      setConcessionarias(resultado.concessionarias)
+      setNovaConcessionaria('')
+      resetLogoForm()
+
+      if (resultado.added) {
+        setConcessionariaFeedback(
+          logo
+            ? `Concessionária "${resultado.nome}" cadastrada com logo.`
+            : `Concessionária "${resultado.nome}" cadastrada.`,
+        )
+        return
+      }
+
+      if (resultado.updated) {
+        setConcessionariaFeedback(`Logo atualizada para "${resultado.nome}".`)
+        return
+      }
+
+      setConcessionariaFeedback(`A concessionária "${resultado.nome}" já está cadastrada.`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha ao cadastrar concessionária.'
+      setConcessionariaFeedback(message)
+    } finally {
+      setUploadingLogo(false)
     }
-
-    setConcessionariaFeedback(`A concessionária "${resultado.nome}" já está cadastrada.`)
   }
 
   const handleNovaConcessionariaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     e.preventDefault()
-    handleAddConcessionaria()
+    void handleAddConcessionaria()
   }
 
   const formatDate = (date?: Date) => {
@@ -573,24 +635,67 @@ export default function Dashboard() {
             </p>
             <div className="dashboard-modal-form">
               <label htmlFor="dashboard-nova-concessionaria">Nome da concessionária</label>
-              <div className="dashboard-modal-input-row">
-                <input
-                  id="dashboard-nova-concessionaria"
-                  type="text"
-                  value={novaConcessionaria}
-                  onChange={(e) => setNovaConcessionaria(e.target.value)}
-                  onKeyDown={handleNovaConcessionariaKeyDown}
-                  placeholder="Ex: Arteris Litoral Sul"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  className="dashboard-modal-submit"
-                  onClick={handleAddConcessionaria}
-                >
-                  Cadastrar
-                </button>
+              <input
+                id="dashboard-nova-concessionaria"
+                type="text"
+                value={novaConcessionaria}
+                onChange={(e) => setNovaConcessionaria(e.target.value)}
+                onKeyDown={handleNovaConcessionariaKeyDown}
+                placeholder="Ex: Via Appia"
+                autoFocus
+              />
+
+              <label htmlFor="dashboard-logo-concessionaria" className="dashboard-modal-logo-label">
+                Logo da concessionária (opcional)
+              </label>
+              <div className="dashboard-modal-logo-row">
+                <div className="dashboard-modal-logo-preview" aria-hidden={!logoPreview}>
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Pré-visualização da logo" />
+                  ) : (
+                    <span>Sem logo</span>
+                  )}
+                </div>
+                <div className="dashboard-modal-logo-actions">
+                  <button
+                    type="button"
+                    className="dashboard-modal-logo-btn"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    <ImagePlus size={16} />
+                    Selecionar logo
+                  </button>
+                  <input
+                    ref={logoInputRef}
+                    id="dashboard-logo-concessionaria"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={handleLogoFileChange}
+                    hidden
+                  />
+                  <p className="dashboard-modal-logo-hint">PNG ou JPG · máx. 2 MB</p>
+                  {logoFile && (
+                    <button
+                      type="button"
+                      className="dashboard-modal-logo-clear"
+                      onClick={resetLogoForm}
+                      disabled={uploadingLogo}
+                    >
+                      Remover seleção
+                    </button>
+                  )}
+                </div>
               </div>
+
+              <button
+                type="button"
+                className="dashboard-modal-submit dashboard-modal-submit-full"
+                onClick={() => void handleAddConcessionaria()}
+                disabled={uploadingLogo}
+              >
+                {uploadingLogo ? 'Salvando...' : 'Cadastrar'}
+              </button>
             </div>
             {concessionariaFeedback && (
               <p className="dashboard-modal-feedback" role="status">
@@ -602,9 +707,21 @@ export default function Dashboard() {
                 <span className="dashboard-modal-list-title">
                   Concessionárias cadastradas ({concessionarias.length})
                 </span>
-                <ul>
+                <ul className="dashboard-modal-concessionarias">
                   {concessionarias.map((concessionaria) => (
-                    <li key={concessionaria}>{concessionaria}</li>
+                    <li key={concessionaria.nome}>
+                      <div className="dashboard-modal-conc-thumb">
+                        {concessionaria.logoDataUrl || concessionaria.logoUrl ? (
+                          <img
+                            src={concessionaria.logoDataUrl || concessionaria.logoUrl || ''}
+                            alt=""
+                          />
+                        ) : (
+                          <Building2 size={16} />
+                        )}
+                      </div>
+                      <span>{concessionaria.nome}</span>
+                    </li>
                   ))}
                 </ul>
               </div>

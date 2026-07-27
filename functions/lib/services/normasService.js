@@ -59,15 +59,15 @@ function getFontesParaTipo(tipo) {
     return normas_json_1.default.fontes.filter((f) => config.fontes.includes(f.id));
 }
 function getRequisitosParaConcessionaria(concessionariaId) {
-    if (concessionariaId !== "eco101")
+    if (!concessionariaId)
         return [];
-    const cfg = normas_json_1.default.concessionarias?.eco101;
-    return cfg?.requisitos ?? [];
+    const catalog = normas_json_1.default.concessionarias;
+    return catalog?.[concessionariaId]?.requisitos ?? [];
 }
 function getRequisitosParaTipo(tipo, concessionariaId) {
-    const eco101 = getRequisitosParaConcessionaria(concessionariaId);
-    if (eco101.length > 0)
-        return eco101;
+    const daConcessionaria = getRequisitosParaConcessionaria(concessionariaId);
+    if (daConcessionaria.length > 0)
+        return daConcessionaria;
     const config = getTipoProjetoConfig(tipo);
     return config?.requisitos ?? [];
 }

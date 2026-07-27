@@ -9,7 +9,7 @@ const params_1 = require("firebase-functions/params");
 const openaiService_1 = require("./services/openaiService");
 const normasService_1 = require("./services/normasService");
 const prompts_1 = require("./config/prompts");
-const eco101_prompt_1 = require("./config/eco101.prompt");
+const concessionariaProfiles_1 = require("./config/concessionariaProfiles");
 const consistencyAnalyzer_1 = require("./services/consistencyAnalyzer");
 const normasService_2 = require("./services/normasService");
 const MAX_PDFS_PROJETO = 10;
@@ -254,7 +254,8 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
     const concessionariaId = data.concessionariaId
         ? String(data.concessionariaId)
         : null;
-    const isEco101 = (0, eco101_prompt_1.isEco101Concessionaria)(concessionariaId);
+    const promptProfile = (0, concessionariaProfiles_1.resolveConcessionariaPromptProfile)(concessionariaId);
+    const isProfile = (0, concessionariaProfiles_1.isProfileConcessionaria)(concessionariaId);
     await docRef.update({
         status: "em_analise",
         updatedAt: firestore_1.FieldValue.serverTimestamp(),
@@ -341,20 +342,24 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
             dataRecebimento: data.dataRecebimento,
             numeroRevisao: data.numeroRevisao,
         };
-        const requisitosFormatados = isEco101
+        console.log(`Perfil de análise: ${promptProfile} | concessionariaId=${concessionariaId ?? "n/a"}`);
+        const requisitosFormatados = isProfile
             ? (0, normasService_1.listarRequisitosFormatados)(tipoBase, concessionariaId)
             : tiposConfig
                 .map(({ tipo, config }) => `### ${config.nome} (${tipo})\n${(0, normasService_1.listarRequisitosFormatados)(tipo, concessionariaId)}`)
                 .join("\n\n");
-        const tiposProjetoNome = isEco101
-            ? "Ecovias / ECO101 — Ocupação em Faixa de Domínio"
-            : tiposConfig.map(({ config }) => config.nome).join(", ");
-        const systemPrompt = isEco101
-            ? (0, eco101_prompt_1.buildEco101SystemPrompt)()
-            : (0, prompts_1.buildSystemPrompt)();
-        const analysisPrompt = isEco101
-            ? (0, eco101_prompt_1.buildEco101AnalysisPrompt)(dadosForm, requisitosFormatados, escopoAnalise, promptCustomizado)
-            : (0, prompts_1.buildAnalysisPrompt)(dadosForm, tiposAnalise, requisitosFormatados, tiposProjetoNome, escopoAnalise, promptCustomizado);
+        const tiposProjetoNome = (0, concessionariaProfiles_1.getProfileTipoProjetoNome)(promptProfile) ??
+            tiposConfig.map(({ config }) => config.nome).join(", ");
+        const systemPrompt = (0, concessionariaProfiles_1.buildProfileSystemPrompt)(promptProfile);
+        const analysisPrompt = (0, concessionariaProfiles_1.buildProfileAnalysisPrompt)({
+            profile: promptProfile,
+            dados: dadosForm,
+            requisitosFormatados,
+            tiposAnalise,
+            tiposProjetoNome,
+            escopo: escopoAnalise,
+            promptCustomizado,
+        });
         const parts = [];
         parts.push((0, openaiService_1.buildTextInput)(systemPrompt));
         for (const norma of normasPDFs) {
@@ -373,7 +378,7 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
         parts.push((0, openaiService_1.buildTextInput)(analysisPrompt));
         console.log(`Enviando para OpenAI: ${normasPDFs.length} norma(s) + ${escopoAnalise.incluirDocumentosProjeto ? pdfBuffers.length : 0} PDF(s) do projeto`);
         const result = await (0, openaiService_1.analyze)(parts, {
-            maxOutputTokens: isEco101 ? 16000 : 12000,
+            maxOutputTokens: isProfile ? 16000 : 12000,
             temperature: 0.1,
             jsonMode: true,
         });

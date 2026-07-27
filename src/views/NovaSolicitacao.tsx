@@ -4,14 +4,16 @@ import { Upload } from 'lucide-react'
 import { createSolicitacao } from '../services/solicitacao/solicitacaoService'
 import {
   CONCESSIONARIAS,
-  ECO101_SELECT_VALUE,
   OUTRA_CONCESSIONARIA_VALUE,
+  getConcessionariaById,
 } from '../config/concessionarias'
 import {
   addConcessionaria,
   loadConcessionarias,
   saveConcessionarias,
+  type ConcessionariaCadastrada,
 } from '../utils/concessionariasStorage'
+import { uploadLogoConcessionaria } from '../services/relatorio/relatorioConformidadeService'
 import { TIPOS_DOCUMENTO_OPTIONS, getFileKey } from '../config/tiposDocumento'
 import type { TipoDocumentoAnexo } from '../models/Solicitacao'
 import './NovaSolicitacao.css'
@@ -106,6 +108,7 @@ const montarDadosObra = (data: FormData) => {
 export default function NovaSolicitacao() {
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const logoCadastroInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<FormData>({
     cliente: '',
     interessado: '',
@@ -132,8 +135,13 @@ export default function NovaSolicitacao() {
     descricao: '',
     tipoRelatorio: '',
   })
-  const [concessionarias, setConcessionarias] = useState<string[]>(() => loadConcessionarias())
+  const [concessionarias, setConcessionarias] = useState<ConcessionariaCadastrada[]>(() =>
+    loadConcessionarias(),
+  )
   const [novaConcessionaria, setNovaConcessionaria] = useState('')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [fileDocumentTypes, setFileDocumentTypes] = useState<Record<string, TipoDocumentoAnexo>>({})
   const [isDragging, setIsDragging] = useState(false)
@@ -150,13 +158,13 @@ export default function NovaSolicitacao() {
     const { name, value } = e.target
 
     if (name === 'concessionariaSelect') {
-      if (value === ECO101_SELECT_VALUE) {
-        const eco101 = CONCESSIONARIAS[0]
+      const configurada = getConcessionariaById(value)
+      if (configurada) {
         setFormData((prev) => ({
           ...prev,
           concessionariaSelect: value,
-          concessionariaId: eco101.id,
-          nomeConcessionaria: eco101.nome,
+          concessionariaId: configurada.id,
+          nomeConcessionaria: configurada.nome,
           tipoRelatorio: prev.tipoRelatorio || 'pit',
         }))
         return
@@ -319,24 +327,58 @@ export default function NovaSolicitacao() {
     navigate('/solicitacoes')
   }
 
-  const handleAddConcessionaria = () => {
-    const resultado = addConcessionaria(concessionarias, novaConcessionaria)
-    if (!resultado.nome) return
+  const resetLogoCadastro = () => {
+    setLogoFile(null)
+    setLogoPreview(null)
+    if (logoCadastroInputRef.current) logoCadastroInputRef.current.value = ''
+  }
 
-    setConcessionarias(resultado.concessionarias)
-    setFormData((prev) => ({
-      ...prev,
-      concessionariaSelect: resultado.nome,
-      concessionariaId: 'outra',
-      nomeConcessionaria: resultado.nome,
-    }))
-    setNovaConcessionaria('')
+  const handleLogoCadastroChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    setLogoFile(file)
+    if (!file) {
+      setLogoPreview(null)
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setLogoPreview(String(reader.result))
+    reader.onerror = () => setLogoPreview(null)
+    reader.readAsDataURL(file)
+  }
+
+  const handleAddConcessionaria = async () => {
+    const nome = novaConcessionaria.trim()
+    if (!nome) return
+
+    setUploadingLogo(true)
+    setError(null)
+    try {
+      let logo: { dataUrl?: string | null; url?: string | null } | null = null
+      if (logoFile) {
+        logo = await uploadLogoConcessionaria(logoFile, nome)
+      }
+
+      const resultado = addConcessionaria(concessionarias, nome, logo)
+      setConcessionarias(resultado.concessionarias)
+      setFormData((prev) => ({
+        ...prev,
+        concessionariaSelect: resultado.nome,
+        concessionariaId: 'outra',
+        nomeConcessionaria: resultado.nome,
+      }))
+      setNovaConcessionaria('')
+      resetLogoCadastro()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Falha ao cadastrar concessionária.')
+    } finally {
+      setUploadingLogo(false)
+    }
   }
 
   const handleNovaConcessionariaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     e.preventDefault()
-    handleAddConcessionaria()
+    void handleAddConcessionaria()
   }
 
   return (
@@ -432,37 +474,74 @@ export default function NovaSolicitacao() {
               >
                 <option value="">Selecione...</option>
                 {CONCESSIONARIAS.map((item) => (
-                  <option key={item.id} value={ECO101_SELECT_VALUE}>
+                  <option key={item.id} value={item.id}>
                     {item.nome}
                   </option>
                 ))}
                 {concessionarias.map((concessionaria) => (
-                  <option key={concessionaria} value={concessionaria}>
-                    {concessionaria}
+                  <option key={concessionaria.nome} value={concessionaria.nome}>
+                    {concessionaria.nome}
                   </option>
                 ))}
                 <option value={OUTRA_CONCESSIONARIA_VALUE}>
                   Outra concessionária / cadastrar manualmente
                 </option>
               </select>
-              <div className="add-concessionaria-row">
-                <input
-                  type="text"
-                  value={novaConcessionaria}
-                  onChange={(e) => setNovaConcessionaria(e.target.value)}
-                  onKeyDown={handleNovaConcessionariaKeyDown}
-                  placeholder="Cadastrar nova concessionária"
-                />
-                <button
-                  type="button"
-                  className="btn-add-concessionaria"
-                  onClick={handleAddConcessionaria}
-                >
-                  Adicionar
-                </button>
+              <div className="add-concessionaria-block">
+                <div className="add-concessionaria-row">
+                  <input
+                    type="text"
+                    value={novaConcessionaria}
+                    onChange={(e) => setNovaConcessionaria(e.target.value)}
+                    onKeyDown={handleNovaConcessionariaKeyDown}
+                    placeholder="Cadastrar nova concessionária"
+                  />
+                  <button
+                    type="button"
+                    className="btn-add-concessionaria"
+                    onClick={() => void handleAddConcessionaria()}
+                    disabled={uploadingLogo}
+                  >
+                    {uploadingLogo ? 'Salvando...' : 'Adicionar'}
+                  </button>
+                </div>
+                <div className="add-concessionaria-logo-row">
+                  <div className="add-concessionaria-logo-preview">
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Pré-visualização da logo" />
+                    ) : (
+                      <span>Logo (opcional)</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-add-concessionaria-logo"
+                    onClick={() => logoCadastroInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                  >
+                    Selecionar logo
+                  </button>
+                  <input
+                    ref={logoCadastroInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={handleLogoCadastroChange}
+                    hidden
+                  />
+                  {logoFile && (
+                    <button
+                      type="button"
+                      className="btn-clear-concessionaria-logo"
+                      onClick={resetLogoCadastro}
+                      disabled={uploadingLogo}
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+                <p className="add-concessionaria-logo-hint">PNG ou JPG · máx. 2 MB</p>
               </div>
-            </div>
-            <div className="form-group">
+            </div>            <div className="form-group">
               <label htmlFor="sentido">Sentido</label>
               <input
                 type="text"
