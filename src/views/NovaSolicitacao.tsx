@@ -1,28 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Upload } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Building2, Upload } from 'lucide-react'
 import { createSolicitacao } from '../services/solicitacao/solicitacaoService'
 import {
   CONCESSIONARIAS,
   OUTRA_CONCESSIONARIA_VALUE,
   getConcessionariaById,
 } from '../config/concessionarias'
-import { listConcessionariasPerfil } from '../services/concessionaria/concessionariaService'
+import {
+  getConcessionariaPerfilById,
+  listConcessionariasPerfil,
+} from '../services/concessionaria/concessionariaService'
 import {
   buildConcessionariaOptions,
   findConcessionariaOption,
   type ConcessionariaOption,
 } from '../utils/concessionariasOptions'
 import {
-  addConcessionaria,
-  loadConcessionarias,
-  saveConcessionarias,
-  type ConcessionariaCadastrada,
-} from '../utils/concessionariasStorage'
-import { uploadLogoConcessionaria } from '../services/relatorio/relatorioConformidadeService'
+  NOVA_SOLICITACAO_RETURN,
+  type ConcessionariaReturnPayload,
+} from '../utils/concessionariaNavigation'
+import ConcessionariaCadastroModal from '../components/ConcessionariaCadastroModal'
+import ConcessionariaPerfilResumo from '../components/ConcessionariaPerfilResumo'
+import type { ConcessionariaPerfil } from '../models/ConcessionariaPerfil'
 import { TIPOS_DOCUMENTO_OPTIONS, getFileKey } from '../config/tiposDocumento'
 import type { TipoDocumentoAnexo } from '../models/Solicitacao'
 import './NovaSolicitacao.css'
+import '../components/ConcessionariaPerfilResumo.css'
 
 const TIPOS_PROJETO_NORMATIVO = [
   { value: '', label: 'Não informado (a IA infere automaticamente)' },
@@ -113,8 +117,8 @@ const montarDadosObra = (data: FormData) => {
 
 export default function NovaSolicitacao() {
   const navigate = useNavigate()
+  const location = useLocation()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const logoCadastroInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<FormData>({
     cliente: '',
     interessado: '',
@@ -141,16 +145,12 @@ export default function NovaSolicitacao() {
     descricao: '',
     tipoRelatorio: '',
   })
-  const [concessionarias, setConcessionarias] = useState<ConcessionariaCadastrada[]>(() =>
-    loadConcessionarias(),
-  )
   const [concessionariaOptions, setConcessionariaOptions] = useState<ConcessionariaOption[]>(() =>
     buildConcessionariaOptions(),
   )
-  const [novaConcessionaria, setNovaConcessionaria] = useState('')
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [selectedPerfil, setSelectedPerfil] = useState<ConcessionariaPerfil | null>(null)
+  const [showCadastroModal, setShowCadastroModal] = useState(false)
+  const [loadingPerfil, setLoadingPerfil] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [fileDocumentTypes, setFileDocumentTypes] = useState<Record<string, TipoDocumentoAnexo>>({})
   const [isDragging, setIsDragging] = useState(false)
@@ -158,10 +158,44 @@ export default function NovaSolicitacao() {
   const [error, setError] = useState<string | null>(null)
   const portesDisponiveis = PORTES_POR_CLASSIFICACAO[formData.ocupacao] ?? []
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    saveConcessionarias(concessionarias)
-  }, [concessionarias])
+  const applyPerfilToForm = (perfil: ConcessionariaPerfil) => {
+    setSelectedPerfil(perfil)
+    setFormData((prev) => ({
+      ...prev,
+      concessionariaSelect: perfil.id,
+      concessionariaId: perfil.id,
+      nomeConcessionaria: perfil.nome,
+      tipoRelatorio: perfil.tipoProjetoPadrao || prev.tipoRelatorio || 'pit',
+      rodovia: prev.rodovia || perfil.rodovia || '',
+    }))
+    setConcessionariaOptions((prev) => {
+      const exists = prev.some((item) => item.id === perfil.id)
+      if (exists) return prev
+      return [
+        ...prev,
+        {
+          id: perfil.id,
+          nome: perfil.nome,
+          source: 'firestore',
+          perfilCompleto: perfil.perfilCompleto,
+          logoUrl: perfil.logoUrl,
+          logoDataUrl: perfil.logoDataUrl,
+        },
+      ]
+    })
+  }
+
+  const loadPerfilById = async (id: string) => {
+    setLoadingPerfil(true)
+    try {
+      const perfil = await getConcessionariaPerfilById(id)
+      if (perfil) applyPerfilToForm(perfil)
+    } catch (err) {
+      console.error('Erro ao carregar perfil da concessionária:', err)
+    } finally {
+      setLoadingPerfil(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -181,12 +215,22 @@ export default function NovaSolicitacao() {
     }
   }, [])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    const state = location.state as ConcessionariaReturnPayload | null
+    if (!state?.concessionariaId) return
+    void loadPerfilById(state.concessionariaId)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
+
+  const handleInputChange = async (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target
 
     if (name === 'concessionariaSelect') {
       const configurada = getConcessionariaById(value)
       if (configurada) {
+        setSelectedPerfil(null)
         setFormData((prev) => ({
           ...prev,
           concessionariaSelect: value,
@@ -199,26 +243,23 @@ export default function NovaSolicitacao() {
 
       const perfilFirestore = findConcessionariaOption(concessionariaOptions, value)
       if (perfilFirestore?.source === 'firestore') {
-        setFormData((prev) => ({
-          ...prev,
-          concessionariaSelect: value,
-          concessionariaId: perfilFirestore.id,
-          nomeConcessionaria: perfilFirestore.nome,
-          tipoRelatorio: prev.tipoRelatorio || 'pit',
-        }))
+        await loadPerfilById(perfilFirestore.id)
         return
       }
 
       if (value === OUTRA_CONCESSIONARIA_VALUE) {
+        setSelectedPerfil(null)
+        setShowCadastroModal(true)
         setFormData((prev) => ({
           ...prev,
-          concessionariaSelect: value,
-          concessionariaId: 'outra',
+          concessionariaSelect: '',
+          concessionariaId: '',
           nomeConcessionaria: '',
         }))
         return
       }
 
+      setSelectedPerfil(null)
       setFormData((prev) => ({
         ...prev,
         concessionariaSelect: value,
@@ -366,62 +407,27 @@ export default function NovaSolicitacao() {
     navigate('/solicitacoes')
   }
 
-  const resetLogoCadastro = () => {
-    setLogoFile(null)
-    setLogoPreview(null)
-    if (logoCadastroInputRef.current) logoCadastroInputRef.current.value = ''
+  const openCadastroConcessionaria = () => {
+    setShowCadastroModal(true)
   }
 
-  const handleLogoCadastroChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null
-    setLogoFile(file)
-    if (!file) {
-      setLogoPreview(null)
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => setLogoPreview(String(reader.result))
-    reader.onerror = () => setLogoPreview(null)
-    reader.readAsDataURL(file)
-  }
-
-  const handleAddConcessionaria = async () => {
-    const nome = novaConcessionaria.trim()
-    if (!nome) return
-
-    setUploadingLogo(true)
-    setError(null)
-    try {
-      let logo: { dataUrl?: string | null; url?: string | null } | null = null
-      if (logoFile) {
-        logo = await uploadLogoConcessionaria(logoFile, nome)
-      }
-
-      const resultado = addConcessionaria(concessionarias, nome, logo)
-      setConcessionarias(resultado.concessionarias)
-      setFormData((prev) => ({
-        ...prev,
-        concessionariaSelect: resultado.nome,
-        concessionariaId: 'outra',
-        nomeConcessionaria: resultado.nome,
-      }))
-      setNovaConcessionaria('')
-      resetLogoCadastro()
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Falha ao cadastrar concessionária.')
-    } finally {
-      setUploadingLogo(false)
-    }
-  }
-
-  const handleNovaConcessionariaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    void handleAddConcessionaria()
+  const confirmCadastroConcessionaria = () => {
+    setShowCadastroModal(false)
+    navigate('/concessionarias/nova', {
+      state: {
+        returnTo: NOVA_SOLICITACAO_RETURN,
+        returnLabel: 'Nova Solicitação',
+      },
+    })
   }
 
   return (
     <div className="nova-solicitacao-container">
+      <ConcessionariaCadastroModal
+        open={showCadastroModal}
+        onClose={() => setShowCadastroModal(false)}
+        onConfirm={confirmCadastroConcessionaria}
+      />
       <form onSubmit={handleSubmit} className="nova-solicitacao-form">
         {/* Seção Overview Dados do cliente */}
         <div className="form-section">
@@ -526,75 +532,44 @@ export default function NovaSolicitacao() {
                     </option>
                   ))}
                 <option value={OUTRA_CONCESSIONARIA_VALUE}>
-                  Outra concessionária / cadastro rápido
+                  Cadastrar nova concessionária...
                 </option>
               </select>
-              <p className="add-concessionaria-hint">
-                Para configurar normas, modelo de relatório, checklist e logo, use{' '}
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => navigate('/concessionarias/nova')}
-                >
-                  Nova Concessionária
-                </button>
-                .
-              </p>
-              <div className="add-concessionaria-block">
-                <div className="add-concessionaria-row">
-                  <input
-                    type="text"
-                    value={novaConcessionaria}
-                    onChange={(e) => setNovaConcessionaria(e.target.value)}
-                    onKeyDown={handleNovaConcessionariaKeyDown}
-                    placeholder="Cadastrar nova concessionária"
-                  />
-                  <button
-                    type="button"
-                    className="btn-add-concessionaria"
-                    onClick={() => void handleAddConcessionaria()}
-                    disabled={uploadingLogo}
-                  >
-                    {uploadingLogo ? 'Salvando...' : 'Adicionar'}
-                  </button>
-                </div>
-                <div className="add-concessionaria-logo-row">
-                  <div className="add-concessionaria-logo-preview">
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Pré-visualização da logo" />
-                    ) : (
-                      <span>Logo (opcional)</span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-add-concessionaria-logo"
-                    onClick={() => logoCadastroInputRef.current?.click()}
-                    disabled={uploadingLogo}
-                  >
-                    Selecionar logo
-                  </button>
-                  <input
-                    ref={logoCadastroInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    onChange={handleLogoCadastroChange}
-                    hidden
-                  />
-                  {logoFile && (
-                    <button
-                      type="button"
-                      className="btn-clear-concessionaria-logo"
-                      onClick={resetLogoCadastro}
-                      disabled={uploadingLogo}
-                    >
-                      Remover
-                    </button>
-                  )}
-                </div>
-                <p className="add-concessionaria-logo-hint">PNG ou JPG · máx. 2 MB</p>
-              </div>
-            </div>            <div className="form-group">
+
+              <button
+                type="button"
+                className="conc-cadastrar-btn"
+                onClick={openCadastroConcessionaria}
+              >
+                <Building2 size={18} />
+                Cadastrar nova concessionária
+              </button>
+
+              {loadingPerfil && (
+                <p className="add-concessionaria-hint">Carregando perfil da concessionária...</p>
+              )}
+
+              {selectedPerfil && (
+                <ConcessionariaPerfilResumo
+                  perfil={selectedPerfil}
+                  onUpdated={(updated) => {
+                    applyPerfilToForm(updated)
+                    void listConcessionariasPerfil().then((profiles) => {
+                      setConcessionariaOptions(buildConcessionariaOptions(profiles))
+                    })
+                  }}
+                  onEditCompleto={() =>
+                    navigate('/concessionarias/nova', {
+                      state: {
+                        returnTo: NOVA_SOLICITACAO_RETURN,
+                        returnLabel: 'Nova Solicitação',
+                      },
+                    })
+                  }
+                />
+              )}
+            </div>
+            <div className="form-group">
               <label htmlFor="sentido">Sentido</label>
               <input
                 type="text"

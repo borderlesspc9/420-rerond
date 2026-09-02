@@ -1,0 +1,208 @@
+.conc-resumo {
+  margin-top: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #f8fbff;
+  overflow: hidden;
+}
+
+.conc-resumo-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: #1e3a8a;
+}
+
+.conc-resumo-header:hover {
+  background: #eff6ff;
+}
+
+.conc-resumo-header-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.conc-resumo-logo,
+.conc-resumo-logo-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.conc-resumo-logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.conc-resumo-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.conc-resumo-nome {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111827;
+}
+
+.conc-resumo-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.conc-resumo-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid #dbeafe;
+}
+
+.conc-resumo-dl {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.conc-resumo-dl div {
+  display: grid;
+  gap: 2px;
+}
+
+.conc-resumo-dl dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.conc-resumo-dl dd {
+  margin: 0;
+  font-size: 14px;
+  color: #111827;
+}
+
+.conc-resumo-dl ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.conc-resumo-dl li {
+  margin-bottom: 2px;
+}
+
+.conc-resumo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.conc-resumo-btn-secondary,
+.conc-resumo-btn-primary,
+.conc-resumo-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.conc-resumo-btn-secondary {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.conc-resumo-btn-primary {
+  border: none;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.conc-resumo-btn-link {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  text-decoration: underline;
+  padding-left: 0;
+}
+
+.conc-resumo-edit {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.conc-resumo-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.conc-resumo-edit input,
+.conc-resumo-edit select {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.conc-resumo-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.conc-resumo-error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.conc-cadastrar-btn {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px dashed #93c5fd;
+  border-radius: 8px;
+  background: #f0f9ff;
+  color: #1d4ed8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.conc-cadastrar-btn:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}

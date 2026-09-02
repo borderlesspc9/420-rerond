@@ -122,3 +122,42 @@ export async function saveConcessionariaPerfil(
   }
   return saved
 }
+
+export async function updateConcessionariaPerfilFields(
+  id: string,
+  patch: Partial<
+    Pick<
+      ConcessionariaPerfil,
+      'nome' | 'rodovia' | 'tipoProjetoPadrao' | 'aliases' | 'modeloRelatorio'
+    >
+  >,
+): Promise<ConcessionariaPerfil> {
+  const ref = doc(db, COLLECTION_NAME, id)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) {
+    throw new Error('Concessionária não encontrada.')
+  }
+
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  }
+
+  if (patch.nome !== undefined) payload.nome = patch.nome.trim()
+  if (patch.rodovia !== undefined) payload.rodovia = patch.rodovia.trim() || null
+  if (patch.tipoProjetoPadrao !== undefined) payload.tipoProjetoPadrao = patch.tipoProjetoPadrao
+  if (patch.aliases !== undefined) payload.aliases = patch.aliases
+  if (patch.modeloRelatorio !== undefined) {
+    const current = snap.data().modeloRelatorio as Record<string, unknown> | undefined
+    payload.modeloRelatorio = {
+      ...current,
+      ...patch.modeloRelatorio,
+    }
+  }
+
+  await setDoc(ref, payload, { merge: true })
+  const updated = await getConcessionariaPerfilById(id)
+  if (!updated) {
+    throw new Error('Não foi possível carregar a concessionária após atualizar.')
+  }
+  return updated
+}

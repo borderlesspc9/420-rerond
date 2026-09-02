@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Check, ImagePlus, Plus, Trash2 } from 'lucide-react'
 import {
   EMPTY_DRAFT,
@@ -14,12 +14,16 @@ import type { ConcessionariaPerfilDraft } from '../models/ConcessionariaPerfil'
 import { WIZARD_STEPS, type WizardStepId } from '../models/ConcessionariaPerfil'
 import { saveConcessionariaPerfil } from '../services/concessionaria/concessionariaService'
 import { uploadLogoConcessionaria } from '../services/relatorio/relatorioConformidadeService'
+import type { ConcessionariaWizardLocationState } from '../utils/concessionariaNavigation'
 import './NovaConcessionaria.css'
 
 const STEP_ORDER = WIZARD_STEPS.map((step) => step.id)
 
 export default function NovaConcessionaria() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnState = (location.state ?? {}) as ConcessionariaWizardLocationState
+  const returnTo = returnState.returnTo?.trim() || null
   const logoInputRef = useRef<HTMLInputElement>(null)
   const [currentStep, setCurrentStep] = useState<WizardStepId>('dados')
   const [draft, setDraft] = useState<ConcessionariaPerfilDraft>({ ...EMPTY_DRAFT })
@@ -194,6 +198,14 @@ export default function NovaConcessionaria() {
       setSuccess(
         `Perfil "${saved.nome}" cadastrado com sucesso. A IA passará a usar este perfil nas análises.`,
       )
+
+      if (returnTo) {
+        navigate(returnTo, {
+          replace: true,
+          state: { concessionariaId: saved.id },
+        })
+        return
+      }
 
       setTimeout(() => {
         navigate('/dashboard')
@@ -548,7 +560,11 @@ export default function NovaConcessionaria() {
         <button
           type="button"
           className="concessionaria-wizard-btn concessionaria-wizard-btn-secondary"
-          onClick={() => (currentStepIndex === 0 ? navigate('/dashboard') : goBack())}
+          onClick={() =>
+            currentStepIndex === 0
+              ? navigate(returnTo ?? '/dashboard')
+              : goBack()
+          }
           disabled={saving}
         >
           {currentStepIndex === 0 ? 'Cancelar' : 'Voltar'}
