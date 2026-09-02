@@ -6,7 +6,7 @@
     "node": "20"
   },
   "scripts": {
-    "copy-assets": "cp -r src/config lib/",
+    "copy-assets": "node -e \"require('fs').cpSync('src/config','lib/config',{recursive:true})\"",
     "build": "tsc && npm run copy-assets",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "npm run build && firebase deploy --only functions"
