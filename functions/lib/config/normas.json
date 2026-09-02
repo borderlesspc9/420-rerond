@@ -1,336 +1,336 @@
 {
-  "fontes": [
-    {
-      "id": "ANTT_SUROD_12_2025",
-      "titulo": "Portaria SUROD nº 12, de 26 de março de 2025",
-      "orgao": "ANTT/SUROD",
-      "ano": 2025,
-      "pdf": "portaria-surod-12-2025.pdf",
-      "descricao": "POP para análise técnica de estudos e projetos de obras e serviços de engenharia (concessões rodoviárias federais)",
-      "requerPdf": false
-    },
-    {
-      "id": "ANTT_SUROD_13_2025",
-      "titulo": "Portaria SUROD nº 13, de 27 de março de 2025",
-      "orgao": "ANTT/SUROD",
-      "ano": 2025,
-      "pdf": "portaria-surod-13-2025.pdf",
-      "descricao": "POP para análise técnica de Projetos de Interesse de Terceiros (PITs) em concessões rodoviárias federais",
-      "requerPdf": false
-    }
-  ],
-  "tiposProjeto": {
-    "pit": {
-      "nome": "Projeto de Interesse de Terceiros (PIT)",
-      "fontes": ["ANTT_SUROD_13_2025"],
-      "maxPaginas": 15,
-      "requisitos": [
-        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Completude da documentação protocolada (Art. 3º)" },
-        { "id": "CARTA_SOLICITACAO", "descricao": "Carta de solicitação do PIT com assunto conforme modelo (Art. 5º, I)" },
-        { "id": "PARECER_CONCESSIONARIA", "descricao": "Parecer Técnico de aprovação da Concessionária (Art. 5º, II)" },
-        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de Veracidade (Art. 5º, III)" },
-        { "id": "FORMULARIO_PIT", "descricao": "Formulário de PIT preenchido (Art. 5º, IV)" },
-        { "id": "VOLUME_I_RELATORIO", "descricao": "Volume I: Relatório Técnico com memoriais e estudos (Art. 5º, b)" },
-        { "id": "VOLUME_II_PROJETOS", "descricao": "Volume II: Peças gráficas com detalhamento de Projeto Executivo (Art. 5º, c)" },
-        { "id": "ART_PROJETO_OBRA", "descricao": "ART referente ao projeto executivo e à execução da obra (Art. 5º, d, I)" },
-        { "id": "LICENCA_AMBIENTAL", "descricao": "Licença ambiental ou justificativa para não apresentação (Art. 5º, d, II)" },
-        { "id": "CRONOGRAMA_EXECUCAO", "descricao": "Cronograma de execução da obra (Art. 5º, d, III)" },
-        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 4º)" },
-        { "id": "NOMENCLATURA_DOCS", "descricao": "Nomeação de documentos conforme padrão Art. 5º-A" }
-      ]
-    },
-    "obra_per": {
-      "nome": "Obra prevista no PER",
-      "fontes": ["ANTT_SUROD_12_2025"],
-      "maxPaginas": 30,
-      "requisitos": [
-        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa conforme Art. 7º (volumes mínimos)" },
-        { "id": "FUNCIONALIDADE_OBRA", "descricao": "Funcionalidade da obra atendendo parâmetros do PER (Art. 9º)" },
-        { "id": "PARAMETROS_PER", "descricao": "Cumprimento dos parâmetros técnicos e de desempenho do PER (Art. 9º)" },
-        { "id": "CHECK_LIST", "descricao": "Check-list de verificação preenchido (Art. 10, §5º)" },
-        { "id": "TIPOLOGIA", "descricao": "Tipologia da obra compatível com o PER (Art. 10, §6º, II)" },
-        { "id": "CONFIGURACAO", "descricao": "Configuração da obra conforme previsto (Art. 10, §6º, III)" },
-        { "id": "LOCALIZACAO", "descricao": "Localização coerente com o PER (Art. 10, §6º, IV)" },
-        { "id": "QUANTITATIVO", "descricao": "Quantitativos compatíveis (Art. 10, §6º, V)" },
-        { "id": "PRAZO", "descricao": "Prazo de execução conforme previsto (Art. 10, §6º, VI)" },
-        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade de informações e documentos (Art. 7º, §2º, I)" },
-        { "id": "GUIA_REMESSA", "descricao": "Guia de remessa de documentos (Art. 7º, §2º, II)" },
-        { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
-        { "id": "CODIFICACAO_DOCS", "descricao": "Codificação e identificação de documentos conforme Anexo (Art. 8º)" },
-        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
-      ]
-    },
-    "obra_nao_per": {
-      "nome": "Obra não prevista no PER",
-      "fontes": ["ANTT_SUROD_12_2025"],
-      "maxPaginas": 30,
-      "requisitos": [
-        { "id": "SOLUCAO_ENGENHARIA", "descricao": "Solução de engenharia avaliada (Art. 18)" },
-        { "id": "TIPOLOGIA", "descricao": "Tipologia da intervenção (Art. 18)" },
-        { "id": "FUNCIONALIDADE", "descricao": "Funcionalidade da intervenção (Art. 18)" },
-        { "id": "OPERACIONALIDADE", "descricao": "Operacionalidade da intervenção (Art. 18)" },
-        { "id": "DIMENSIONAMENTO_SERVICOS", "descricao": "Dimensionamento dos principais serviços e quantitativos (Art. 18, parágrafo único)" },
-        { "id": "MODERNIZACAO_DURABILIDADE", "descricao": "Critérios de modernização, durabilidade, eficiência técnica e sustentabilidade (Art. 19)" },
-        { "id": "ORCAMENTO_ANALITICO", "descricao": "Orçamento analítico com composições de custos diretos e BDI (Art. 20)" },
-        { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa com todos os volumes (Art. 22)" },
-        { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade (Art. 7º, §2º, I)" },
-        { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
-        { "id": "DECLARACAO_CUSTOS", "descricao": "Declaração de responsabilidade referente a serviços, quantitativos e custos (Art. 7º, §2º, VIII)" },
-        { "id": "CODIFICACAO_DOCS", "descricao": "Codificação conforme Anexo (Art. 8º)" },
-        { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
-      ]
-    }
-  },
-  "concessionarias": {
-    "eco101": {
-      "nome": "Ecovias / ECO101",
-      "requisitos": [
+    "fontes": [
         {
-          "id": "ECO101_ORGANIZACAO_PASTAS",
-          "descricao": "Documentação organizada em volumes conforme padrão ECO101: Volume I - Relatório Técnico, Volume II - Projetos, Volume III - Documentos Complementares.",
-          "categoria": "ORGANIZACAO"
+            "id": "ANTT_SUROD_12_2025",
+            "titulo": "Portaria SUROD nº 12, de 26 de março de 2025",
+            "orgao": "ANTT/SUROD",
+            "ano": 2025,
+            "pdf": "portaria-surod-12-2025.pdf",
+            "descricao": "POP para análise técnica de estudos e projetos de obras e serviços de engenharia (concessões rodoviárias federais)",
+            "requerPdf": false
         },
         {
-          "id": "ECO101_CODIFICACAO_ARQUIVOS",
-          "descricao": "Arquivos nomeados conforme codificação aplicável da ANTT/SUROD e diretrizes da concessionária.",
-          "categoria": "ORGANIZACAO"
-        },
-        {
-          "id": "ECO101_MEMORIAL_DESCRITIVO",
-          "descricao": "Memorial Descritivo contendo descrição da ocupação, localização quilométrica, características técnicas, materiais, método construtivo, parâmetros geométricos e justificativa técnica.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ECO101_PLANO_TRABALHO",
-          "descricao": "Plano de Trabalho contendo sequência das atividades, procedimentos construtivos, mobilização, sinalização, interferência no tráfego e recomposição da área afetada.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ECO101_PLANTA_BAIXA",
-          "descricao": "Planta Baixa com eixo da via, pista, acostamento, faixa de domínio, faixa non aedificandi, posição da ocupação, coordenadas e afastamentos laterais.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ECO101_PERFIL_OCUPACAO",
-          "descricao": "Perfil da Ocupação demonstrando relação geométrica com greide, terreno natural, altura livre ou cobrimento mínimo, conforme tipo de intervenção.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ECO101_PROJETO_SINALIZACAO",
-          "descricao": "Projeto de Sinalização de Obra compatível com o tipo de intervenção, contendo distâncias de pré-sinalização, dispositivos, sentidos de tráfego e áreas de atividade.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ECO101_ESPECIFICACOES_TECNICAS",
-          "descricao": "Especificações técnicas e referências normativas aplicáveis: DNIT, ANTT/SUROD, ABNT e diretrizes da concessionária.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ECO101_REQUERIMENTO",
-          "descricao": "Requerimento contendo identificação do interessado, contatos, data, descrição do pleito e localização quilométrica.",
-          "categoria": "VOLUME_III"
-        },
-        {
-          "id": "ECO101_DECLARACAO_VERACIDADE",
-          "descricao": "Declaração de Veracidade com identificação do interessado, responsável técnico, data e assinaturas.",
-          "categoria": "VOLUME_III"
-        },
-        {
-          "id": "ECO101_ART",
-          "descricao": "ART registrada e quitada, vinculada especificamente ao objeto, local, rodovia, km e ocupação em faixa de domínio.",
-          "categoria": "VOLUME_III"
-        },
-        {
-          "id": "ECO101_CRONOGRAMA",
-          "descricao": "Cronograma de execução em dias, com prazo total e etapas principais da implantação.",
-          "categoria": "VOLUME_III"
-        },
-        {
-          "id": "ECO101_LICENCA_AMBIENTAL",
-          "descricao": "Licença Ambiental ou documento de comprovação de inexigibilidade/dispensa, quando aplicável.",
-          "categoria": "VOLUME_III"
+            "id": "ANTT_SUROD_13_2025",
+            "titulo": "Portaria SUROD nº 13, de 27 de março de 2025",
+            "orgao": "ANTT/SUROD",
+            "ano": 2025,
+            "pdf": "portaria-surod-13-2025.pdf",
+            "descricao": "POP para análise técnica de Projetos de Interesse de Terceiros (PITs) em concessões rodoviárias federais",
+            "requerPdf": false
         }
-      ]
-    },
-    "motiva": {
-      "nome": "Motiva",
-      "requisitos": [
-        {
-          "id": "MOTIVA_ORGANIZACAO_VOLUMES",
-          "descricao": "Documentação organizada conforme fluxo Motiva: Viabilidade/Funcional, Volume 1 (Relatórios Técnicos), Volume 2 (Projetos) e Volume 3 (documentos do interessado/RT para protocolo ANTT).",
-          "categoria": "ORGANIZACAO"
+    ],
+    "tiposProjeto": {
+        "pit": {
+            "nome": "Projeto de Interesse de Terceiros (PIT)",
+            "fontes": ["ANTT_SUROD_13_2025"],
+            "maxPaginas": 15,
+            "requisitos": [
+                { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Completude da documentação protocolada (Art. 3º)" },
+                { "id": "CARTA_SOLICITACAO", "descricao": "Carta de solicitação do PIT com assunto conforme modelo (Art. 5º, I)" },
+                { "id": "PARECER_CONCESSIONARIA", "descricao": "Parecer Técnico de aprovação da Concessionária (Art. 5º, II)" },
+                { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de Veracidade (Art. 5º, III)" },
+                { "id": "FORMULARIO_PIT", "descricao": "Formulário de PIT preenchido (Art. 5º, IV)" },
+                { "id": "VOLUME_I_RELATORIO", "descricao": "Volume I: Relatório Técnico com memoriais e estudos (Art. 5º, b)" },
+                { "id": "VOLUME_II_PROJETOS", "descricao": "Volume II: Peças gráficas com detalhamento de Projeto Executivo (Art. 5º, c)" },
+                { "id": "ART_PROJETO_OBRA", "descricao": "ART referente ao projeto executivo e à execução da obra (Art. 5º, d, I)" },
+                { "id": "LICENCA_AMBIENTAL", "descricao": "Licença ambiental ou justificativa para não apresentação (Art. 5º, d, II)" },
+                { "id": "CRONOGRAMA_EXECUCAO", "descricao": "Cronograma de execução da obra (Art. 5º, d, III)" },
+                { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 4º)" },
+                { "id": "NOMENCLATURA_DOCS", "descricao": "Nomeação de documentos conforme padrão Art. 5º-A" }
+            ]
         },
-        {
-          "id": "MOTIVA_CODIFICACAO_REVISAO",
-          "descricao": "Documentos devidamente codificados e com controle de revisão, conforme Portaria ANTT/SUINF nº 028/2019 e procedimento Motiva.",
-          "categoria": "ORGANIZACAO"
+        "obra_per": {
+            "nome": "Obra prevista no PER",
+            "fontes": ["ANTT_SUROD_12_2025"],
+            "maxPaginas": 30,
+            "requisitos": [
+                { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa conforme Art. 7º (volumes mínimos)" },
+                { "id": "FUNCIONALIDADE_OBRA", "descricao": "Funcionalidade da obra atendendo parâmetros do PER (Art. 9º)" },
+                { "id": "PARAMETROS_PER", "descricao": "Cumprimento dos parâmetros técnicos e de desempenho do PER (Art. 9º)" },
+                { "id": "CHECK_LIST", "descricao": "Check-list de verificação preenchido (Art. 10, §5º)" },
+                { "id": "TIPOLOGIA", "descricao": "Tipologia da obra compatível com o PER (Art. 10, §6º, II)" },
+                { "id": "CONFIGURACAO", "descricao": "Configuração da obra conforme previsto (Art. 10, §6º, III)" },
+                { "id": "LOCALIZACAO", "descricao": "Localização coerente com o PER (Art. 10, §6º, IV)" },
+                { "id": "QUANTITATIVO", "descricao": "Quantitativos compatíveis (Art. 10, §6º, V)" },
+                { "id": "PRAZO", "descricao": "Prazo de execução conforme previsto (Art. 10, §6º, VI)" },
+                { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade de informações e documentos (Art. 7º, §2º, I)" },
+                { "id": "GUIA_REMESSA", "descricao": "Guia de remessa de documentos (Art. 7º, §2º, II)" },
+                { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
+                { "id": "CODIFICACAO_DOCS", "descricao": "Codificação e identificação de documentos conforme Anexo (Art. 8º)" },
+                { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
+            ]
         },
-        {
-          "id": "MOTIVA_INDICE_DOCUMENTOS",
-          "descricao": "Índice de documentos apresentando o rol completo exigido para a etapa (aba Ocupações / Projetos Executivos).",
-          "categoria": "ORGANIZACAO"
-        },
-        {
-          "id": "MOTIVA_CADASTRO_INTERESSADO",
-          "descricao": "Formulário/cadastro do interessado (e do terceiro elaborador/executor, se houver) com dados completos.",
-          "categoria": "FASE_VIABILIDADE"
-        },
-        {
-          "id": "MOTIVA_REQUERIMENTO_VIABILIDADE",
-          "descricao": "Requerimento de viabilidade assinado, com identificação, km início/fim, município, implantação ou regularização e tipo de ocupação.",
-          "categoria": "FASE_VIABILIDADE"
-        },
-        {
-          "id": "MOTIVA_KMZ_TRACADO",
-          "descricao": "Arquivo KMZ/KML com o traçado da ocupação.",
-          "categoria": "FASE_VIABILIDADE"
-        },
-        {
-          "id": "MOTIVA_PROJETO_FUNCIONAL",
-          "descricao": "Projeto funcional/básico em planta e perfil com marcos quilométricos, faixa de domínio e área não edificante.",
-          "categoria": "FASE_VIABILIDADE"
-        },
-        {
-          "id": "MOTIVA_MEMORIAL_DESCRITIVO",
-          "descricao": "Memorial descritivo com km, implantação/regularização, objetivo, normas, elementos, materiais, método construtivo e extensão total e em Faixa de Domínio.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "MOTIVA_ART",
-          "descricao": "ART registrada e quitada, vinculada ao objeto, rodovia, km e ocupação em faixa de domínio.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "MOTIVA_PBA_LICENCA",
-          "descricao": "Plano Básico Ambiental e Licença Ambiental, ou documento de inexigibilidade/dispensa quando aplicável.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "MOTIVA_SONDAGEM",
-          "descricao": "Boletins e relatórios de sondagem quando existentes/necessários ao tipo de ocupação.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "MOTIVA_PROJETO_PLANTA_PERFIL",
-          "descricao": "Projeto de implantação em planta e perfil com plataforma, FXD e non aedificandi cotadas, sentido, extensões e detalhes de cabeamento (alturas, catenárias, fixações) quando aplicável.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "MOTIVA_SINALIZACAO_OBRAS",
-          "descricao": "Projeto de sinalização de obras e desvios de tráfego quando houver interferência operacional.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "MOTIVA_CRONOGRAMA",
-          "descricao": "Cronograma físico com etapas de execução, formalização contratual, mobilização e desmobilização.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "MOTIVA_DECLARACAO_VERACIDADE",
-          "descricao": "Declaração de Veracidade assinada pelo requerente e pelo responsável técnico.",
-          "categoria": "VOLUME_III"
-        },
-        {
-          "id": "MOTIVA_DOCS_INTERESSADO_RT",
-          "descricao": "Atos constitutivos/documentos de identificação do interessado e credenciais do profissional/empresa responsável técnica.",
-          "categoria": "VOLUME_III"
+        "obra_nao_per": {
+            "nome": "Obra não prevista no PER",
+            "fontes": ["ANTT_SUROD_12_2025"],
+            "maxPaginas": 30,
+            "requisitos": [
+                { "id": "SOLUCAO_ENGENHARIA", "descricao": "Solução de engenharia avaliada (Art. 18)" },
+                { "id": "TIPOLOGIA", "descricao": "Tipologia da intervenção (Art. 18)" },
+                { "id": "FUNCIONALIDADE", "descricao": "Funcionalidade da intervenção (Art. 18)" },
+                { "id": "OPERACIONALIDADE", "descricao": "Operacionalidade da intervenção (Art. 18)" },
+                { "id": "DIMENSIONAMENTO_SERVICOS", "descricao": "Dimensionamento dos principais serviços e quantitativos (Art. 18, parágrafo único)" },
+                { "id": "MODERNIZACAO_DURABILIDADE", "descricao": "Critérios de modernização, durabilidade, eficiência técnica e sustentabilidade (Art. 19)" },
+                { "id": "ORCAMENTO_ANALITICO", "descricao": "Orçamento analítico com composições de custos diretos e BDI (Art. 20)" },
+                { "id": "COMPLETUDE_DOCUMENTAL", "descricao": "Documentação completa com todos os volumes (Art. 22)" },
+                { "id": "DECLARACAO_VERACIDADE", "descricao": "Declaração de veracidade (Art. 7º, §2º, I)" },
+                { "id": "ART_RESPONSAVEL", "descricao": "ART do engenheiro responsável (Art. 7º, §2º, VII)" },
+                { "id": "DECLARACAO_CUSTOS", "descricao": "Declaração de responsabilidade referente a serviços, quantitativos e custos (Art. 7º, §2º, VIII)" },
+                { "id": "CODIFICACAO_DOCS", "descricao": "Codificação conforme Anexo (Art. 8º)" },
+                { "id": "FORMATO_DIGITAL", "descricao": "Documentos em formato digital editável e PDF (Art. 6º)" }
+            ]
         }
-      ]
     },
-    "arteris": {
-      "nome": "Arteris",
-      "requisitos": [
-        {
-          "id": "ARTERIS_ORGANIZACAO_VOLUMES",
-          "descricao": "Documentação organizada em Volume 1 (Relatórios Técnicos) e Volume 2 (Projeto), em meio digital, conforme diretrizes Arteris/PIT e Portaria 028/2019.",
-          "categoria": "ORGANIZACAO"
+    "concessionarias": {
+        "eco101": {
+            "nome": "Ecovias / ECO101",
+            "requisitos": [
+                {
+                    "id": "ECO101_ORGANIZACAO_PASTAS",
+                    "descricao": "Documentação organizada em volumes conforme padrão ECO101: Volume I - Relatório Técnico, Volume II - Projetos, Volume III - Documentos Complementares.",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "ECO101_CODIFICACAO_ARQUIVOS",
+                    "descricao": "Arquivos nomeados conforme codificação aplicável da ANTT/SUROD e diretrizes da concessionária.",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "ECO101_MEMORIAL_DESCRITIVO",
+                    "descricao": "Memorial Descritivo contendo descrição da ocupação, localização quilométrica, características técnicas, materiais, método construtivo, parâmetros geométricos e justificativa técnica.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ECO101_PLANO_TRABALHO",
+                    "descricao": "Plano de Trabalho contendo sequência das atividades, procedimentos construtivos, mobilização, sinalização, interferência no tráfego e recomposição da área afetada.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ECO101_PLANTA_BAIXA",
+                    "descricao": "Planta Baixa com eixo da via, pista, acostamento, faixa de domínio, faixa non aedificandi, posição da ocupação, coordenadas e afastamentos laterais.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ECO101_PERFIL_OCUPACAO",
+                    "descricao": "Perfil da Ocupação demonstrando relação geométrica com greide, terreno natural, altura livre ou cobrimento mínimo, conforme tipo de intervenção.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ECO101_PROJETO_SINALIZACAO",
+                    "descricao": "Projeto de Sinalização de Obra compatível com o tipo de intervenção, contendo distâncias de pré-sinalização, dispositivos, sentidos de tráfego e áreas de atividade.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ECO101_ESPECIFICACOES_TECNICAS",
+                    "descricao": "Especificações técnicas e referências normativas aplicáveis: DNIT, ANTT/SUROD, ABNT e diretrizes da concessionária.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ECO101_REQUERIMENTO",
+                    "descricao": "Requerimento contendo identificação do interessado, contatos, data, descrição do pleito e localização quilométrica.",
+                    "categoria": "VOLUME_III"
+                },
+                {
+                    "id": "ECO101_DECLARACAO_VERACIDADE",
+                    "descricao": "Declaração de Veracidade com identificação do interessado, responsável técnico, data e assinaturas.",
+                    "categoria": "VOLUME_III"
+                },
+                {
+                    "id": "ECO101_ART",
+                    "descricao": "ART registrada e quitada, vinculada especificamente ao objeto, local, rodovia, km e ocupação em faixa de domínio.",
+                    "categoria": "VOLUME_III"
+                },
+                {
+                    "id": "ECO101_CRONOGRAMA",
+                    "descricao": "Cronograma de execução em dias, com prazo total e etapas principais da implantação.",
+                    "categoria": "VOLUME_III"
+                },
+                {
+                    "id": "ECO101_LICENCA_AMBIENTAL",
+                    "descricao": "Licença Ambiental ou documento de comprovação de inexigibilidade/dispensa, quando aplicável.",
+                    "categoria": "VOLUME_III"
+                }
+            ]
         },
-        {
-          "id": "ARTERIS_ARQUIVOS_FONTES",
-          "descricao": "Entrega de arquivos fontes (.doc, .xls, .dwg etc.) e de impressão (.pdf etc.), com correlação entre DWG e peças apresentadas.",
-          "categoria": "ORGANIZACAO"
+        "motiva": {
+            "nome": "Motiva",
+            "requisitos": [
+                {
+                    "id": "MOTIVA_ORGANIZACAO_VOLUMES",
+                    "descricao": "Documentação organizada conforme fluxo Motiva: Viabilidade/Funcional, Volume 1 (Relatórios Técnicos), Volume 2 (Projetos) e Volume 3 (documentos do interessado/RT para protocolo ANTT).",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "MOTIVA_CODIFICACAO_REVISAO",
+                    "descricao": "Documentos devidamente codificados e com controle de revisão, conforme Portaria ANTT/SUINF nº 028/2019 e procedimento Motiva.",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "MOTIVA_INDICE_DOCUMENTOS",
+                    "descricao": "Índice de documentos apresentando o rol completo exigido para a etapa (aba Ocupações / Projetos Executivos).",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "MOTIVA_CADASTRO_INTERESSADO",
+                    "descricao": "Formulário/cadastro do interessado (e do terceiro elaborador/executor, se houver) com dados completos.",
+                    "categoria": "FASE_VIABILIDADE"
+                },
+                {
+                    "id": "MOTIVA_REQUERIMENTO_VIABILIDADE",
+                    "descricao": "Requerimento de viabilidade assinado, com identificação, km início/fim, município, implantação ou regularização e tipo de ocupação.",
+                    "categoria": "FASE_VIABILIDADE"
+                },
+                {
+                    "id": "MOTIVA_KMZ_TRACADO",
+                    "descricao": "Arquivo KMZ/KML com o traçado da ocupação.",
+                    "categoria": "FASE_VIABILIDADE"
+                },
+                {
+                    "id": "MOTIVA_PROJETO_FUNCIONAL",
+                    "descricao": "Projeto funcional/básico em planta e perfil com marcos quilométricos, faixa de domínio e área não edificante.",
+                    "categoria": "FASE_VIABILIDADE"
+                },
+                {
+                    "id": "MOTIVA_MEMORIAL_DESCRITIVO",
+                    "descricao": "Memorial descritivo com km, implantação/regularização, objetivo, normas, elementos, materiais, método construtivo e extensão total e em Faixa de Domínio.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "MOTIVA_ART",
+                    "descricao": "ART registrada e quitada, vinculada ao objeto, rodovia, km e ocupação em faixa de domínio.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "MOTIVA_PBA_LICENCA",
+                    "descricao": "Plano Básico Ambiental e Licença Ambiental, ou documento de inexigibilidade/dispensa quando aplicável.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "MOTIVA_SONDAGEM",
+                    "descricao": "Boletins e relatórios de sondagem quando existentes/necessários ao tipo de ocupação.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "MOTIVA_PROJETO_PLANTA_PERFIL",
+                    "descricao": "Projeto de implantação em planta e perfil com plataforma, FXD e non aedificandi cotadas, sentido, extensões e detalhes de cabeamento (alturas, catenárias, fixações) quando aplicável.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "MOTIVA_SINALIZACAO_OBRAS",
+                    "descricao": "Projeto de sinalização de obras e desvios de tráfego quando houver interferência operacional.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "MOTIVA_CRONOGRAMA",
+                    "descricao": "Cronograma físico com etapas de execução, formalização contratual, mobilização e desmobilização.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "MOTIVA_DECLARACAO_VERACIDADE",
+                    "descricao": "Declaração de Veracidade assinada pelo requerente e pelo responsável técnico.",
+                    "categoria": "VOLUME_III"
+                },
+                {
+                    "id": "MOTIVA_DOCS_INTERESSADO_RT",
+                    "descricao": "Atos constitutivos/documentos de identificação do interessado e credenciais do profissional/empresa responsável técnica.",
+                    "categoria": "VOLUME_III"
+                }
+            ]
         },
-        {
-          "id": "ARTERIS_CARTA_INTERESSADO",
-          "descricao": "Carta do interessado com identificação, contatos, motivo, discriminação do uso da ocupação e documentos protocolados.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ARTERIS_MEMORIAL_DESCRITIVO",
-          "descricao": "Memorial descritivo com descrição da obra, impactos na rodovia, parâmetros/premissas, quadro resumo e etapas de execução.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ARTERIS_ESTUDOS_APOIO",
-          "descricao": "Estudos de apoio pertinentes ao tipo de obra (tráfego/capacidade, topografia, traçado/geometria, geotécnica, hidrologia), quando aplicáveis.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ARTERIS_ART",
-          "descricao": "ART do projeto assinada, com comprovante de pagamento, vinculada ao objeto/local/rodovia/km.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ARTERIS_QUADRO_COORDENADAS",
-          "descricao": "Quadro de coordenadas (.xlsx/tabela) conforme modelo Arteris, com vértices da ocupação/interferência.",
-          "categoria": "VOLUME_I"
-        },
-        {
-          "id": "ARTERIS_TOPOGRAFICO",
-          "descricao": "Projeto topográfico referenciado ao DATUM SIRGAS2000.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_GEOMETRICO",
-          "descricao": "Projeto geométrico com km+m, rodovia/sentido, FXD e non aedificandi, características da ocupação, seções transversais e perfil longitudinal.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_DRENAGEM",
-          "descricao": "Projeto de drenagem (bacias, declividade, deságue, materiais/dimensões, dimensionamento e verificação hidráulica se usar dispositivo existente), quando aplicável.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_SINALIZACAO_OBRAS",
-          "descricao": "Projeto de sinalização da rodovia durante obras e serviços, inclusive desvios de tráfego quando necessário.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_PROTECAO_SEGURANCA",
-          "descricao": "Dispositivos de proteção e segurança conforme NBR 15486, NBR 6971 e NBR 14885, com planta e detalhes de implantação.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_INTERFERENCIAS",
-          "descricao": "Projeto de interferências (água, esgoto, energia, gás, fibra óptica) quando houver.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_KMZ_KML",
-          "descricao": "Arquivo KMZ/KML com identificação da faixa de domínio e da área de interferência da ocupação.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_CRONOGRAMA",
-          "descricao": "Cronograma com etapas de serviços e períodos de interrupção de tráfego, se for o caso.",
-          "categoria": "VOLUME_II"
-        },
-        {
-          "id": "ARTERIS_LICENCA_AMBIENTAL",
-          "descricao": "Licença ambiental da obra ou documento comprobatório de dispensa/inexigibilidade.",
-          "categoria": "COMPLEMENTARES"
-        },
-        {
-          "id": "ARTERIS_INVENTARIO_FLORESTAL",
-          "descricao": "Inventário florestal quando houver necessidade de supressão de vegetação em faixa de domínio.",
-          "categoria": "COMPLEMENTARES"
-        },
-        {
-          "id": "ARTERIS_TERMO_RESPONSABILIDADE",
-          "descricao": "Termo de Responsabilidade para atividades em FXD (topo, contagens, ensaios etc.), quando aplicável à etapa.",
-          "categoria": "COMPLEMENTARES"
+        "arteris": {
+            "nome": "Arteris",
+            "requisitos": [
+                {
+                    "id": "ARTERIS_ORGANIZACAO_VOLUMES",
+                    "descricao": "Documentação organizada em Volume 1 (Relatórios Técnicos) e Volume 2 (Projeto), em meio digital, conforme diretrizes Arteris/PIT e Portaria 028/2019.",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "ARTERIS_ARQUIVOS_FONTES",
+                    "descricao": "Entrega de arquivos fontes (.doc, .xls, .dwg etc.) e de impressão (.pdf etc.), com correlação entre DWG e peças apresentadas.",
+                    "categoria": "ORGANIZACAO"
+                },
+                {
+                    "id": "ARTERIS_CARTA_INTERESSADO",
+                    "descricao": "Carta do interessado com identificação, contatos, motivo, discriminação do uso da ocupação e documentos protocolados.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ARTERIS_MEMORIAL_DESCRITIVO",
+                    "descricao": "Memorial descritivo com descrição da obra, impactos na rodovia, parâmetros/premissas, quadro resumo e etapas de execução.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ARTERIS_ESTUDOS_APOIO",
+                    "descricao": "Estudos de apoio pertinentes ao tipo de obra (tráfego/capacidade, topografia, traçado/geometria, geotécnica, hidrologia), quando aplicáveis.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ARTERIS_ART",
+                    "descricao": "ART do projeto assinada, com comprovante de pagamento, vinculada ao objeto/local/rodovia/km.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ARTERIS_QUADRO_COORDENADAS",
+                    "descricao": "Quadro de coordenadas (.xlsx/tabela) conforme modelo Arteris, com vértices da ocupação/interferência.",
+                    "categoria": "VOLUME_I"
+                },
+                {
+                    "id": "ARTERIS_TOPOGRAFICO",
+                    "descricao": "Projeto topográfico referenciado ao DATUM SIRGAS2000.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_GEOMETRICO",
+                    "descricao": "Projeto geométrico com km+m, rodovia/sentido, FXD e non aedificandi, características da ocupação, seções transversais e perfil longitudinal.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_DRENAGEM",
+                    "descricao": "Projeto de drenagem (bacias, declividade, deságue, materiais/dimensões, dimensionamento e verificação hidráulica se usar dispositivo existente), quando aplicável.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_SINALIZACAO_OBRAS",
+                    "descricao": "Projeto de sinalização da rodovia durante obras e serviços, inclusive desvios de tráfego quando necessário.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_PROTECAO_SEGURANCA",
+                    "descricao": "Dispositivos de proteção e segurança conforme NBR 15486, NBR 6971 e NBR 14885, com planta e detalhes de implantação.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_INTERFERENCIAS",
+                    "descricao": "Projeto de interferências (água, esgoto, energia, gás, fibra óptica) quando houver.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_KMZ_KML",
+                    "descricao": "Arquivo KMZ/KML com identificação da faixa de domínio e da área de interferência da ocupação.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_CRONOGRAMA",
+                    "descricao": "Cronograma com etapas de serviços e períodos de interrupção de tráfego, se for o caso.",
+                    "categoria": "VOLUME_II"
+                },
+                {
+                    "id": "ARTERIS_LICENCA_AMBIENTAL",
+                    "descricao": "Licença ambiental da obra ou documento comprobatório de dispensa/inexigibilidade.",
+                    "categoria": "COMPLEMENTARES"
+                },
+                {
+                    "id": "ARTERIS_INVENTARIO_FLORESTAL",
+                    "descricao": "Inventário florestal quando houver necessidade de supressão de vegetação em faixa de domínio.",
+                    "categoria": "COMPLEMENTARES"
+                },
+                {
+                    "id": "ARTERIS_TERMO_RESPONSABILIDADE",
+                    "descricao": "Termo de Responsabilidade para atividades em FXD (topo, contagens, ensaios etc.), quando aplicável à etapa.",
+                    "categoria": "COMPLEMENTARES"
+                }
+            ]
         }
-      ]
     }
-  }
 }

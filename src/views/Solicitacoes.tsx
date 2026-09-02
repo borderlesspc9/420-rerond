@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle } from 'lucide-react'
-import { getAllSolicitacoes, analisarSolicitacaoComIA, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
+import { getAllSolicitacoes, getSolicitacaoById, iniciarAnaliseSolicitacao, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
+import { subscribeAnaliseJob } from '../services/solicitacao/analiseJobService'
+import { isActiveJobState, type AnaliseJob } from '../models/AnaliseJob'
 import type { EscopoAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao.js'
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
@@ -41,12 +43,72 @@ export default function Solicitacoes() {
   } | null>(null)
   const [modalReanaliseAberto, setModalReanaliseAberto] = useState<SolicitacaoWithFiles | null>(null)
   const [analisandoId, setAnalisandoId] = useState<string | null>(null)
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [activeJob, setActiveJob] = useState<AnaliseJob | null>(null)
+  const [jobError, setJobError] = useState<string | null>(null)
   const [aprovandoId, setAprovandoId] = useState<string | null>(null)
   const [rejeitandoId, setRejeitandoId] = useState<string | null>(null)
 
   useEffect(() => {
     loadSolicitacoes()
   }, [])
+
+  useEffect(() => {
+    if (!analisandoId || !activeJobId) return
+
+    const unsubscribe = subscribeAnaliseJob(
+      analisandoId,
+      activeJobId,
+      async (job) => {
+        setActiveJob(job)
+        setJobError(job.state === 'failed' ? job.error?.message ?? 'Falha na análise.' : null)
+
+        setSolicitacoes((prev) =>
+          prev.map((item) =>
+            item.id === analisandoId
+              ? {
+                  ...item,
+                  analiseJobStatus: job.state,
+                  analiseJobProgress: job.progress,
+                  activeAnaliseJobId: job.id,
+                }
+              : item,
+          ),
+        )
+
+        if (job.state === 'completed') {
+          const resultado = await getSolicitacaoById(analisandoId)
+          if (resultado) {
+            setSolicitacoes((prev) =>
+              prev.map((s) => (s.id === resultado.id ? resultado : s)),
+            )
+            if (
+              resultado.relatorioIA ||
+              resultado.parecerTecnico ||
+              resultado.checklistConformidade
+            ) {
+              setRelatorioAberto(buildRelatorioAberto(resultado))
+            }
+          }
+          setAnalisandoId(null)
+          setActiveJobId(null)
+          setActiveJob(null)
+        }
+
+        if (job.state === 'failed') {
+          setAnalisandoId(null)
+          setActiveJobId(null)
+        }
+      },
+      (error) => {
+        setJobError(error.message)
+        setAnalisandoId(null)
+        setActiveJobId(null)
+      },
+    )
+
+    return unsubscribe
+  }, [analisandoId, activeJobId])
 
   const locationState = location.state as { abrirAnaliseId?: string; filtroStatus?: string } | null
   const abrirAnaliseId = locationState?.abrirAnaliseId
@@ -67,6 +129,17 @@ export default function Solicitacoes() {
       setError(null)
       const data = await getAllSolicitacoes()
       setSolicitacoes(data)
+
+      const emProcessamento = data.find(
+        (item) =>
+          item.id &&
+          item.activeAnaliseJobId &&
+          isActiveJobState(item.analiseJobStatus),
+      )
+      if (emProcessamento?.id && emProcessamento.activeAnaliseJobId) {
+        setAnalisandoId(emProcessamento.id)
+        setActiveJobId(emProcessamento.activeAnaliseJobId)
+      }
     } catch (err: any) {
       console.error('Erro ao carregar solicitações:', err)
       setError(err.message || 'Erro ao carregar solicitações. Tente novamente.')
@@ -163,31 +236,46 @@ export default function Solicitacoes() {
   ) => {
     if (!modalReanaliseAberto?.id) return
 
-    setAnalisandoId(modalReanaliseAberto.id)
+    const solicitacaoId = modalReanaliseAberto.id
+    setJobError(null)
+    setModalReanaliseAberto(null)
+
     try {
-      const resultado = await analisarSolicitacaoComIA(
-        modalReanaliseAberto.id, 
+      const { jobId } = await iniciarAnaliseSolicitacao(
+        solicitacaoId,
         promptCustomizado,
         novosPDFs,
         tiposProjetoPraComparar,
-        escopoAnalise
+        escopoAnalise,
       )
-      
-      // Atualizar a solicitação na lista
+
+      setAnalisandoId(solicitacaoId)
+      setActiveJobId(jobId)
+      setActiveJob({
+        id: jobId,
+        solicitacaoId,
+        state: 'queued',
+        progress: 12,
+        stage: 'prep',
+      })
+
       setSolicitacoes((prev) =>
-        prev.map((s) => (s.id === resultado.id ? resultado : s))
+        prev.map((item) =>
+          item.id === solicitacaoId
+            ? {
+                ...item,
+                analiseJobStatus: 'queued',
+                analiseJobProgress: 12,
+                activeAnaliseJobId: jobId,
+              }
+            : item,
+        ),
       )
-      
-      if (resultado.relatorioIA || resultado.parecerTecnico || resultado.checklistConformidade) {
-        setRelatorioAberto(buildRelatorioAberto(resultado))
-      }
-      
-      setModalReanaliseAberto(null)
-    } catch (error: any) {
-      console.error('Erro ao analisar:', error)
+    } catch (error: unknown) {
+      console.error('Erro ao iniciar análise:', error)
+      const message = error instanceof Error ? error.message : 'Erro ao iniciar análise.'
+      setJobError(message)
       throw error
-    } finally {
-      setAnalisandoId(null)
     }
   }
 
@@ -245,16 +333,21 @@ export default function Solicitacoes() {
   }
 
   const solicitacaoEmAnalise = analisandoId
-    ? solicitacoes.find((s) => s.id === analisandoId) ?? modalReanaliseAberto
+    ? solicitacoes.find((s) => s.id === analisandoId) ?? null
     : null
+
+  const overlayActive = Boolean(analisandoId && activeJobId)
 
   return (
     <div className="solicitacoes-container">
       <AnaliseProgressOverlay
-        active={!!analisandoId}
+        active={overlayActive}
         titulo={solicitacaoEmAnalise?.titulo}
         nomeConcessionaria={solicitacaoEmAnalise?.nomeConcessionaria}
         concessionariaId={solicitacaoEmAnalise?.concessionariaId}
+        jobState={activeJob?.state ?? solicitacaoEmAnalise?.analiseJobStatus ?? null}
+        progress={activeJob?.progress ?? solicitacaoEmAnalise?.analiseJobProgress ?? null}
+        errorMessage={jobError}
       />
       <div className="solicitacoes-header">
         <h1>Solicitações</h1>

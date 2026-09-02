@@ -72,6 +72,8 @@ export interface ConferenciaInput {
   observacao?: string
 }
 
+import type { AnaliseJobState } from './AnaliseJob'
+
 export interface Solicitacao {
   id?: string
   titulo: string
@@ -81,6 +83,9 @@ export interface Solicitacao {
   arquivos?: string[]
   arquivosMeta?: ArquivoMeta[]
   status?: 'pendente' | 'em_analise' | 'aprovada' | 'rejeitada'
+  analiseJobStatus?: AnaliseJobState
+  analiseJobProgress?: number
+  activeAnaliseJobId?: string | null
   relatorioIA?: string
   analisadoPorIA?: boolean
   analisadoEm?: Date

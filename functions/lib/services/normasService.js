@@ -43,6 +43,7 @@ exports.getRequisitosParaTipo = getRequisitosParaTipo;
 exports.getMaxPaginas = getMaxPaginas;
 exports.carregarNormaPDF = carregarNormaPDF;
 exports.carregarNormasPDFParaTipo = carregarNormasPDFParaTipo;
+exports.carregarNormasPDFPorFonteIds = carregarNormasPDFPorFonteIds;
 exports.listarRequisitosFormatados = listarRequisitosFormatados;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -95,6 +96,22 @@ function carregarNormasPDFParaTipo(tipo) {
     const fontes = getFontesParaTipo(tipo);
     const resultados = [];
     for (const fonte of fontes) {
+        const buffer = carregarNormaPDF(fonte.id);
+        if (buffer) {
+            resultados.push({ fonte, buffer });
+        }
+    }
+    return resultados;
+}
+function carregarNormasPDFPorFonteIds(fonteIds) {
+    const resultados = [];
+    const uniqueIds = Array.from(new Set(fonteIds.map((id) => id.trim()).filter(Boolean)));
+    for (const fonteId of uniqueIds) {
+        const fonte = normas_json_1.default.fontes.find((f) => f.id === fonteId);
+        if (!fonte) {
+            console.warn(`Fonte normativa não encontrada no catálogo: ${fonteId}`);
+            continue;
+        }
         const buffer = carregarNormaPDF(fonte.id);
         if (buffer) {
             resultados.push({ fonte, buffer });

@@ -148,11 +148,7 @@ export default function Dashboard() {
   }
 
   const openConcessionariaModal = () => {
-    setConcessionarias(loadConcessionarias())
-    setNovaConcessionaria('')
-    resetLogoForm()
-    setConcessionariaFeedback(null)
-    setShowConcessionariaModal(true)
+    navigate('/concessionarias/nova')
   }
 
   const closeConcessionariaModal = () => {

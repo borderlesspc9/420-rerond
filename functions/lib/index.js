@@ -1,17 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatarRelatorioComplementos = exports.analisarSolicitacao = void 0;
+exports.formatarRelatorioComplementos = exports.processAnaliseJob = exports.analisarSolicitacao = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
 const https_1 = require("firebase-functions/v2/https");
+const firestore_2 = require("firebase-functions/v2/firestore");
 const params_1 = require("firebase-functions/params");
 const openaiService_1 = require("./services/openaiService");
 const normasService_1 = require("./services/normasService");
 const prompts_1 = require("./config/prompts");
-const concessionariaProfiles_1 = require("./config/concessionariaProfiles");
-const consistencyAnalyzer_1 = require("./services/consistencyAnalyzer");
 const normasService_2 = require("./services/normasService");
+const analiseJobProcessor_1 = require("./services/analiseJobProcessor");
 const MAX_PDFS_PROJETO = 10;
 const MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024;
 const app = (0, app_1.initializeApp)();
@@ -214,9 +214,8 @@ async function inferTipoRelatorio(pdfBuffers) {
 }
 exports.analisarSolicitacao = (0, https_1.onCall)({
     region: "southamerica-east1",
-    timeoutSeconds: 540,
-    memory: "1GiB",
-    secrets: [openaiApiKey],
+    timeoutSeconds: 60,
+    memory: "256MiB",
 }, async (request) => {
     if (!request.auth) {
         throw new https_1.HttpsError("unauthenticated", "Autenticação obrigatória.");
@@ -236,211 +235,69 @@ exports.analisarSolicitacao = (0, https_1.onCall)({
         .map((item) => String(item).trim().toLowerCase())
         .filter((item) => isValidTipo(item));
     const escopoAnalise = parseEscopoAnalise(request.data?.escopoAnalise);
-    const apiKey = openaiApiKey.value()?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
-    if (!apiKey) {
-        throw new https_1.HttpsError("failed-precondition", "OPENAI_API_KEY não configurada. Defina o secret no Firebase ou OPENAI_API_KEY no emulador.");
-    }
-    (0, openaiService_1.initOpenAI)(apiKey);
     const docRef = db.collection(COLLECTION).doc(solicitacaoId);
     const snapshot = await docRef.get();
     if (!snapshot.exists) {
         throw new https_1.HttpsError("not-found", "Solicitação não encontrada.");
     }
     const data = snapshot.data();
-    const arquivos = Array.isArray(data.arquivos)
-        ? data.arquivos
-        : [];
-    const arquivosMeta = parseArquivosMeta(data.arquivosMeta);
-    const concessionariaId = data.concessionariaId
-        ? String(data.concessionariaId)
-        : null;
-    const promptProfile = (0, concessionariaProfiles_1.resolveConcessionariaPromptProfile)(concessionariaId);
-    const isProfile = (0, concessionariaProfiles_1.isProfileConcessionaria)(concessionariaId);
-    await docRef.update({
-        status: "em_analise",
+    const activeJobId = data.activeAnaliseJobId ? String(data.activeAnaliseJobId) : null;
+    const activeJobStatus = data.analiseJobStatus ? String(data.analiseJobStatus) : null;
+    const activeStates = new Set([
+        "uploaded",
+        "queued",
+        "extracting",
+        "analyzing",
+        "generating_report",
+    ]);
+    if (activeJobId && activeJobStatus && activeStates.has(activeJobStatus)) {
+        return { jobId: activeJobId, solicitacaoId, reused: true };
+    }
+    const jobRef = docRef.collection("analiseJobs").doc();
+    const jobId = jobRef.id;
+    await jobRef.set({
+        id: jobId,
+        solicitacaoId,
+        state: "queued",
+        progress: 12,
+        stage: "prep",
+        promptCustomizado: promptCustomizado ?? null,
+        tiposProjetoPraComparar,
+        escopoAnalise,
+        createdBy: request.auth.uid,
+        createdAt: firestore_1.FieldValue.serverTimestamp(),
         updatedAt: firestore_1.FieldValue.serverTimestamp(),
     });
-    try {
-        const pdfUrls = arquivos.filter((url) => url.toLowerCase().includes(".pdf"));
-        console.log(`Baixando ${pdfUrls.length} PDF(s) do projeto...`);
-        const pdfBuffersRaw = [];
-        for (const url of pdfUrls) {
-            try {
-                const buffer = await downloadStorageFile(url);
-                const filename = extractFilenameFromUrl(url);
-                pdfBuffersRaw.push({ filename, buffer, url });
-                console.log(`  OK: ${filename} (${Math.round(buffer.length / 1024)} KB)`);
-            }
-            catch (err) {
-                console.error(`  ERRO ao baixar: ${url}`, err);
-            }
-        }
-        const { incluidos: pdfBuffers, omitidos: pdfsOmitidos } = aplicarLimitesPdf(pdfBuffersRaw);
-        if (pdfsOmitidos.length > 0) {
-            console.warn(`PDFs omitidos por limite: ${pdfsOmitidos.join("; ")}`);
-        }
-        let tipoBase;
-        if (isValidTipo(data.tipoRelatorio)) {
-            tipoBase = data.tipoRelatorio;
-            console.log(`Tipo de relatório (formulário): ${tipoBase}`);
-        }
-        else {
-            if (pdfBuffers.length > 0) {
-                console.log("tipoRelatorio não informado, inferindo via IA...");
-                tipoBase = await inferTipoRelatorio(pdfBuffers);
-                console.log(`Tipo inferido: ${tipoBase}`);
-            }
-            else {
-                tipoBase = "pit";
-                console.log("Sem PDFs para inferência; usando tipo padrão 'pit'.");
-            }
-        }
-        const tiposAnalise = Array.from(new Set(tiposProjetoPraComparar.length > 0
-            ? tiposProjetoPraComparar
-            : [tipoBase]));
-        console.log(`Tipos de análise selecionados: ${tiposAnalise.join(", ")}`);
-        const tiposConfig = tiposAnalise.map((tipo) => {
-            const config = (0, normasService_1.getTipoProjetoConfig)(tipo);
-            if (!config) {
-                throw new https_1.HttpsError("internal", `Configuração não encontrada para tipo: ${tipo}`);
-            }
-            return { tipo, config };
-        });
-        const normasMap = new Map();
-        for (const tipo of tiposAnalise) {
-            const normasDoTipo = (0, normasService_1.carregarNormasPDFParaTipo)(tipo);
-            for (const norma of normasDoTipo) {
-                normasMap.set(norma.fonte.id, norma);
-            }
-        }
-        const normasPDFs = Array.from(normasMap.values());
-        console.log(`Normas carregadas: ${normasPDFs.length}`);
-        const dadosForm = {
-            titulo: data.titulo ?? "",
-            tipoObra: data.tipoObra ?? "",
-            localizacao: data.localizacao ?? "",
-            descricao: data.descricao ?? "",
-            concessionariaId,
-            cliente: data.cliente,
-            interessado: data.interessado,
-            kilometragem: data.kilometragem,
-            nroProcessoErp: data.nroProcessoErp,
-            rodovia: data.rodovia,
-            nomeConcessionaria: data.nomeConcessionaria,
-            sentido: data.sentido,
-            ocupacao: data.ocupacao,
-            municipioEstado: data.municipioEstado,
-            uf: data.uf,
-            ocupacaoArea: data.ocupacaoArea,
-            responsavelTecnico: data.responsavelTecnico,
-            extensao: data.extensao,
-            numeroArt: data.numeroArt,
-            tipoIntervencaoDetalhado: data.tipoIntervencaoDetalhado,
-            faseProjeto: data.faseProjeto,
-            analistaResponsavel: data.analistaResponsavel,
-            memorial: data.memorial,
-            dataRecebimento: data.dataRecebimento,
-            numeroRevisao: data.numeroRevisao,
-        };
-        console.log(`Perfil de análise: ${promptProfile} | concessionariaId=${concessionariaId ?? "n/a"}`);
-        const requisitosFormatados = isProfile
-            ? (0, normasService_1.listarRequisitosFormatados)(tipoBase, concessionariaId)
-            : tiposConfig
-                .map(({ tipo, config }) => `### ${config.nome} (${tipo})\n${(0, normasService_1.listarRequisitosFormatados)(tipo, concessionariaId)}`)
-                .join("\n\n");
-        const tiposProjetoNome = (0, concessionariaProfiles_1.getProfileTipoProjetoNome)(promptProfile) ??
-            tiposConfig.map(({ config }) => config.nome).join(", ");
-        const systemPrompt = (0, concessionariaProfiles_1.buildProfileSystemPrompt)(promptProfile);
-        const analysisPrompt = (0, concessionariaProfiles_1.buildProfileAnalysisPrompt)({
-            profile: promptProfile,
-            dados: dadosForm,
-            requisitosFormatados,
-            tiposAnalise,
-            tiposProjetoNome,
-            escopo: escopoAnalise,
-            promptCustomizado,
-        });
-        const parts = [];
-        parts.push((0, openaiService_1.buildTextInput)(systemPrompt));
-        for (const norma of normasPDFs) {
-            parts.push((0, openaiService_1.buildFileInput)(norma.fonte.pdf, norma.buffer));
-            parts.push((0, openaiService_1.buildTextInput)(`[NORMA DE REFERÊNCIA: ${norma.fonte.titulo} — ${norma.fonte.orgao}]`));
-        }
-        if (escopoAnalise.incluirDocumentosProjeto) {
-            for (const pdf of pdfBuffers) {
-                parts.push((0, openaiService_1.buildFileInput)(pdf.filename, pdf.buffer));
-                parts.push((0, openaiService_1.buildTextInput)(buildDocumentoProjetoLabel(pdf.filename, arquivosMeta, pdf.url)));
-            }
-            if (pdfsOmitidos.length > 0) {
-                parts.push((0, openaiService_1.buildTextInput)(`[AVISO: Os seguintes PDFs do projeto foram omitidos por limite de quantidade ou tamanho: ${pdfsOmitidos.join("; ")}]`));
-            }
-        }
-        parts.push((0, openaiService_1.buildTextInput)(analysisPrompt));
-        console.log(`Enviando para OpenAI: ${normasPDFs.length} norma(s) + ${escopoAnalise.incluirDocumentosProjeto ? pdfBuffers.length : 0} PDF(s) do projeto`);
-        const result = await (0, openaiService_1.analyze)(parts, {
-            maxOutputTokens: isProfile ? 16000 : 12000,
-            temperature: 0.1,
-            jsonMode: true,
-        });
-        console.log(`Resposta recebida. Modelo: ${result.model}, Tokens: ${result.tokensUsed ?? "N/A"}`);
-        const parsed = parseAIResponse(result.content);
-        const checklistFinal = escopoAnalise.gerarChecklistConformidade
-            ? parsed.checklist
-            : [];
-        const parecerFinal = escopoAnalise.gerarParecerTecnico
-            ? parsed.parecerTecnico
-            : "";
-        const conferenciaFinal = (0, consistencyAnalyzer_1.complementarConferenciaDeterministica)(parsed.conferenciaInputs, {
-            interessado: dadosForm.interessado,
-            rodovia: dadosForm.rodovia,
-            kilometragem: dadosForm.kilometragem,
-            municipioEstado: dadosForm.municipioEstado,
-            uf: dadosForm.uf,
-            extensao: dadosForm.extensao,
-            numeroArt: dadosForm.numeroArt,
-            responsavelTecnico: dadosForm.responsavelTecnico,
-            tipoIntervencaoDetalhado: dadosForm.tipoIntervencaoDetalhado,
-        }, parsed.dadosExtraidos);
-        await docRef.update({
-            status: "em_analise",
-            tipoRelatorio: tipoBase,
-            tiposProjetoComparados: tiposAnalise,
-            escopoAnalise,
-            relatorioIA: result.content,
-            dadosExtraidos: parsed.dadosExtraidos,
-            conferenciaInputs: conferenciaFinal,
-            checklistConformidade: escopoAnalise.gerarChecklistConformidade
-                ? JSON.stringify(checklistFinal)
-                : null,
-            parecerTecnico: escopoAnalise.gerarParecerTecnico ? parecerFinal : null,
-            analisadoPorIA: true,
-            analisadoEm: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
-        const updatedSnap = await docRef.get();
-        const updatedData = updatedSnap.data();
-        return {
-            id: solicitacaoId,
-            ...updatedData,
-            arquivos: Array.isArray(updatedData.arquivos)
-                ? updatedData.arquivos
-                : [],
-            createdAt: updatedData.createdAt?.toDate?.()?.toISOString() ?? null,
-            updatedAt: updatedData.updatedAt?.toDate?.()?.toISOString() ?? null,
-            analisadoEm: updatedData.analisadoEm?.toDate?.()?.toISOString() ?? null,
-        };
+    await docRef.update({
+        activeAnaliseJobId: jobId,
+        analiseJobStatus: "queued",
+        analiseJobProgress: 12,
+        updatedAt: firestore_1.FieldValue.serverTimestamp(),
+    });
+    return { jobId, solicitacaoId, reused: false };
+});
+exports.processAnaliseJob = (0, firestore_2.onDocumentCreated)({
+    document: `${COLLECTION}/{solicitacaoId}/analiseJobs/{jobId}`,
+    region: "southamerica-east1",
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    secrets: [openaiApiKey],
+}, async (event) => {
+    const apiKey = openaiApiKey.value()?.trim() || process.env.OPENAI_API_KEY?.trim() || "";
+    if (!apiKey) {
+        console.error("OPENAI_API_KEY não configurada para processamento do job.");
+        return;
     }
-    catch (error) {
-        console.error("Erro na análise:", error);
-        await docRef.update({
-            status: "pendente",
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
-        if (error instanceof https_1.HttpsError)
-            throw error;
-        const message = error instanceof Error ? error.message : "Erro desconhecido na análise.";
-        throw new https_1.HttpsError("internal", message);
-    }
+    const solicitacaoId = String(event.params.solicitacaoId ?? "");
+    const jobId = String(event.params.jobId ?? "");
+    if (!solicitacaoId || !jobId)
+        return;
+    await (0, analiseJobProcessor_1.runAnaliseJob)({
+        solicitacaoId,
+        jobId,
+        apiKey,
+        collection: COLLECTION,
+    });
 });
 function parseComplementos(value) {
     if (!Array.isArray(value))

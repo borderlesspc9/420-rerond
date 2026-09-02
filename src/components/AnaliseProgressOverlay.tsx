@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FileSearch, FileText, Scale, Sparkles, CheckCircle2 } from 'lucide-react'
+import {
+  type AnaliseJobState,
+  JOB_STATE_LABELS,
+  mapJobStateToOverlayStage,
+} from '../models/AnaliseJob'
 import './AnaliseProgressOverlay.css'
 
 export type AnaliseProgressOverlayProps = {
@@ -7,6 +12,9 @@ export type AnaliseProgressOverlayProps = {
   titulo?: string
   nomeConcessionaria?: string | null
   concessionariaId?: string | null
+  jobState?: AnaliseJobState | null
+  progress?: number | null
+  errorMessage?: string | null
 }
 
 type Stage = {
@@ -34,28 +42,28 @@ const STAGES: Stage[] = [
   },
   {
     id: 'pdfs',
-    label: 'Lendo documentos do projeto',
-    detail: 'Extraindo evidências técnicas dos PDFs',
+    label: 'Extraindo documentos do projeto',
+    detail: 'Lendo e preparando PDFs para análise',
     targetPercent: 48,
     icon: 'pdf',
   },
   {
     id: 'checklist',
-    label: 'Comparando com o checklist',
-    detail: 'Avaliando conformidade item a item',
+    label: 'Analisando conformidade',
+    detail: 'Avaliando checklist item a item com IA',
     targetPercent: 72,
     icon: 'checklist',
   },
   {
     id: 'parecer',
-    label: 'Redigindo parecer técnico',
-    detail: 'Montando relatório no formato da concessionária',
+    label: 'Gerando relatório técnico',
+    detail: 'Montando parecer no formato da concessionária',
     targetPercent: 90,
     icon: 'parecer',
   },
   {
     id: 'final',
-    label: 'Finalizando relatório',
+    label: 'Finalizando',
     detail: 'Consolidando checklist, conferência e conclusão',
     targetPercent: 97,
     icon: 'done',
@@ -86,9 +94,13 @@ export default function AnaliseProgressOverlay({
   titulo,
   nomeConcessionaria,
   concessionariaId,
+  jobState,
+  progress,
+  errorMessage,
 }: AnaliseProgressOverlayProps) {
-  const [percent, setPercent] = useState(0)
-  const [stageIndex, setStageIndex] = useState(0)
+  const [simulatedPercent, setSimulatedPercent] = useState(0)
+  const [simulatedStageIndex, setSimulatedStageIndex] = useState(0)
+  const usesRealJob = Boolean(jobState)
 
   const concessionariaLabel = useMemo(() => {
     if (nomeConcessionaria?.trim()) return nomeConcessionaria.trim()
@@ -98,21 +110,35 @@ export default function AnaliseProgressOverlay({
     return 'Concessionária'
   }, [nomeConcessionaria, concessionariaId])
 
+  const stageIndex = useMemo(() => {
+    if (!jobState) return simulatedStageIndex
+    const stageId = mapJobStateToOverlayStage(jobState)
+    const idx = STAGES.findIndex((stage) => stage.id === stageId)
+    return idx >= 0 ? idx : simulatedStageIndex
+  }, [jobState, simulatedStageIndex])
+
+  const displayPercent = useMemo(() => {
+    if (jobState === 'failed') return 0
+    if (jobState === 'completed') return 100
+    if (typeof progress === 'number' && progress > 0) return Math.round(progress)
+    return Math.round(simulatedPercent)
+  }, [jobState, progress, simulatedPercent])
+
+  const current = STAGES[Math.min(stageIndex, STAGES.length - 1)]
+
   useEffect(() => {
-    if (!active) {
-      setPercent(0)
-      setStageIndex(0)
+    if (!active || usesRealJob) {
+      setSimulatedPercent(0)
+      setSimulatedStageIndex(0)
       return
     }
 
-    setPercent(3)
-    setStageIndex(0)
+    setSimulatedPercent(3)
+    setSimulatedStageIndex(0)
 
     const startedAt = Date.now()
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt
-
-      // Progresso simulado com teto em 97% até a chamada real terminar
       let next = 3
       if (elapsed < 4000) next = 3 + (elapsed / 4000) * 20
       else if (elapsed < 12000) next = 23 + ((elapsed - 4000) / 8000) * 27
@@ -120,19 +146,21 @@ export default function AnaliseProgressOverlay({
       else if (elapsed < 55000) next = 78 + ((elapsed - 28000) / 27000) * 14
       else next = 92 + Math.min(5, ((elapsed - 55000) / 60000) * 5)
 
-      setPercent((prev) => Math.max(prev, Math.min(97, next)))
+      setSimulatedPercent((prev) => Math.max(prev, Math.min(97, next)))
 
       const idx = STAGES.findIndex((s) => next < s.targetPercent)
-      setStageIndex(idx === -1 ? STAGES.length - 1 : Math.max(0, idx))
+      setSimulatedStageIndex(idx === -1 ? STAGES.length - 1 : Math.max(0, idx))
     }, 200)
 
     return () => window.clearInterval(timer)
-  }, [active])
+  }, [active, usesRealJob])
 
   if (!active) return null
 
-  const current = STAGES[Math.min(stageIndex, STAGES.length - 1)]
-  const displayPercent = Math.round(percent)
+  const currentLabel = jobState ? JOB_STATE_LABELS[jobState] : current.label
+  const currentDetail = jobState === 'failed'
+    ? errorMessage ?? 'Ocorreu um erro durante o processamento.'
+    : current.detail
 
   return (
     <div className="apo-overlay" role="alertdialog" aria-modal="true" aria-labelledby="apo-title">
@@ -143,7 +171,7 @@ export default function AnaliseProgressOverlay({
         </div>
 
         <h2 id="apo-title" className="apo-title">
-          Gerando relatório técnico
+          {jobState === 'failed' ? 'Falha na análise' : 'Gerando relatório técnico'}
         </h2>
         <p className="apo-subtitle">
           {titulo ? (
@@ -162,8 +190,8 @@ export default function AnaliseProgressOverlay({
           <div className="apo-current-stage">
             <StageIcon kind={current.icon} active />
             <div>
-              <div className="apo-current-label">{current.label}</div>
-              <div className="apo-current-detail">{current.detail}</div>
+              <div className="apo-current-label">{currentLabel}</div>
+              <div className="apo-current-detail">{currentDetail}</div>
             </div>
           </div>
         </div>
@@ -205,7 +233,9 @@ export default function AnaliseProgressOverlay({
         </ol>
 
         <p className="apo-hint">
-          A análise pode levar alguns minutos conforme o volume de PDFs. Não feche esta página.
+          {usesRealJob
+            ? 'A análise continua em segundo plano. Você pode navegar pelo sistema enquanto processamos os documentos.'
+            : 'A análise pode levar alguns minutos conforme o volume de PDFs.'}
         </p>
       </div>
     </div>

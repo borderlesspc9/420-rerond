@@ -7,6 +7,12 @@ import {
   OUTRA_CONCESSIONARIA_VALUE,
   getConcessionariaById,
 } from '../config/concessionarias'
+import { listConcessionariasPerfil } from '../services/concessionaria/concessionariaService'
+import {
+  buildConcessionariaOptions,
+  findConcessionariaOption,
+  type ConcessionariaOption,
+} from '../utils/concessionariasOptions'
 import {
   addConcessionaria,
   loadConcessionarias,
@@ -138,6 +144,9 @@ export default function NovaSolicitacao() {
   const [concessionarias, setConcessionarias] = useState<ConcessionariaCadastrada[]>(() =>
     loadConcessionarias(),
   )
+  const [concessionariaOptions, setConcessionariaOptions] = useState<ConcessionariaOption[]>(() =>
+    buildConcessionariaOptions(),
+  )
   const [novaConcessionaria, setNovaConcessionaria] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
@@ -154,6 +163,24 @@ export default function NovaSolicitacao() {
     saveConcessionarias(concessionarias)
   }, [concessionarias])
 
+  useEffect(() => {
+    let cancelled = false
+    const loadProfiles = async () => {
+      try {
+        const profiles = await listConcessionariasPerfil()
+        if (!cancelled) {
+          setConcessionariaOptions(buildConcessionariaOptions(profiles))
+        }
+      } catch (err) {
+        console.error('Erro ao carregar concessionárias do Firestore:', err)
+      }
+    }
+    void loadProfiles()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
 
@@ -165,6 +192,18 @@ export default function NovaSolicitacao() {
           concessionariaSelect: value,
           concessionariaId: configurada.id,
           nomeConcessionaria: configurada.nome,
+          tipoRelatorio: prev.tipoRelatorio || 'pit',
+        }))
+        return
+      }
+
+      const perfilFirestore = findConcessionariaOption(concessionariaOptions, value)
+      if (perfilFirestore?.source === 'firestore') {
+        setFormData((prev) => ({
+          ...prev,
+          concessionariaSelect: value,
+          concessionariaId: perfilFirestore.id,
+          nomeConcessionaria: perfilFirestore.nome,
           tipoRelatorio: prev.tipoRelatorio || 'pit',
         }))
         return
@@ -478,15 +517,29 @@ export default function NovaSolicitacao() {
                     {item.nome}
                   </option>
                 ))}
-                {concessionarias.map((concessionaria) => (
-                  <option key={concessionaria.nome} value={concessionaria.nome}>
-                    {concessionaria.nome}
-                  </option>
-                ))}
+                {concessionariaOptions
+                  .filter((item) => item.source === 'firestore')
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nome}
+                      {item.perfilCompleto ? '' : ' (perfil incompleto)'}
+                    </option>
+                  ))}
                 <option value={OUTRA_CONCESSIONARIA_VALUE}>
-                  Outra concessionária / cadastrar manualmente
+                  Outra concessionária / cadastro rápido
                 </option>
               </select>
+              <p className="add-concessionaria-hint">
+                Para configurar normas, modelo de relatório, checklist e logo, use{' '}
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => navigate('/concessionarias/nova')}
+                >
+                  Nova Concessionária
+                </button>
+                .
+              </p>
               <div className="add-concessionaria-block">
                 <div className="add-concessionaria-row">
                   <input

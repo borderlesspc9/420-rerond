@@ -111,6 +111,29 @@ export function carregarNormasPDFParaTipo(
   return resultados;
 }
 
+export function carregarNormasPDFPorFonteIds(
+  fonteIds: string[],
+): Array<{ fonte: FonteNormativa; buffer: Buffer }> {
+  const resultados: Array<{ fonte: FonteNormativa; buffer: Buffer }> = [];
+  const uniqueIds = Array.from(new Set(fonteIds.map((id) => id.trim()).filter(Boolean)));
+
+  for (const fonteId of uniqueIds) {
+    const fonte = normasCatalogo.fontes.find((f) => f.id === fonteId) as
+      | FonteNormativa
+      | undefined;
+    if (!fonte) {
+      console.warn(`Fonte normativa não encontrada no catálogo: ${fonteId}`);
+      continue;
+    }
+    const buffer = carregarNormaPDF(fonte.id);
+    if (buffer) {
+      resultados.push({ fonte, buffer });
+    }
+  }
+
+  return resultados;
+}
+
 export function listarRequisitosFormatados(
   tipo: TipoRelatorio,
   concessionariaId?: string | null,

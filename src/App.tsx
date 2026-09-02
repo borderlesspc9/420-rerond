@@ -7,6 +7,7 @@ import Dashboard from './views/Dashboard'
 import Solicitacoes from './views/Solicitacoes'
 import NovaSolicitacao from './views/NovaSolicitacao'
 import SolicitacaoRegistrada from './views/SolicitacaoRegistrada'
+import NovaConcessionaria from './views/NovaConcessionaria'
 import './App.css'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="solicitacoes" element={<Solicitacoes />} />
             <Route path="nova-solicitacao" element={<NovaSolicitacao />} />
+            <Route path="concessionarias/nova" element={<NovaConcessionaria />} />
             <Route path="solicitacao-registrada" element={<SolicitacaoRegistrada />} />
           </Route>
         </Route>

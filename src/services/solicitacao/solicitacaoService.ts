@@ -25,6 +25,10 @@ import type {
   TipoDocumentoAnexo,
 } from '../../models/Solicitacao'
 import { auth, db, functions, storage } from '../../lib/firebase'
+import {
+  enqueueAnaliseJob,
+  waitForAnaliseJob,
+} from './analiseJobService'
 
 const COLLECTION_NAME =
   import.meta.env.VITE_FIRESTORE_SOLICITACOES_COLLECTION?.trim() || 'solicitacoes'
@@ -162,6 +166,11 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
       : undefined,
     dadosExtraidos: parseDadosExtraidos(data.dadosExtraidos),
     conferenciaInputs: parseConferenciaInputs(data.conferenciaInputs),
+    analiseJobStatus: data.analiseJobStatus as Solicitacao['analiseJobStatus'],
+    analiseJobProgress:
+      typeof data.analiseJobProgress === 'number' ? data.analiseJobProgress : undefined,
+    activeAnaliseJobId:
+      data.activeAnaliseJobId != null ? String(data.activeAnaliseJobId) : undefined,
     arquivos,
     arquivosMeta: arquivosMeta.length > 0 ? arquivosMeta : undefined,
     arquivosUrls: arquivos,
@@ -392,6 +401,42 @@ export const deleteSolicitacao = async (id: string): Promise<void> => {
   }
 }
 
+export const iniciarAnaliseSolicitacao = async (
+  id: string,
+  promptCustomizado?: string,
+  novosPDFs?: File[],
+  tiposProjetoPraComparar?: string[],
+  escopoAnalise?: EscopoAnalise,
+): Promise<{ jobId: string; solicitacaoId: string }> => {
+  if (novosPDFs?.length) {
+    const solicitacaoAtual = await getSolicitacaoById(id)
+    if (!solicitacaoAtual) {
+      throw new Error('Solicitação não encontrada')
+    }
+
+    const { urls: novasUrls, metas: novasMetas } = await uploadSolicitacaoFiles(id, novosPDFs)
+    const arquivosAtualizados = [...(solicitacaoAtual.arquivos ?? []), ...novasUrls]
+    const arquivosMetaAtualizados = [
+      ...(solicitacaoAtual.arquivosMeta ?? []),
+      ...novasMetas,
+    ]
+
+    await updateDoc(doc(db, COLLECTION_NAME, id), {
+      arquivos: arquivosAtualizados,
+      arquivosMeta: arquivosMetaAtualizados,
+      analiseJobStatus: 'uploaded',
+      updatedAt: serverTimestamp(),
+    })
+  }
+
+  return enqueueAnaliseJob({
+    solicitacaoId: id,
+    promptCustomizado,
+    tiposProjetoPraComparar,
+    escopoAnalise,
+  })
+}
+
 export const analisarSolicitacaoComIA = async (
   id: string,
   promptCustomizado?: string,
@@ -400,64 +445,24 @@ export const analisarSolicitacaoComIA = async (
   escopoAnalise?: EscopoAnalise,
 ): Promise<SolicitacaoWithFiles> => {
   try {
-    if (novosPDFs?.length) {
-      const solicitacaoAtual = await getSolicitacaoById(id)
-      if (!solicitacaoAtual) {
-        throw new Error('Solicitação não encontrada')
-      }
-
-      const { urls: novasUrls, metas: novasMetas } = await uploadSolicitacaoFiles(id, novosPDFs)
-      const arquivosAtualizados = [...(solicitacaoAtual.arquivos ?? []), ...novasUrls]
-      const arquivosMetaAtualizados = [
-        ...(solicitacaoAtual.arquivosMeta ?? []),
-        ...novasMetas,
-      ]
-
-      await updateDoc(doc(db, COLLECTION_NAME, id), {
-        arquivos: arquivosAtualizados,
-        arquivosMeta: arquivosMetaAtualizados,
-        updatedAt: serverTimestamp(),
-      })
-    }
-
-    const callable = httpsCallable(functions, 'analisarSolicitacao', {
-      // A análise com PDF + norma pode levar alguns minutos.
-      timeout: 540000,
-    })
-    const response = await callable({
-      solicitacaoId: id,
+    const { jobId, solicitacaoId } = await iniciarAnaliseSolicitacao(
+      id,
       promptCustomizado,
+      novosPDFs,
       tiposProjetoPraComparar,
       escopoAnalise,
-    })
+    )
 
-    const data = response.data as SolicitacaoWithFiles | undefined
-    if (!data?.id) {
-      throw new Error('Resposta inválida da Cloud Function de análise.')
+    await waitForAnaliseJob(solicitacaoId, jobId)
+
+    const resultado = await getSolicitacaoById(solicitacaoId)
+    if (!resultado) {
+      throw new Error('Solicitação não encontrada após a análise.')
     }
 
-    return {
-      ...data,
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-      analisadoEm: toDate(data.analisadoEm),
-      arquivos: parseArquivos(data.arquivos),
-      arquivosUrls: parseArquivos(data.arquivos),
-    }
+    return resultado
   } catch (error: unknown) {
     console.error('Erro ao analisar solicitação:', error)
-    const firebaseCode =
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      typeof (error as { code?: unknown }).code === 'string'
-        ? (error as { code: string }).code
-        : ''
-    if (firebaseCode === 'functions/deadline-exceeded') {
-      throw new Error(
-        'A análise excedeu o tempo limite da chamada. Aguarde e atualize a página para verificar se o relatório foi concluído.',
-      )
-    }
     const message =
       error instanceof Error
         ? error.message
