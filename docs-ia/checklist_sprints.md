@@ -22,12 +22,12 @@
 
 ## Sprint 1 — Cadastro persistente de clientes
 
-- [ ] Modelo Firestore `clientes` (dados reutilizáveis: razão social, CNPJ, contatos, etc.)
-- [ ] CRUD interno de clientes (listar / criar / editar)
-- [ ] Vincular solicitação/processo a um `clienteId`
-- [ ] Selecionar cliente existente na nova solicitação (sem redigitar tudo)
-- [ ] Regras Firestore para `clientes`
-- [ ] Migração/compatibilidade com solicitações antigas (campo cliente livre)
+- [x] Modelo Firestore `clientes` (dados reutilizáveis: razão social, CNPJ, contatos, etc.)
+- [x] CRUD interno de clientes (listar / criar / editar)
+- [x] Vincular solicitação/processo a um `clienteId`
+- [x] Selecionar cliente existente na nova solicitação (sem redigitar tudo)
+- [x] Regras Firestore para `clientes` (no repo; publicar no deploy)
+- [x] Migração/compatibilidade com solicitações antigas (campo cliente livre)
 
 ---
 

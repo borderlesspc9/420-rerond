@@ -99,6 +99,8 @@ export interface Solicitacao {
   dadosExtraidos?: DadosExtraidosAnalise | null
   conferenciaInputs?: ConferenciaInput[]
   concessionariaId?: string | null
+  /** Vínculo com cadastro persistente em `clientes` (Sprint 1). */
+  clienteId?: string | null
   // Overview Dados do cliente
   cliente?: string
   interessado?: string | null

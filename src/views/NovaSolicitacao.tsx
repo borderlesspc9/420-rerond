@@ -23,6 +23,9 @@ import {
 import ConcessionariaCadastroModal from '../components/ConcessionariaCadastroModal'
 import ConcessionariaPerfilResumo from '../components/ConcessionariaPerfilResumo'
 import type { ConcessionariaPerfil } from '../models/ConcessionariaPerfil'
+import type { Cliente } from '../models/Cliente'
+import { getClienteDisplayName } from '../models/Cliente'
+import { listClientes } from '../services/cliente/clienteService'
 import { TIPOS_DOCUMENTO_OPTIONS, getFileKey } from '../config/tiposDocumento'
 import type { TipoDocumentoAnexo } from '../models/Solicitacao'
 import './NovaSolicitacao.css'
@@ -54,6 +57,7 @@ const PORTES_POR_CLASSIFICACAO: Record<string, string[]> = {
 
 type FormData = {
   cliente: string
+  clienteId: string
   interessado: string
   kilometragem: string
   nroProcessoErp: string
@@ -121,6 +125,7 @@ export default function NovaSolicitacao() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<FormData>({
     cliente: '',
+    clienteId: '',
     interessado: '',
     kilometragem: '',
     nroProcessoErp: '',
@@ -145,6 +150,8 @@ export default function NovaSolicitacao() {
     descricao: '',
     tipoRelatorio: '',
   })
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [clienteSelectMode, setClienteSelectMode] = useState<'cadastrado' | 'manual'>('cadastrado')
   const [concessionariaOptions, setConcessionariaOptions] = useState<ConcessionariaOption[]>(() =>
     buildConcessionariaOptions(),
   )
@@ -214,6 +221,36 @@ export default function NovaSolicitacao() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadClientesCadastrados = async () => {
+      try {
+        const data = await listClientes()
+        if (!cancelled) setClientes(data)
+      } catch (err) {
+        console.error('Erro ao carregar clientes:', err)
+      }
+    }
+    void loadClientesCadastrados()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleClienteSelect = (clienteId: string) => {
+    if (!clienteId) {
+      setFormData((prev) => ({ ...prev, clienteId: '', cliente: '' }))
+      return
+    }
+    const found = clientes.find((item) => item.id === clienteId)
+    if (!found) return
+    setFormData((prev) => ({
+      ...prev,
+      clienteId: found.id,
+      cliente: getClienteDisplayName(found),
+    }))
+  }
 
   useEffect(() => {
     const state = location.state as ConcessionariaReturnPayload | null
@@ -367,6 +404,7 @@ export default function NovaSolicitacao() {
           descricao: obra.descricao,
           status: 'pendente',
           concessionariaId: formData.concessionariaId || null,
+          clienteId: formData.clienteId || null,
           cliente: formData.cliente || undefined,
           interessado: formData.interessado || formData.cliente || undefined,
           kilometragem: formData.kilometragem || undefined,
@@ -435,15 +473,63 @@ export default function NovaSolicitacao() {
           
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="cliente">Cliente</label>
-              <input
-                type="text"
-                id="cliente"
-                name="cliente"
-                value={formData.cliente}
-                onChange={handleInputChange}
-                placeholder="Ex: OHR TELECOM EIRELI"
-              />
+              <label htmlFor="clienteSelect">Cliente</label>
+              <div className="cliente-mode-row">
+                <button
+                  type="button"
+                  className={`cliente-mode-btn ${clienteSelectMode === 'cadastrado' ? 'active' : ''}`}
+                  onClick={() => setClienteSelectMode('cadastrado')}
+                >
+                  Cadastrado
+                </button>
+                <button
+                  type="button"
+                  className={`cliente-mode-btn ${clienteSelectMode === 'manual' ? 'active' : ''}`}
+                  onClick={() => {
+                    setClienteSelectMode('manual')
+                    setFormData((prev) => ({ ...prev, clienteId: '' }))
+                  }}
+                >
+                  Digitar manualmente
+                </button>
+              </div>
+              {clienteSelectMode === 'cadastrado' ? (
+                <>
+                  <select
+                    id="clienteSelect"
+                    value={formData.clienteId}
+                    onChange={(e) => handleClienteSelect(e.target.value)}
+                  >
+                    <option value="">Selecione um cliente...</option>
+                    {clientes.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {getClienteDisplayName(item)}
+                        {item.cnpj ? ` — ${item.cnpj}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="add-concessionaria-hint">
+                    Não encontrou?{' '}
+                    <button
+                      type="button"
+                      className="link-button"
+                      onClick={() => navigate('/clientes')}
+                    >
+                      Cadastrar cliente
+                    </button>
+                    {' '}(persistente para próximas solicitações).
+                  </p>
+                </>
+              ) : (
+                <input
+                  type="text"
+                  id="cliente"
+                  name="cliente"
+                  value={formData.cliente}
+                  onChange={handleInputChange}
+                  placeholder="Ex: OHR TELECOM EIRELI (compatibilidade)"
+                />
+              )}
             </div>
             <div className="form-group">
               <label htmlFor="interessado">Interessado</label>

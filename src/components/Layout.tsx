@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FileText, Plus, Building2, Menu, X, LogOut } from 'lucide-react'
+import { LayoutDashboard, FileText, Plus, Building2, Users, Menu, X, LogOut } from 'lucide-react'
 import { logout } from '../services/auth/authService'
 import './Layout.css'
 
@@ -57,6 +57,14 @@ export default function Layout() {
           >
             <FileText size={20} />
             <span>Solicitações</span>
+          </Link>
+          <Link
+            to="/clientes"
+            className={`nav-item ${isActive('/clientes') ? 'active' : ''}`}
+            onClick={closeMobileMenu}
+          >
+            <Users size={20} />
+            <span>Clientes</span>
           </Link>
           <Link
             to="/nova-solicitacao"
