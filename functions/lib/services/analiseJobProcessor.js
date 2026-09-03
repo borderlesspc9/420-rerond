@@ -195,7 +195,8 @@ async function runAnaliseJob(params) {
             ["eco101", "motiva", "arteris"].includes(perfilFirestore.promptProfile)
             ? perfilFirestore.promptProfile
             : null;
-        const promptProfile = promptProfileFromFirestore ?? (0, concessionariaProfiles_1.resolveConcessionariaPromptProfile)(concessionariaId);
+        const promptProfileRaw = promptProfileFromFirestore ?? (0, concessionariaProfiles_1.resolveConcessionariaPromptProfile)(concessionariaId);
+        const promptProfile = promptProfileRaw === "custom" ? "default" : promptProfileRaw;
         const isProfile = (0, concessionariaProfiles_1.isProfileConcessionaria)(concessionariaId) || Boolean(perfilFirestore?.perfilCompleto);
         await updateJob(jobRef, solicitacaoRef, "extracting", 28, "pdfs");
         const pdfUrls = arquivos.filter((url) => url.toLowerCase().includes(".pdf"));

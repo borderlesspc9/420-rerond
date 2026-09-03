@@ -1,0 +1,57 @@
+.ui-container {
+  width: 100%;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui-container--page {
+  max-width: 1200px;
+  min-height: 100%;
+}
+
+.ui-container--narrow {
+  max-width: 440px;
+}
+
+.ui-container--wide {
+  max-width: 1440px;
+}
+
+.ui-container--card {
+  max-width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.ui-container--section {
+  max-width: 100%;
+}
+
+.ui-container--pad-none {
+  padding: 0;
+}
+
+.ui-container--pad-sm {
+  padding: 16px;
+}
+
+.ui-container--pad-md {
+  padding: 24px;
+}
+
+.ui-container--pad-lg {
+  padding: 32px 24px;
+}
+
+@media (max-width: 640px) {
+  .ui-container--pad-md {
+    padding: 20px 16px;
+  }
+
+  .ui-container--pad-lg {
+    padding: 24px 16px;
+  }
+}

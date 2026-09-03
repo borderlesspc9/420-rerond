@@ -8,6 +8,7 @@ import Solicitacoes from './views/Solicitacoes'
 import NovaSolicitacao from './views/NovaSolicitacao'
 import SolicitacaoRegistrada from './views/SolicitacaoRegistrada'
 import NovaConcessionaria from './views/NovaConcessionaria'
+import { HomeScreen, LoginScreen, RegisterScreen } from './screens'
 import './App.css'
 
 function App() {
@@ -16,6 +17,10 @@ function App() {
       <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Preview visual (sem auth / sem Firebase) — inspeção do design system */}
+        <Route path="/ui/login" element={<LoginScreen />} />
+        <Route path="/ui/register" element={<RegisterScreen />} />
+        <Route path="/ui/home" element={<HomeScreen />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />

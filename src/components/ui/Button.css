@@ -1,0 +1,109 @@
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
+  white-space: nowrap;
+}
+
+.ui-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
+
+.ui-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ui-btn--sm {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.ui-btn--md {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.ui-btn--lg {
+  min-height: 52px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+
+.ui-btn--full {
+  width: 100%;
+}
+
+.ui-btn--primary {
+  background: var(--color-primary-600);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-btn--primary:hover:not(:disabled) {
+  background: var(--color-primary-700);
+}
+
+.ui-btn--secondary {
+  background: var(--color-primary-100);
+  color: var(--color-primary-800);
+}
+
+.ui-btn--secondary:hover:not(:disabled) {
+  background: var(--color-primary-50);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-btn--outline {
+  background: transparent;
+  color: var(--color-primary-700);
+  border-color: var(--color-border);
+}
+
+.ui-btn--outline:hover:not(:disabled) {
+  background: var(--color-surface);
+  border-color: var(--color-primary-600);
+}
+
+.ui-btn__label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-btn__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: ui-btn-spin 0.7s linear infinite;
+}
+
+.ui-btn--secondary .ui-btn__spinner,
+.ui-btn--outline .ui-btn__spinner {
+  border-color: rgba(35, 87, 196, 0.25);
+  border-top-color: var(--color-primary-700);
+}
+
+@keyframes ui-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
