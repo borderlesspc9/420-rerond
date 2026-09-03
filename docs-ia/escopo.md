@@ -86,7 +86,7 @@ Sistema de **uso interno** da empresa (poucos usuários no início).
 1. **Cadastro persistente de clientes**
 2. **Processos e revisões (R00/R01/R02)** vinculados
 3. **Memória da análise anterior** na reanálise
-4. **Refinamento técnico da IA** (normas, exemplos, vision de plantas)
+4. **Refinamento técnico da IA** (normas, exemplos, vision de plantas) — *código da Sprint 4:* taxonomia `NAO_CONFORME` × `INFORMACAO_AUSENTE` nos prompts; conferência com evidência (arquivo/página); exemplo ECO101 injetado no prompt; peças gráficas rotuladas para leitura visual. Validação com o cliente e deploy das functions ainda pendentes.
 5. **Feedback de processamento** robusto em produção
 6. **PDF final profissional** alinhado ao padrão real
 7. **Ajustes de concessionárias** sem duplicar lógica (template compartilhado)

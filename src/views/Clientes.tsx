@@ -5,6 +5,7 @@ import type { Cliente, ClienteDraft } from '../models/Cliente'
 import { getClienteDisplayName } from '../models/Cliente'
 import {
   createCliente,
+  isClientesMockMode,
   listClientes,
   updateCliente,
 } from '../services/cliente/clienteService'
@@ -26,6 +27,7 @@ export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [usingMock, setUsingMock] = useState(false)
   const [busca, setBusca] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -39,6 +41,7 @@ export default function Clientes() {
       setError(null)
       const data = await listClientes({ includeInactive: true })
       setClientes(data)
+      setUsingMock(isClientesMockMode())
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Erro ao carregar clientes.'
@@ -130,6 +133,9 @@ export default function Clientes() {
           <Typography variant="h1">Clientes</Typography>
           <Typography variant="muted">
             Cadastro persistente para reutilizar dados em novas solicitações e revisões.
+            {usingMock
+              ? ' Exibindo dados de demonstração até o Firestore de clientes ser publicado.'
+              : ''}
           </Typography>
         </div>
         <Button variant="primary" leftIcon={<Plus size={18} />} onClick={openCreate}>
@@ -152,7 +158,7 @@ export default function Clientes() {
         </Link>
       </div>
 
-      {error && (
+      {error && !usingMock && (
         <div className="clientes-alert">
           <AlertCircle size={18} />
           <span>{error}</span>

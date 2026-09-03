@@ -5,7 +5,7 @@ import type { Cliente } from '../models/Cliente'
 import { getClienteDisplayName } from '../models/Cliente'
 import type { Processo } from '../models/Processo'
 import { listClientes } from '../services/cliente/clienteService'
-import { createProcesso, listProcessos } from '../services/processo/processoService'
+import { createProcesso, isProcessosMockMode, listProcessos } from '../services/processo/processoService'
 import { Button, Input, Typography } from '../components/ui'
 import './Processos.css'
 
@@ -15,6 +15,7 @@ export default function Processos() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [usingMock, setUsingMock] = useState(false)
   const [busca, setBusca] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -30,6 +31,7 @@ export default function Processos() {
       const [proc, cli] = await Promise.all([listProcessos(), listClientes()])
       setProcessos(proc)
       setClientes(cli)
+      setUsingMock(isProcessosMockMode())
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar processos.')
     } finally {
@@ -96,6 +98,9 @@ export default function Processos() {
           <Typography variant="h1">Processos</Typography>
           <Typography variant="muted">
             Agrupe R00, R01, R02… no mesmo atendimento, com histórico preservado.
+            {usingMock
+              ? ' Exibindo dados de demonstração até o Firestore de processos ser publicado.'
+              : ''}
           </Typography>
         </div>
         <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => setShowForm(true)}>
@@ -115,7 +120,7 @@ export default function Processos() {
         </div>
       </div>
 
-      {error && (
+      {error && !usingMock && (
         <div className="processos-alert">
           <AlertCircle size={18} />
           <span>{error}</span>

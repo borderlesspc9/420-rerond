@@ -70,6 +70,11 @@ export interface ConferenciaInput {
   valorDocumento?: string | null
   status: StatusConferenciaInput
   observacao?: string
+  evidencia?: {
+    arquivo?: string
+    pagina?: string | null
+    trecho?: string | null
+  }
 }
 
 import type { AnaliseJobState } from './AnaliseJob'

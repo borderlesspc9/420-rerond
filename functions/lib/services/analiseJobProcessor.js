@@ -7,6 +7,7 @@ const openaiService_1 = require("./openaiService");
 const normasService_1 = require("./normasService");
 const prompts_1 = require("../config/prompts");
 const concessionariaProfiles_1 = require("../config/concessionariaProfiles");
+const exemplosAnalise_1 = require("../config/exemplosAnalise");
 const consistencyAnalyzer_1 = require("./consistencyAnalyzer");
 const concessionariaPerfilService_1 = require("./concessionariaPerfilService");
 const MAX_PDFS_PROJETO = 10;
@@ -81,6 +82,10 @@ function buildDocumentoProjetoLabel(filename, arquivosMeta, url) {
     const meta = arquivosMeta.find((m) => m.url === url || m.nome === filename);
     const tipo = meta?.tipoDocumento ?? "desconhecido";
     const nome = meta?.nome ?? filename;
+    const pecasGraficas = new Set(["planta_baixa", "perfil_ocupacao", "projeto_sinalizacao"]);
+    if (pecasGraficas.has(tipo)) {
+        return `[PEÇA GRÁFICA — analisar desenho, cotas, FXD, km, sentido; não só o nome do arquivo | tipoDocumento=${tipo}; arquivo=${nome}]`;
+    }
     return `[DOCUMENTO DO PROJETO: tipoDocumento=${tipo}; arquivo=${nome}]`;
 }
 function previousRevisaoLabel(current) {
@@ -219,7 +224,13 @@ function parseAIResponse(raw) {
                     ? parsed.dadosExtraidos
                     : null,
                 conferenciaInputs: Array.isArray(parsed.conferenciaInputs)
-                    ? parsed.conferenciaInputs
+                    ? parsed.conferenciaInputs.map((item) => {
+                        const raw = item;
+                        return {
+                            ...raw,
+                            evidencia: (0, consistencyAnalyzer_1.parseEvidencia)(raw.evidencia),
+                        };
+                    })
                     : [],
             };
         }
@@ -411,6 +422,7 @@ async function runAnaliseJob(params) {
             escopo: escopoAnalise,
             promptCustomizado: promptCustomizadoComPerfil || undefined,
             contextoRevisaoAnterior: contextoRevisaoAnterior || undefined,
+            exemploSaidaEsperada: promptProfile === "eco101" ? (0, exemplosAnalise_1.buildEco101ExemploAnaliseBlock)() : undefined,
         });
         await updateJob(jobRef, solicitacaoRef, "analyzing", 68, "checklist");
         const parts = [(0, openaiService_1.buildTextInput)(systemPrompt)];

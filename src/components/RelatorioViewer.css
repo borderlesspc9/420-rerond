@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
   padding: 20px;
 }
 
@@ -651,6 +651,23 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.75rem;
+}
+
+.relatorio-conferencia-item.status-divergente {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.relatorio-conferencia-item.status-ausente_no_documento,
+.relatorio-conferencia-item.status-ausente_no_formulario {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+.relatorio-conferencia-evidencia {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #374151;
 }
 
 .relatorio-conferencia-status {

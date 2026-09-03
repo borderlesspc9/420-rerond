@@ -26,8 +26,10 @@ import {
   isProfileConcessionaria,
   resolveConcessionariaPromptProfile,
 } from "../config/concessionariaProfiles";
+import { buildEco101ExemploAnaliseBlock } from "../config/exemplosAnalise";
 import {
   complementarConferenciaDeterministica,
+  parseEvidencia,
   type ConferenciaInput,
   type DadosExtraidosAnalise,
 } from "./consistencyAnalyzer";
@@ -140,6 +142,10 @@ function buildDocumentoProjetoLabel(
   const meta = arquivosMeta.find((m) => m.url === url || m.nome === filename);
   const tipo = meta?.tipoDocumento ?? "desconhecido";
   const nome = meta?.nome ?? filename;
+  const pecasGraficas = new Set(["planta_baixa", "perfil_ocupacao", "projeto_sinalizacao"]);
+  if (pecasGraficas.has(tipo)) {
+    return `[PEÇA GRÁFICA — analisar desenho, cotas, FXD, km, sentido; não só o nome do arquivo | tipoDocumento=${tipo}; arquivo=${nome}]`;
+  }
   return `[DOCUMENTO DO PROJETO: tipoDocumento=${tipo}; arquivo=${nome}]`;
 }
 
@@ -297,7 +303,13 @@ function parseAIResponse(raw: string) {
             ? (parsed.dadosExtraidos as DadosExtraidosAnalise)
             : null,
         conferenciaInputs: Array.isArray(parsed.conferenciaInputs)
-          ? (parsed.conferenciaInputs as ConferenciaInput[])
+          ? parsed.conferenciaInputs.map((item) => {
+              const raw = item as ConferenciaInput;
+              return {
+                ...raw,
+                evidencia: parseEvidencia(raw.evidencia),
+              };
+            })
           : [],
       };
     } catch {
@@ -529,6 +541,8 @@ export async function runAnaliseJob(params: {
       escopo: escopoAnalise,
       promptCustomizado: promptCustomizadoComPerfil || undefined,
       contextoRevisaoAnterior: contextoRevisaoAnterior || undefined,
+      exemploSaidaEsperada:
+        promptProfile === "eco101" ? buildEco101ExemploAnaliseBlock() : undefined,
     });
 
     await updateJob(jobRef, solicitacaoRef, "analyzing", 68, "checklist");

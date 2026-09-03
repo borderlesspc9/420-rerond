@@ -1,4 +1,10 @@
-import type { DadosFormulario, EscopoAnalisePrompt } from "./prompts";
+import {
+  INSTRUCOES_PECAS_GRAFICAS,
+  REGRAS_CONFERENCIA_EVIDENCIA,
+  TAXONOMIA_STATUS_CHECKLIST,
+  type DadosFormulario,
+  type EscopoAnalisePrompt,
+} from "./prompts";
 
 /**
  * Profile Arteris — PIT / ocupação em faixa de domínio.
@@ -22,6 +28,13 @@ REGRAS DE CONDUTA (OBRIGATÓRIAS — VIOLAÇÃO INVALIDA A ANÁLISE):
    - "Atende parcialmente" → checklist NAO_CONFORME — informação básica presente, mas falta parâmetro técnico exigido.
    - "Não atende" → checklist NAO_CONFORME — inconsistência relevante, conteúdo inadequado ou divergência grave.
    - "Não localizado" → checklist INFORMACAO_AUSENTE — documento ou informação não apresentada.
+   - Nunca use NAO_CONFORME quando o documento/informação simplesmente não foi apresentado.
+
+${TAXONOMIA_STATUS_CHECKLIST}
+
+${INSTRUCOES_PECAS_GRAFICAS}
+
+${REGRAS_CONFERENCIA_EVIDENCIA}
 
 3. PROIBIÇÕES ABSOLUTAS
    - Nunca escreva apenas "OK", "Conforme", "Documento apresentado" ou equivalente.
@@ -166,7 +179,8 @@ FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido:
       "valorFormulario": "string ou null",
       "valorDocumento": "string ou null",
       "status": "COMPATIVEL | DIVERGENTE | AUSENTE_NO_DOCUMENTO | AUSENTE_NO_FORMULARIO",
-      "observacao": "string"
+      "observacao": "string explícita",
+      "evidencia": { "arquivo": "nome.pdf", "pagina": "3 ou null", "trecho": "string ou null" }
     }
   ],
   "checklist": [

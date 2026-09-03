@@ -237,6 +237,15 @@ export default function RelatorioViewer({
               <span className="relatorio-conferencia-status">{renderConferenciaStatus(item.status)}</span>
               <p>Formulário: {item.valorFormulario ?? '—'}</p>
               <p>Documento: {item.valorDocumento ?? '—'}</p>
+              {item.evidencia?.arquivo || item.evidencia?.pagina || item.evidencia?.trecho ? (
+                <p className="relatorio-conferencia-evidencia">
+                  Evidência: {[
+                    item.evidencia.arquivo,
+                    item.evidencia.pagina ? `p. ${item.evidencia.pagina}` : null,
+                    item.evidencia.trecho,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              ) : null}
               {item.observacao && <p className="relatorio-conferencia-obs">{item.observacao}</p>}
             </div>
           ))}

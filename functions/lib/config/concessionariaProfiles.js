@@ -40,7 +40,7 @@ function buildProfileSystemPrompt(profile) {
     return (0, prompts_1.buildSystemPrompt)();
 }
 function buildProfileAnalysisPrompt(params) {
-    const { profile, dados, requisitosFormatados, tiposAnalise, tiposProjetoNome, escopo, promptCustomizado, contextoRevisaoAnterior, } = params;
+    const { profile, dados, requisitosFormatados, tiposAnalise, tiposProjetoNome, escopo, promptCustomizado, contextoRevisaoAnterior, exemploSaidaEsperada, } = params;
     let base;
     if (profile === "eco101") {
         base = (0, eco101_prompt_1.buildEco101AnalysisPrompt)(dados, requisitosFormatados, escopo, promptCustomizado);
@@ -54,12 +54,15 @@ function buildProfileAnalysisPrompt(params) {
     else {
         base = (0, prompts_1.buildAnalysisPrompt)(dados, tiposAnalise, requisitosFormatados, tiposProjetoNome, escopo, promptCustomizado);
     }
+    const blocos = [base];
+    const exemplo = exemploSaidaEsperada?.trim();
+    if (exemplo) {
+        blocos.push(`═══════════════════════════════════════
+${exemplo}`);
+    }
     const contexto = contextoRevisaoAnterior?.trim();
-    if (!contexto)
-        return base;
-    return `${base}
-
-═══════════════════════════════════════
+    if (contexto) {
+        blocos.push(`═══════════════════════════════════════
 CONTEXTO DA REVISÃO ANTERIOR DO MESMO PROCESSO
 ═══════════════════════════════════════
 ${contexto}
@@ -68,6 +71,8 @@ INSTRUÇÕES DE CONTINUIDADE (OBRIGATÓRIAS NESTA REVISÃO):
 1. Priorize verificar se as pendências e não conformidades da revisão anterior foram corrigidas nos documentos atuais.
 2. Para cada pendência anterior: indique explicitamente se foi resolvida, parcialmente resolvida ou permanece.
 3. Continúe detectando novas inconformidades ou ausências na versão atual — não se limite às pendências antigas.
-4. Não trate esta revisão como um processo isolado: use o histórico acima como referência, mas avalie o conteúdo atual dos PDFs.`;
+4. Não trate esta revisão como um processo isolado: use o histórico acima como referência, mas avalie o conteúdo atual dos PDFs.`);
+    }
+    return blocos.join("\n\n");
 }
 //# sourceMappingURL=concessionariaProfiles.js.map

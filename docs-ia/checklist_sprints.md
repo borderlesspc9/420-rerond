@@ -58,12 +58,13 @@
 
 ## Sprint 4 — Refinamento técnico da IA
 
-- [ ] Consolidar uso de normativas + exemplos por concessionária (contexto/RAG, sem fine-tune obrigatório)
-- [ ] Reforçar diferenciação: inconformidade × documentação ausente
-- [ ] Melhorar conferência formulário × documentos (divergências rastreáveis)
-- [ ] Evoluir análise visual de plantas (visão multimodal) com casos piloto
+- [x] Consolidar uso de normativas + exemplos por concessionária (contexto/RAG, sem fine-tune obrigatório)
+- [x] Reforçar diferenciação: inconformidade × documentação ausente
+- [x] Melhorar conferência formulário × documentos (divergências rastreáveis)
+- [x] Evoluir análise visual de plantas (visão multimodal) com casos piloto — instrução + label de peça gráfica (sem rasterizar PDF nesta sprint)
 - [ ] Validação técnica com o cliente (não assumir correção de engenharia sozinho)
 - [ ] Ajustes de prompt a partir de feedback — sem inventar normas
+- [x] Código no repo (prompts + conferência + exemplo ECO101); publicar functions no deploy
 
 ---
 

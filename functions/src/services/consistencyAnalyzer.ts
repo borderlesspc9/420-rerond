@@ -10,12 +10,19 @@ export interface DadosExtraidosAnalise {
   tipoIntervencao?: string | null;
 }
 
+export interface EvidenciaConferencia {
+  arquivo?: string;
+  pagina?: string | null;
+  trecho?: string | null;
+}
+
 export interface ConferenciaInput {
   campo: string;
   valorFormulario?: string | null;
   valorDocumento?: string | null;
   status: "COMPATIVEL" | "DIVERGENTE" | "AUSENTE_NO_DOCUMENTO" | "AUSENTE_NO_FORMULARIO";
   observacao?: string;
+  evidencia?: EvidenciaConferencia;
 }
 
 export interface DadosFormConferencia {
@@ -100,11 +107,50 @@ function textCompatible(a?: string | null, b?: string | null): boolean {
   return na === nb || na.includes(nb) || nb.includes(na);
 }
 
+function formatObservacao(
+  status: ConferenciaInput["status"],
+  form: string | null,
+  doc: string | null,
+): string {
+  if (status === "COMPATIVEL") return "Valores compatíveis após normalização.";
+  if (status === "DIVERGENTE") {
+    return `Divergência entre formulário e documento. Formulário: ${form} · Documento: ${doc}.`;
+  }
+  if (status === "AUSENTE_NO_DOCUMENTO") {
+    return `Valor informado no formulário, não localizado nos documentos. Formulário: ${form}.`;
+  }
+  return `Valor encontrado no documento, ausente no formulário. Documento: ${doc}.`;
+}
+
+export function parseEvidencia(raw: unknown): EvidenciaConferencia | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  const arquivo = obj.arquivo != null ? String(obj.arquivo).trim() : "";
+  const pagina = obj.pagina != null ? String(obj.pagina).trim() : "";
+  const trecho = obj.trecho != null ? String(obj.trecho).trim() : "";
+  if (!arquivo && !pagina && !trecho) return undefined;
+  return {
+    arquivo: arquivo || undefined,
+    pagina: pagina || null,
+    trecho: trecho || null,
+  };
+}
+
+function evidenciaByCampo(
+  conferenciaInputs: ConferenciaInput[],
+  campo: string,
+): EvidenciaConferencia | undefined {
+  const key = campo.trim().toLowerCase();
+  const match = conferenciaInputs.find((item) => item.campo.trim().toLowerCase() === key);
+  return match?.evidencia;
+}
+
 function buildConferenciaItem(
   campo: string,
   valorFormulario?: string | null,
   valorDocumento?: string | null,
   comparar?: (form?: string | null, doc?: string | null) => boolean,
+  evidencia?: EvidenciaConferencia,
 ): ConferenciaInput | null {
   const form = normalizeText(valorFormulario);
   const doc = normalizeText(valorDocumento);
@@ -116,7 +162,8 @@ function buildConferenciaItem(
       valorFormulario: null,
       valorDocumento: doc,
       status: "AUSENTE_NO_FORMULARIO",
-      observacao: "Valor encontrado no documento, ausente no formulário.",
+      observacao: formatObservacao("AUSENTE_NO_FORMULARIO", null, doc),
+      evidencia,
     };
   }
   if (!doc) {
@@ -125,19 +172,20 @@ function buildConferenciaItem(
       valorFormulario: form,
       valorDocumento: null,
       status: "AUSENTE_NO_DOCUMENTO",
-      observacao: "Valor informado no formulário, não localizado nos documentos.",
+      observacao: formatObservacao("AUSENTE_NO_DOCUMENTO", form, null),
+      evidencia,
     };
   }
 
   const compativel = comparar ? comparar(form, doc) : form.toLowerCase() === doc.toLowerCase();
+  const status = compativel ? "COMPATIVEL" : "DIVERGENTE";
   return {
     campo,
     valorFormulario: form,
     valorDocumento: doc,
-    status: compativel ? "COMPATIVEL" : "DIVERGENTE",
-    observacao: compativel
-      ? "Valores compatíveis após normalização."
-      : "Divergência entre formulário e documento.",
+    status,
+    observacao: formatObservacao(status, form, doc),
+    evidencia,
   };
 }
 
@@ -153,8 +201,9 @@ function isCampoGerenciado(campo: string): boolean {
 function sanitizeConferenciaItem(item: ConferenciaInput): ConferenciaInput {
   const form = normalizeText(item.valorFormulario);
   const doc = normalizeText(item.valorDocumento);
+  const evidencia = parseEvidencia(item.evidencia);
 
-  if (form && doc && form === doc) {
+  if (form && doc && form === doc && !evidencia?.arquivo) {
     return {
       ...item,
       valorFormulario: form,
@@ -162,6 +211,7 @@ function sanitizeConferenciaItem(item: ConferenciaInput): ConferenciaInput {
       status: "AUSENTE_NO_DOCUMENTO",
       observacao:
         "valorDocumento igual ao formulário sem evidência independente nos PDFs — tratado como ausente no documento.",
+      evidencia,
     };
   }
 
@@ -171,7 +221,8 @@ function sanitizeConferenciaItem(item: ConferenciaInput): ConferenciaInput {
       valorFormulario: form,
       valorDocumento: null,
       status: "AUSENTE_NO_DOCUMENTO",
-      observacao: "Valor não localizado nos documentos.",
+      observacao: formatObservacao("AUSENTE_NO_DOCUMENTO", form, null),
+      evidencia,
     };
   }
 
@@ -179,6 +230,7 @@ function sanitizeConferenciaItem(item: ConferenciaInput): ConferenciaInput {
     ...item,
     valorFormulario: form,
     valorDocumento: doc,
+    evidencia,
   };
 }
 
@@ -205,6 +257,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.interessado,
       dadosExtraidos.interessado,
       textCompatible,
+      evidenciaByCampo(conferenciaInputs, "interessado"),
     ),
   );
   pushItem(
@@ -213,6 +266,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.rodovia,
       dadosExtraidos.rodovia,
       (form, doc) => normalizeRodovia(form) === normalizeRodovia(doc),
+      evidenciaByCampo(conferenciaInputs, "rodovia"),
     ),
   );
   pushItem(
@@ -221,6 +275,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.kilometragem,
       dadosExtraidos.kilometragem,
       (form, doc) => kmCompatible(form, doc),
+      evidenciaByCampo(conferenciaInputs, "kilometragem"),
     ),
   );
   pushItem(
@@ -229,10 +284,17 @@ export function complementarConferenciaDeterministica(
       dadosForm.municipioEstado,
       dadosExtraidos.municipio,
       municipioCompatible,
+      evidenciaByCampo(conferenciaInputs, "municipio"),
     ),
   );
   pushItem(
-    buildConferenciaItem("uf", dadosForm.uf, dadosExtraidos.uf, textCompatible),
+    buildConferenciaItem(
+      "uf",
+      dadosForm.uf,
+      dadosExtraidos.uf,
+      textCompatible,
+      evidenciaByCampo(conferenciaInputs, "uf"),
+    ),
   );
   pushItem(
     buildConferenciaItem(
@@ -240,6 +302,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.extensao,
       dadosExtraidos.extensao,
       textCompatible,
+      evidenciaByCampo(conferenciaInputs, "extensao"),
     ),
   );
   pushItem(
@@ -248,6 +311,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.numeroArt,
       dadosExtraidos.numeroArt,
       textCompatible,
+      evidenciaByCampo(conferenciaInputs, "numeroArt"),
     ),
   );
   pushItem(
@@ -256,6 +320,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.responsavelTecnico,
       dadosExtraidos.responsavelTecnico,
       textCompatible,
+      evidenciaByCampo(conferenciaInputs, "responsavelTecnico"),
     ),
   );
   pushItem(
@@ -264,6 +329,7 @@ export function complementarConferenciaDeterministica(
       dadosForm.tipoIntervencaoDetalhado,
       dadosExtraidos.tipoIntervencao,
       textCompatible,
+      evidenciaByCampo(conferenciaInputs, "tipoIntervencao"),
     ),
   );
 

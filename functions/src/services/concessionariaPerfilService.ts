@@ -132,5 +132,8 @@ Título padrão do relatório: ${perfil.modeloRelatorio.tituloPadrao}
 DOCUMENTOS OBRIGATÓRIOS DESTA CONCESSIONÁRIA:
 ${docs}
 ${template}
+
+Use somente as normas anexadas nesta chamada. Presença de arquivo não equivale a conformidade.
+INFORMACAO_AUSENTE = evidência não apresentada; NAO_CONFORME = evidência existe mas está incompleta ou em desacordo com a norma.
 `;
 }

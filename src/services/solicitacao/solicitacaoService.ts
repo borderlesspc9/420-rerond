@@ -100,6 +100,20 @@ const parseDadosExtraidos = (value: unknown): DadosExtraidosAnalise | undefined 
   }
 }
 
+const parseEvidencia = (value: unknown): ConferenciaInput['evidencia'] | undefined => {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Record<string, unknown>
+  const arquivo = raw.arquivo != null ? String(raw.arquivo).trim() : ''
+  const pagina = raw.pagina != null ? String(raw.pagina).trim() : ''
+  const trecho = raw.trecho != null ? String(raw.trecho).trim() : ''
+  if (!arquivo && !pagina && !trecho) return undefined
+  return {
+    arquivo: arquivo || undefined,
+    pagina: pagina || null,
+    trecho: trecho || null,
+  }
+}
+
 const parseConferenciaInputs = (value: unknown): ConferenciaInput[] | undefined => {
   if (!Array.isArray(value)) return undefined
   return value
@@ -112,6 +126,7 @@ const parseConferenciaInputs = (value: unknown): ConferenciaInput[] | undefined 
         valorDocumento: raw.valorDocumento != null ? String(raw.valorDocumento) : null,
         status: raw.status as ConferenciaInput['status'],
         observacao: raw.observacao ? String(raw.observacao) : undefined,
+        evidencia: parseEvidencia(raw.evidencia),
       }
     })
     .filter((item) => item.campo)

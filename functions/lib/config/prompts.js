@@ -1,11 +1,27 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.REGRAS_CONFERENCIA_EVIDENCIA = exports.INSTRUCOES_PECAS_GRAFICAS = exports.TAXONOMIA_STATUS_CHECKLIST = void 0;
 exports.buildSystemPrompt = buildSystemPrompt;
 exports.buildAnalysisPrompt = buildAnalysisPrompt;
 exports.buildInferTipoPrompt = buildInferTipoPrompt;
 exports.buildComplementacaoSystemPrompt = buildComplementacaoSystemPrompt;
 exports.buildComplementacaoPrompt = buildComplementacaoPrompt;
 const v = (s) => s || "não informado";
+exports.TAXONOMIA_STATUS_CHECKLIST = `TAXONOMIA OBRIGATÓRIA DO CHECKLIST:
+- INFORMACAO_AUSENTE: a evidência (documento, dado, cota ou parâmetro) NÃO foi apresentada nos PDFs. Nunca use NAO_CONFORME só porque o arquivo não existe.
+- NAO_CONFORME: a evidência EXISTE nos documentos, mas está incompleta, incorreta ou em desacordo com a norma citada nesta chamada.
+- OK: evidência completa nos PDFs e aderente à norma. Presença do arquivo NÃO autoriza OK.
+- fundamentacao: cite somente normas anexadas nesta análise (título + artigo/parágrafo/página). Não invente artigo, página ou requisito.
+- orientacao: se NAO_CONFORME, o que corrigir no conteúdo apresentado; se INFORMACAO_AUSENTE, o que deve ser apresentado.`;
+exports.INSTRUCOES_PECAS_GRAFICAS = `PEÇAS GRÁFICAS (planta baixa, perfil, sinalização e equivalentes):
+- Analise o desenho, não só o nome do arquivo: cotas, FXD, faixa non aedificandi, km, sentido, interferência com pista/acostamento.
+- Se a peça estiver ilegível, truncada ou sem os elementos acima, use INFORMACAO_AUSENTE — não chute cotas nem geometria.
+- Documento gráfico presente mas com parâmetros insuficientes ou em desacordo com a norma → NAO_CONFORME.`;
+exports.REGRAS_CONFERENCIA_EVIDENCIA = `CONFERÊNCIA FORMULÁRIO × DOCUMENTOS (conferenciaInputs):
+- valorDocumento SOMENTE extraído dos PDFs. Proibido copiar valorFormulario.
+- Para cada item, preencha evidencia quando houver: { "arquivo": "nome.pdf", "pagina": "3" ou null, "trecho": "trecho curto ou null" }.
+- observacao deve ser explícita. Em DIVERGENTE, use o formato: "Formulário: X · Documento: Y".
+- status: COMPATIVEL | DIVERGENTE | AUSENTE_NO_DOCUMENTO | AUSENTE_NO_FORMULARIO.`;
 function buildSystemPrompt() {
     return `Você é um especialista técnico em projetos rodoviários e engenharia de transportes, com profundo conhecimento das normas brasileiras vigentes que regulamentam acessos, faixa de domínio, sinalização de obras e infraestrutura viária.
 
@@ -14,9 +30,15 @@ Sua função é analisar projetos rodoviários enviados em PDF e verificar sua c
 REGRAS IMPORTANTES:
 - Seja sempre objetivo e técnico
 - Nunca invente ou assuma informações não presentes no projeto
-- Se um item não puder ser verificado por ausência de informação no PDF, registre como "INFORMACAO_AUSENTE"
+- Use somente as normas e requisitos anexados nesta chamada
 - Cite sempre a norma, o artigo, parágrafo ou página que fundamenta cada conclusão
-- Em caso de dúvida sobre o tipo de projeto, baseie-se no conteúdo dos documentos`;
+- Em caso de dúvida sobre o tipo de projeto, baseie-se no conteúdo dos documentos
+
+${exports.TAXONOMIA_STATUS_CHECKLIST}
+
+${exports.INSTRUCOES_PECAS_GRAFICAS}
+
+${exports.REGRAS_CONFERENCIA_EVIDENCIA}`;
 }
 function buildAnalysisPrompt(dados, tiposRelatorio, requisitosFormatados, tiposProjetoNome, escopo, promptCustomizado) {
     const blocoFormulario = escopo.incluirDadosFormulario
@@ -72,11 +94,13 @@ ${requisitosFormatados}
 INSTRUÇÕES:
 1. Respeite estritamente o escopo definido pelo usuário:
 - ${instrucoesEntrada}
-2. Leia integralmente os PDFs de norma enviados como referência.
-3. Se documentos do projeto estiverem incluídos, leia integralmente os PDFs do cliente.
+2. Leia integralmente os PDFs de norma enviados como referência. Não invente normas fora deste conjunto.
+3. Se documentos do projeto estiverem incluídos, leia integralmente os PDFs do cliente, inclusive peças gráficas.
 4. Compare o que estiver no escopo com os requisitos listados.
-5. Para cada requisito listado, verifique se o projeto atende, não atende ou se a informação está ausente.
-6. Respeite estritamente as saídas pedidas:
+5. ${exports.TAXONOMIA_STATUS_CHECKLIST}
+6. ${exports.INSTRUCOES_PECAS_GRAFICAS}
+7. ${exports.REGRAS_CONFERENCIA_EVIDENCIA}
+8. Respeite estritamente as saídas pedidas:
 - ${instrucoesSaida}${promptAdicional}
 
 FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto antes ou depois:
@@ -87,8 +111,18 @@ FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto a
       "status": "OK" | "NAO_CONFORME" | "INFORMACAO_AUSENTE",
       "situacaoEncontrada": "O que o projeto apresenta (string curta)",
       "exigenciaNormativa": "O que a norma determina (string curta)",
-      "fundamentacao": "Norma + Artigo/Parágrafo específico",
-      "orientacao": "O que precisa ser corrigido (vazio se OK)"
+      "fundamentacao": "Norma + Artigo/Parágrafo específico (somente normas anexadas)",
+      "orientacao": "Corrigir (NAO_CONFORME) ou o que apresentar (INFORMACAO_AUSENTE); vazio se OK"
+    }
+  ],
+  "conferenciaInputs": [
+    {
+      "campo": "string",
+      "valorFormulario": "string ou null",
+      "valorDocumento": "string ou null",
+      "status": "COMPATIVEL | DIVERGENTE | AUSENTE_NO_DOCUMENTO | AUSENTE_NO_FORMULARIO",
+      "observacao": "string explícita",
+      "evidencia": { "arquivo": "nome.pdf", "pagina": "3 ou null", "trecho": "string ou null" }
     }
   ],
   "parecerTecnico": "PARECER EM MARKDOWN conforme estrutura abaixo (ou string vazia se não solicitado)"
@@ -161,7 +195,7 @@ ${complementosFormatados}
 INSTRUÇÕES:
 1. Use os complementos do analista para reavaliar APENAS os itens correspondentes.
 2. Regenere o checklist COMPLETO com TODOS os requisitos do catálogo (não omita itens).
-3. Para itens com complemento: atualize status (OK, NAO_CONFORME ou INFORMACAO_AUSENTE), situacaoEncontrada, fundamentacao e orientacao.
+3. Para itens com complemento: atualize status (OK, NAO_CONFORME ou INFORMACAO_AUSENTE), situacaoEncontrada, fundamentacao e orientacao. ${exports.TAXONOMIA_STATUS_CHECKLIST}
 4. Para itens sem complemento: preserve a avaliação anterior quando ainda fizer sentido.
 5. Regenere o parecer técnico COMPLETO em Markdown com todas as seções obrigatórias.
 6. Não invente dados além do relatório anterior e dos complementos fornecidos.
