@@ -20,6 +20,7 @@ import {
   NOVA_SOLICITACAO_RETURN,
   type ConcessionariaReturnPayload,
 } from '../utils/concessionariaNavigation'
+import { updateProcesso } from '../services/processo/processoService'
 import ConcessionariaCadastroModal from '../components/ConcessionariaCadastroModal'
 import ConcessionariaPerfilResumo from '../components/ConcessionariaPerfilResumo'
 import type { ConcessionariaPerfil } from '../models/ConcessionariaPerfil'
@@ -58,6 +59,7 @@ const PORTES_POR_CLASSIFICACAO: Record<string, string[]> = {
 type FormData = {
   cliente: string
   clienteId: string
+  processoId: string
   interessado: string
   kilometragem: string
   nroProcessoErp: string
@@ -126,6 +128,7 @@ export default function NovaSolicitacao() {
   const [formData, setFormData] = useState<FormData>({
     cliente: '',
     clienteId: '',
+    processoId: '',
     interessado: '',
     kilometragem: '',
     nroProcessoErp: '',
@@ -253,10 +256,41 @@ export default function NovaSolicitacao() {
   }
 
   useEffect(() => {
-    const state = location.state as ConcessionariaReturnPayload | null
-    if (!state?.concessionariaId) return
-    void loadPerfilById(state.concessionariaId)
-    navigate(location.pathname, { replace: true, state: null })
+    const state = location.state as
+      | (ConcessionariaReturnPayload & {
+          processoId?: string
+          numeroRevisao?: string
+          clienteId?: string
+          clienteNome?: string
+          rodovia?: string
+          concessionariaId?: string
+          nomeConcessionaria?: string
+          tituloProcesso?: string
+        })
+      | null
+    if (!state) return
+
+    if (state.concessionariaId && !state.processoId) {
+      void loadPerfilById(state.concessionariaId)
+      navigate(location.pathname, { replace: true, state: null })
+      return
+    }
+
+    if (state.processoId) {
+      setFormData((prev) => ({
+        ...prev,
+        processoId: state.processoId || '',
+        numeroRevisao: state.numeroRevisao || prev.numeroRevisao || 'R00',
+        clienteId: state.clienteId || prev.clienteId,
+        cliente: state.clienteNome || prev.cliente,
+        rodovia: state.rodovia || prev.rodovia,
+        concessionariaId: state.concessionariaId || prev.concessionariaId,
+        concessionariaSelect: state.concessionariaId || prev.concessionariaSelect,
+        nomeConcessionaria: state.nomeConcessionaria || prev.nomeConcessionaria,
+      }))
+      if (state.clienteId) setClienteSelectMode('cadastrado')
+      navigate(location.pathname, { replace: true, state: null })
+    }
   }, [location.pathname, location.state, navigate])
 
   const handleInputChange = async (
@@ -405,6 +439,7 @@ export default function NovaSolicitacao() {
           status: 'pendente',
           concessionariaId: formData.concessionariaId || null,
           clienteId: formData.clienteId || null,
+          processoId: formData.processoId || null,
           cliente: formData.cliente || undefined,
           interessado: formData.interessado || formData.cliente || undefined,
           kilometragem: formData.kilometragem || undefined,
@@ -430,8 +465,26 @@ export default function NovaSolicitacao() {
         files,
         fileDocumentTypes
       )
+
+      if (formData.processoId) {
+        try {
+          await updateProcesso(formData.processoId, {
+            revisaoAtual: formData.numeroRevisao || 'R00',
+            ultimaSolicitacaoId: id,
+            status: 'em_analise',
+            clienteId: formData.clienteId || null,
+            clienteNome: formData.cliente || null,
+            concessionariaId: formData.concessionariaId || null,
+            nomeConcessionaria: formData.nomeConcessionaria || null,
+            rodovia: formData.rodovia || null,
+          })
+        } catch (procErr) {
+          console.error('Solicitação criada, mas falhou ao atualizar processo:', procErr)
+        }
+      }
+
       navigate('/solicitacao-registrada', {
-        state: { solicitacaoId: id, titulo: obra.titulo },
+        state: { solicitacaoId: id, titulo: obra.titulo, processoId: formData.processoId || null },
       })
     } catch (err: any) {
       console.error('Erro ao criar solicitação:', err)
@@ -467,6 +520,13 @@ export default function NovaSolicitacao() {
         onConfirm={confirmCadastroConcessionaria}
       />
       <form onSubmit={handleSubmit} className="nova-solicitacao-form">
+        {formData.processoId ? (
+          <div className="form-section" style={{ borderLeft: '3px solid var(--primary, #1a5f4a)', paddingLeft: '1rem' }}>
+            <p style={{ margin: 0, fontSize: '0.95rem' }}>
+              Vinculado ao processo · revisão <strong>{formData.numeroRevisao || 'R00'}</strong>
+            </p>
+          </div>
+        ) : null}
         {/* Seção Overview Dados do cliente */}
         <div className="form-section">
           <h2 className="section-title">Overview Dados do cliente</h2>

@@ -9,6 +9,8 @@ import NovaSolicitacao from './views/NovaSolicitacao'
 import SolicitacaoRegistrada from './views/SolicitacaoRegistrada'
 import NovaConcessionaria from './views/NovaConcessionaria'
 import Clientes from './views/Clientes'
+import Processos from './views/Processos'
+import ProcessoDetalhe from './views/ProcessoDetalhe'
 import { HomeScreen, LoginScreen, RegisterScreen } from './screens'
 import './App.css'
 
@@ -27,6 +29,8 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="clientes" element={<Clientes />} />
+            <Route path="processos" element={<Processos />} />
+            <Route path="processos/:processoId" element={<ProcessoDetalhe />} />
             <Route path="solicitacoes" element={<Solicitacoes />} />
             <Route path="nova-solicitacao" element={<NovaSolicitacao />} />
             <Route path="concessionarias/nova" element={<NovaConcessionaria />} />

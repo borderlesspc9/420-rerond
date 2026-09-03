@@ -83,6 +83,97 @@ function buildDocumentoProjetoLabel(filename, arquivosMeta, url) {
     const nome = meta?.nome ?? filename;
     return `[DOCUMENTO DO PROJETO: tipoDocumento=${tipo}; arquivo=${nome}]`;
 }
+function previousRevisaoLabel(current) {
+    const match = String(current || "").match(/R(\d+)/i);
+    if (!match)
+        return null;
+    const idx = Number(match[1]);
+    if (!Number.isFinite(idx) || idx <= 0)
+        return null;
+    return `R${String(idx - 1).padStart(2, "0")}`;
+}
+function formatPendenciasFromChecklist(checklistRaw) {
+    if (typeof checklistRaw !== "string" || !checklistRaw.trim()) {
+        return "(sem checklist na revisão anterior)";
+    }
+    try {
+        const parsed = JSON.parse(checklistRaw);
+        if (!Array.isArray(parsed))
+            return checklistRaw.slice(0, 8000);
+        const pendencias = parsed.filter((item) => {
+            if (!item || typeof item !== "object")
+                return false;
+            const status = String(item.status || "").toUpperCase();
+            return status === "NAO_CONFORME" || status === "INFORMACAO_AUSENTE";
+        });
+        if (pendencias.length === 0) {
+            return "(nenhuma pendência NAO_CONFORME / INFORMACAO_AUSENTE na revisão anterior)";
+        }
+        return pendencias
+            .map((item) => {
+            const row = item;
+            return [
+                `- Item: ${String(row.item ?? "")}`,
+                `  Status: ${String(row.status ?? "")}`,
+                `  Situação: ${String(row.situacaoEncontrada ?? "")}`,
+                `  Orientação: ${String(row.orientacao ?? "")}`,
+            ].join("\n");
+        })
+            .join("\n");
+    }
+    catch {
+        return String(checklistRaw).slice(0, 8000);
+    }
+}
+async function loadContextoRevisaoAnterior(currentSolicitacaoId, processoId, numeroRevisao) {
+    if (!processoId)
+        return null;
+    const prevLabel = previousRevisaoLabel(numeroRevisao);
+    if (!prevLabel)
+        return null;
+    const db = (0, firestore_1.getFirestore)();
+    const snap = await db
+        .collection("solicitacoes")
+        .where("processoId", "==", processoId)
+        .get();
+    const candidates = snap.docs
+        .filter((doc) => doc.id !== currentSolicitacaoId)
+        .map((doc) => {
+        const data = doc.data();
+        const createdAt = data.createdAt;
+        return {
+            id: doc.id,
+            createdAtMs: createdAt?.toMillis?.() ?? 0,
+            numeroRevisao: data.numeroRevisao ? String(data.numeroRevisao) : undefined,
+            checklistConformidade: typeof data.checklistConformidade === "string"
+                ? data.checklistConformidade
+                : undefined,
+            parecerTecnico: typeof data.parecerTecnico === "string" ? data.parecerTecnico : undefined,
+            titulo: data.titulo ? String(data.titulo) : undefined,
+        };
+    })
+        .filter((item) => String(item.numeroRevisao || "").toUpperCase() === prevLabel);
+    if (candidates.length === 0)
+        return null;
+    candidates.sort((a, b) => b.createdAtMs - a.createdAtMs);
+    const prev = candidates[0];
+    const parecer = (prev.parecerTecnico || "").trim().slice(0, 12000);
+    const pendencias = formatPendenciasFromChecklist(prev.checklistConformidade);
+    const checklistResumo = (prev.checklistConformidade || "").trim().slice(0, 10000);
+    return [
+        `Revisão anterior: ${prevLabel} (solicitação ${prev.id})`,
+        `Título anterior: ${prev.titulo || "não informado"}`,
+        "",
+        "PENDÊNCIAS / NÃO CONFORMIDADES DA REVISÃO ANTERIOR:",
+        pendencias,
+        "",
+        "PARECER TÉCNICO DA REVISÃO ANTERIOR (Markdown, pode estar truncado):",
+        parecer || "(sem parecer anterior)",
+        "",
+        "CHECKLIST COMPLETO DA REVISÃO ANTERIOR (JSON, pode estar truncado):",
+        checklistResumo || "(sem checklist anterior)",
+    ].join("\n");
+}
 function aplicarLimitesPdf(pdfBuffers) {
     const incluidos = [];
     const omitidos = [];
@@ -301,6 +392,16 @@ async function runAnaliseJob(params) {
         ]
             .filter(Boolean)
             .join("\n");
+        let contextoRevisaoAnterior = null;
+        try {
+            contextoRevisaoAnterior = await loadContextoRevisaoAnterior(params.solicitacaoId, data.processoId ? String(data.processoId) : null, data.numeroRevisao ? String(data.numeroRevisao) : null);
+            if (contextoRevisaoAnterior) {
+                console.log(`Contexto de revisão anterior carregado para solicitação ${params.solicitacaoId}`);
+            }
+        }
+        catch (ctxErr) {
+            console.warn("Falha ao carregar contexto da revisão anterior:", ctxErr);
+        }
         const analysisPrompt = (0, concessionariaProfiles_1.buildProfileAnalysisPrompt)({
             profile: promptProfile,
             dados: dadosForm,
@@ -309,6 +410,7 @@ async function runAnaliseJob(params) {
             tiposProjetoNome,
             escopo: escopoAnalise,
             promptCustomizado: promptCustomizadoComPerfil || undefined,
+            contextoRevisaoAnterior: contextoRevisaoAnterior || undefined,
         });
         await updateJob(jobRef, solicitacaoRef, "analyzing", 68, "checklist");
         const parts = [(0, openaiService_1.buildTextInput)(systemPrompt)];

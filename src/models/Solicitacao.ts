@@ -101,6 +101,8 @@ export interface Solicitacao {
   concessionariaId?: string | null
   /** Vínculo com cadastro persistente em `clientes` (Sprint 1). */
   clienteId?: string | null
+  /** Vínculo com processo/atendimento (Sprint 2). */
+  processoId?: string | null
   // Overview Dados do cliente
   cliente?: string
   interessado?: string | null

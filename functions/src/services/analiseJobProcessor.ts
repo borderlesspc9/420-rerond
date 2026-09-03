@@ -143,6 +143,112 @@ function buildDocumentoProjetoLabel(
   return `[DOCUMENTO DO PROJETO: tipoDocumento=${tipo}; arquivo=${nome}]`;
 }
 
+function previousRevisaoLabel(current?: string | null): string | null {
+  const match = String(current || "").match(/R(\d+)/i);
+  if (!match) return null;
+  const idx = Number(match[1]);
+  if (!Number.isFinite(idx) || idx <= 0) return null;
+  return `R${String(idx - 1).padStart(2, "0")}`;
+}
+
+function formatPendenciasFromChecklist(checklistRaw: unknown): string {
+  if (typeof checklistRaw !== "string" || !checklistRaw.trim()) {
+    return "(sem checklist na revisão anterior)";
+  }
+  try {
+    const parsed = JSON.parse(checklistRaw) as unknown;
+    if (!Array.isArray(parsed)) return checklistRaw.slice(0, 8000);
+    const pendencias = parsed.filter((item) => {
+      if (!item || typeof item !== "object") return false;
+      const status = String((item as { status?: unknown }).status || "").toUpperCase();
+      return status === "NAO_CONFORME" || status === "INFORMACAO_AUSENTE";
+    });
+    if (pendencias.length === 0) {
+      return "(nenhuma pendência NAO_CONFORME / INFORMACAO_AUSENTE na revisão anterior)";
+    }
+    return pendencias
+      .map((item) => {
+        const row = item as Record<string, unknown>;
+        return [
+          `- Item: ${String(row.item ?? "")}`,
+          `  Status: ${String(row.status ?? "")}`,
+          `  Situação: ${String(row.situacaoEncontrada ?? "")}`,
+          `  Orientação: ${String(row.orientacao ?? "")}`,
+        ].join("\n");
+      })
+      .join("\n");
+  } catch {
+    return String(checklistRaw).slice(0, 8000);
+  }
+}
+
+async function loadContextoRevisaoAnterior(
+  currentSolicitacaoId: string,
+  processoId?: string | null,
+  numeroRevisao?: string | null,
+): Promise<string | null> {
+  if (!processoId) return null;
+  const prevLabel = previousRevisaoLabel(numeroRevisao);
+  if (!prevLabel) return null;
+
+  const db = getFirestore();
+  const snap = await db
+    .collection("solicitacoes")
+    .where("processoId", "==", processoId)
+    .get();
+
+  type Candidate = {
+    id: string;
+    createdAtMs: number;
+    numeroRevisao?: string;
+    checklistConformidade?: string;
+    parecerTecnico?: string;
+    titulo?: string;
+  };
+
+  const candidates: Candidate[] = snap.docs
+    .filter((doc) => doc.id !== currentSolicitacaoId)
+    .map((doc) => {
+      const data = doc.data() as Record<string, unknown>;
+      const createdAt = data.createdAt as { toMillis?: () => number } | undefined;
+      return {
+        id: doc.id,
+        createdAtMs: createdAt?.toMillis?.() ?? 0,
+        numeroRevisao: data.numeroRevisao ? String(data.numeroRevisao) : undefined,
+        checklistConformidade:
+          typeof data.checklistConformidade === "string"
+            ? data.checklistConformidade
+            : undefined,
+        parecerTecnico:
+          typeof data.parecerTecnico === "string" ? data.parecerTecnico : undefined,
+        titulo: data.titulo ? String(data.titulo) : undefined,
+      };
+    })
+    .filter((item) => String(item.numeroRevisao || "").toUpperCase() === prevLabel);
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => b.createdAtMs - a.createdAtMs);
+  const prev = candidates[0];
+  const parecer = (prev.parecerTecnico || "").trim().slice(0, 12000);
+  const pendencias = formatPendenciasFromChecklist(prev.checklistConformidade);
+  const checklistResumo = (prev.checklistConformidade || "").trim().slice(0, 10000);
+
+  return [
+    `Revisão anterior: ${prevLabel} (solicitação ${prev.id})`,
+    `Título anterior: ${prev.titulo || "não informado"}`,
+    "",
+    "PENDÊNCIAS / NÃO CONFORMIDADES DA REVISÃO ANTERIOR:",
+    pendencias,
+    "",
+    "PARECER TÉCNICO DA REVISÃO ANTERIOR (Markdown, pode estar truncado):",
+    parecer || "(sem parecer anterior)",
+    "",
+    "CHECKLIST COMPLETO DA REVISÃO ANTERIOR (JSON, pode estar truncado):",
+    checklistResumo || "(sem checklist anterior)",
+  ].join("\n");
+}
+
 function aplicarLimitesPdf(
   pdfBuffers: Array<{ filename: string; buffer: Buffer; url?: string }>,
 ) {
@@ -398,6 +504,22 @@ export async function runAnaliseJob(params: {
       .filter(Boolean)
       .join("\n");
 
+    let contextoRevisaoAnterior: string | null = null;
+    try {
+      contextoRevisaoAnterior = await loadContextoRevisaoAnterior(
+        params.solicitacaoId,
+        data.processoId ? String(data.processoId) : null,
+        data.numeroRevisao ? String(data.numeroRevisao) : null,
+      );
+      if (contextoRevisaoAnterior) {
+        console.log(
+          `Contexto de revisão anterior carregado para solicitação ${params.solicitacaoId}`,
+        );
+      }
+    } catch (ctxErr) {
+      console.warn("Falha ao carregar contexto da revisão anterior:", ctxErr);
+    }
+
     const analysisPrompt = buildProfileAnalysisPrompt({
       profile: promptProfile,
       dados: dadosForm,
@@ -406,6 +528,7 @@ export async function runAnaliseJob(params: {
       tiposProjetoNome,
       escopo: escopoAnalise,
       promptCustomizado: promptCustomizadoComPerfil || undefined,
+      contextoRevisaoAnterior: contextoRevisaoAnterior || undefined,
     });
 
     await updateJob(jobRef, solicitacaoRef, "analyzing", 68, "checklist");

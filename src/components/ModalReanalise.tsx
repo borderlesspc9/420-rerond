@@ -13,6 +13,8 @@ interface ModalReanaliseProps {
   titulo: string
   tipoRelatorioAtual?: string
   concessionariaId?: string | null
+  numeroRevisao?: string | null
+  processoId?: string | null
   primeiraAnalise: boolean
   onConfirm: (
     promptCustomizado?: string,
@@ -27,6 +29,8 @@ export default function ModalReanalise({
   titulo, 
   tipoRelatorioAtual,
   concessionariaId,
+  numeroRevisao,
+  processoId,
   primeiraAnalise,
   onConfirm, 
   onClose 
@@ -162,6 +166,13 @@ export default function ModalReanalise({
               </>
             )}
           </p>
+
+          {processoId && numeroRevisao && /^R0*[1-9]\d*$/i.test(numeroRevisao) ? (
+            <div className="modal-reanalise-continuidade">
+              Continuidade ativa: a IA receberá checklist, parecer e pendências da revisão anterior
+              do mesmo processo, além dos documentos desta revisão ({numeroRevisao}).
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit}>
             {/* Seção de Upload de PDFs */}

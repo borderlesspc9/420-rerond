@@ -33,24 +33,26 @@
 
 ## Sprint 2 — Processos e revisões (R00 / R01 / R02)
 
-- [ ] Modelo de **processo** (atendimento) agrupando revisões
-- [ ] Campo/revisão: `R00`, `R01`, `R02`… no mesmo processo
-- [ ] UI: criar processo → primeira análise (R00)
-- [ ] UI: abrir nova revisão a partir do processo (R01+)
-- [ ] Histórico navegável: Cliente → Processo → Revisões → Relatórios
-- [ ] Preservar vínculos e resultados anteriores (não sobrescrever R00 ao criar R01)
-- [ ] Status de processo coerente com fluxo existente (`pendente`, `em_analise`, `aprovada`, `rejeitada` / equivalentes)
+- [x] Modelo de **processo** (atendimento) agrupando revisões
+- [x] Campo/revisão: `R00`, `R01`, `R02`… no mesmo processo
+- [x] UI: criar processo → primeira análise (R00)
+- [x] UI: abrir nova revisão a partir do processo (R01+)
+- [x] Histórico navegável: Cliente → Processo → Revisões → Relatórios
+- [x] Preservar vínculos e resultados anteriores (não sobrescrever R00 ao criar R01)
+- [x] Status de processo coerente com fluxo existente (`pendente`, `em_analise`, `aprovada`, `rejeitada` / equivalentes)
+- [x] Regras Firestore para `processos` (no repo; publicar no deploy)
 
 ---
 
 ## Sprint 3 — Memória entre revisões (continuidade da análise)
 
-- [ ] Ao analisar R01+, enviar à IA: relatório anterior + pendências + documentos novos
-- [ ] Prompt/escopo: priorizar “o que foi solicitado foi corrigido?”
-- [ ] Ainda detectar novas inconformidades na versão atual
-- [ ] Exibir no UI comparação revisão anterior × atual (resumo)
-- [ ] Não tratar revisão posterior como processo isolado
+- [x] Ao analisar R01+, enviar à IA: relatório anterior + pendências + documentos novos
+- [x] Prompt/escopo: priorizar “o que foi solicitado foi corrigido?”
+- [x] Ainda detectar novas inconformidades na versão atual
+- [x] Exibir no UI comparação revisão anterior × atual (resumo)
+- [x] Não tratar revisão posterior como processo isolado
 - [ ] Testes com casos reais fornecidos pelo cliente
+- [x] Código no repo (CF + front); publicar functions no deploy
 
 ---
 

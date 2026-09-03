@@ -523,6 +523,8 @@ export default function Solicitacoes() {
           titulo={modalReanaliseAberto.titulo}
           tipoRelatorioAtual={modalReanaliseAberto.tipoRelatorio}
           concessionariaId={modalReanaliseAberto.concessionariaId}
+          numeroRevisao={modalReanaliseAberto.numeroRevisao}
+          processoId={modalReanaliseAberto.processoId}
           primeiraAnalise={!modalReanaliseAberto.analisadoPorIA}
           onConfirm={handleReanalisar}
           onClose={() => setModalReanaliseAberto(null)}

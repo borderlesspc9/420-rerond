@@ -58,6 +58,7 @@ export function buildProfileAnalysisPrompt(params: {
   tiposProjetoNome: string;
   escopo: EscopoAnalisePrompt;
   promptCustomizado?: string;
+  contextoRevisaoAnterior?: string;
 }): string {
   const {
     profile,
@@ -67,39 +68,54 @@ export function buildProfileAnalysisPrompt(params: {
     tiposProjetoNome,
     escopo,
     promptCustomizado,
+    contextoRevisaoAnterior,
   } = params;
 
+  let base: string;
   if (profile === "eco101") {
-    return buildEco101AnalysisPrompt(
+    base = buildEco101AnalysisPrompt(
       dados,
       requisitosFormatados,
       escopo,
       promptCustomizado,
     );
-  }
-  if (profile === "motiva") {
-    return buildMotivaAnalysisPrompt(
+  } else if (profile === "motiva") {
+    base = buildMotivaAnalysisPrompt(
       dados,
       requisitosFormatados,
       escopo,
       promptCustomizado,
     );
-  }
-  if (profile === "arteris") {
-    return buildArterisAnalysisPrompt(
+  } else if (profile === "arteris") {
+    base = buildArterisAnalysisPrompt(
       dados,
       requisitosFormatados,
+      escopo,
+      promptCustomizado,
+    );
+  } else {
+    base = buildAnalysisPrompt(
+      dados,
+      tiposAnalise,
+      requisitosFormatados,
+      tiposProjetoNome,
       escopo,
       promptCustomizado,
     );
   }
 
-  return buildAnalysisPrompt(
-    dados,
-    tiposAnalise,
-    requisitosFormatados,
-    tiposProjetoNome,
-    escopo,
-    promptCustomizado,
-  );
+  const contexto = contextoRevisaoAnterior?.trim();
+  if (!contexto) return base;
+  return `${base}
+
+═══════════════════════════════════════
+CONTEXTO DA REVISÃO ANTERIOR DO MESMO PROCESSO
+═══════════════════════════════════════
+${contexto}
+
+INSTRUÇÕES DE CONTINUIDADE (OBRIGATÓRIAS NESTA REVISÃO):
+1. Priorize verificar se as pendências e não conformidades da revisão anterior foram corrigidas nos documentos atuais.
+2. Para cada pendência anterior: indique explicitamente se foi resolvida, parcialmente resolvida ou permanece.
+3. Continúe detectando novas inconformidades ou ausências na versão atual — não se limite às pendências antigas.
+4. Não trate esta revisão como um processo isolado: use o histórico acima como referência, mas avalie o conteúdo atual dos PDFs.`;
 }
