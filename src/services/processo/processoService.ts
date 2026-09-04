@@ -446,15 +446,20 @@ export async function listSolicitacoesByProcesso(processoId: string) {
       query(collection(db, 'solicitacoes'), where('processoId', '==', processoId)),
     )
     return snap.docs
-      .map((item) => ({ id: item.id, ...(item.data() as Record<string, unknown>) }))
+      .map((item) => {
+        const data = item.data() as Record<string, unknown>
+        return { id: item.id, ...data }
+      })
       .sort((a, b) => {
+        const aCreated = (a as { createdAt?: unknown }).createdAt
+        const bCreated = (b as { createdAt?: unknown }).createdAt
         const aTime =
-          a.createdAt && typeof a.createdAt === 'object' && 'toMillis' in a.createdAt
-            ? Number((a.createdAt as { toMillis: () => number }).toMillis())
+          aCreated && typeof aCreated === 'object' && aCreated !== null && 'toMillis' in aCreated
+            ? Number((aCreated as { toMillis: () => number }).toMillis())
             : 0
         const bTime =
-          b.createdAt && typeof b.createdAt === 'object' && 'toMillis' in b.createdAt
-            ? Number((b.createdAt as { toMillis: () => number }).toMillis())
+          bCreated && typeof bCreated === 'object' && bCreated !== null && 'toMillis' in bCreated
+            ? Number((bCreated as { toMillis: () => number }).toMillis())
             : 0
         return aTime - bTime
       })

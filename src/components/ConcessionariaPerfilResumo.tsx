@@ -33,10 +33,18 @@ export default function ConcessionariaPerfilResumo({
   const [tipoProjetoPadrao, setTipoProjetoPadrao] = useState(perfil.tipoProjetoPadrao)
   const [tituloRelatorio, setTituloRelatorio] = useState(perfil.modeloRelatorio.tituloPadrao)
 
-  const normasLabels = perfil.normasFontes
-    .map((id) => FONTES_NORMATIVAS.find((f) => f.id === id)?.titulo ?? id)
-  const documentosLabels = perfil.documentosObrigatorios
-    .map((id) => TIPOS_DOCUMENTO_OPTIONS.find((d) => d.value === id)?.label ?? id)
+  const normasLabels = perfil.normasFontes.map((id) => {
+    const catalog = FONTES_NORMATIVAS.find((f) => f.id === id)?.titulo
+    if (catalog) return catalog
+    const custom = (perfil.normasCustom ?? []).find((f) => f.id === id)?.titulo
+    return custom ?? id
+  })
+  const documentosLabels = perfil.documentosObrigatorios.map((id) => {
+    const catalog = TIPOS_DOCUMENTO_OPTIONS.find((d) => d.value === id)?.label
+    if (catalog) return catalog
+    const custom = (perfil.documentosCustom ?? []).find((d) => d.id === id)?.label
+    return custom ?? id
+  })
   const templateNome = perfil.templateId
     ? getModeloPadraoById(perfil.templateId)?.nome ?? 'Personalizado'
     : 'Configuração manual'

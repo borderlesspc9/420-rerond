@@ -4,7 +4,6 @@ import { Building2, Upload } from 'lucide-react'
 import { createSolicitacao } from '../services/solicitacao/solicitacaoService'
 import {
   CONCESSIONARIAS,
-  OUTRA_CONCESSIONARIA_VALUE,
   getConcessionariaById,
 } from '../config/concessionarias'
 import {
@@ -24,6 +23,8 @@ import { updateProcesso } from '../services/processo/processoService'
 import ConcessionariaCadastroModal from '../components/ConcessionariaCadastroModal'
 import ConcessionariaPerfilResumo from '../components/ConcessionariaPerfilResumo'
 import type { ConcessionariaPerfil } from '../models/ConcessionariaPerfil'
+import { listTiposAnalise } from '../services/tipoAnalise/tipoAnaliseService'
+import type { TipoAnalise } from '../models/TipoAnalise'
 import type { Cliente } from '../models/Cliente'
 import { getClienteDisplayName } from '../models/Cliente'
 import { listClientes } from '../services/cliente/clienteService'
@@ -31,6 +32,8 @@ import { TIPOS_DOCUMENTO_OPTIONS, getFileKey } from '../config/tiposDocumento'
 import type { TipoDocumentoAnexo } from '../models/Solicitacao'
 import './NovaSolicitacao.css'
 import '../components/ConcessionariaPerfilResumo.css'
+
+const CLIENTE_OUTRO_VALUE = '__outro__'
 
 const TIPOS_PROJETO_NORMATIVO = [
   { value: '', label: 'Não informado (a IA infere automaticamente)' },
@@ -83,6 +86,8 @@ type FormData = {
   numeroRevisao: string
   descricao: string
   tipoRelatorio: string
+  tipoAnaliseId: string
+  tipoAnaliseDescricao: string
 }
 
 const montarDadosObra = (data: FormData) => {
@@ -152,9 +157,12 @@ export default function NovaSolicitacao() {
     numeroRevisao: '',
     descricao: '',
     tipoRelatorio: '',
+    tipoAnaliseId: '',
+    tipoAnaliseDescricao: '',
   })
   const [clientes, setClientes] = useState<Cliente[]>([])
-  const [clienteSelectMode, setClienteSelectMode] = useState<'cadastrado' | 'manual'>('cadastrado')
+  const [tiposAnalise, setTiposAnalise] = useState<TipoAnalise[]>([])
+  const [fileDocumentLabels, setFileDocumentLabels] = useState<Record<string, string>>({})
   const [concessionariaOptions, setConcessionariaOptions] = useState<ConcessionariaOption[]>(() =>
     buildConcessionariaOptions(),
   )
@@ -241,9 +249,28 @@ export default function NovaSolicitacao() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await listTiposAnalise()
+        if (!cancelled) setTiposAnalise(data)
+      } catch (err) {
+        console.error('Erro ao carregar tipos de análise:', err)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleClienteSelect = (clienteId: string) => {
     if (!clienteId) {
       setFormData((prev) => ({ ...prev, clienteId: '', cliente: '' }))
+      return
+    }
+    if (clienteId === CLIENTE_OUTRO_VALUE) {
+      setFormData((prev) => ({ ...prev, clienteId: CLIENTE_OUTRO_VALUE, cliente: '' }))
       return
     }
     const found = clientes.find((item) => item.id === clienteId)
@@ -254,6 +281,15 @@ export default function NovaSolicitacao() {
       cliente: getClienteDisplayName(found),
     }))
   }
+
+  const clienteSelectValue =
+    formData.clienteId === CLIENTE_OUTRO_VALUE
+      ? CLIENTE_OUTRO_VALUE
+      : formData.clienteId && clientes.some((item) => item.id === formData.clienteId)
+        ? formData.clienteId
+        : formData.cliente && !formData.clienteId
+          ? CLIENTE_OUTRO_VALUE
+          : formData.clienteId || ''
 
   useEffect(() => {
     const state = location.state as
@@ -288,7 +324,6 @@ export default function NovaSolicitacao() {
         concessionariaSelect: state.concessionariaId || prev.concessionariaSelect,
         nomeConcessionaria: state.nomeConcessionaria || prev.nomeConcessionaria,
       }))
-      if (state.clienteId) setClienteSelectMode('cadastrado')
       navigate(location.pathname, { replace: true, state: null })
     }
   }, [location.pathname, location.state, navigate])
@@ -315,18 +350,6 @@ export default function NovaSolicitacao() {
       const perfilFirestore = findConcessionariaOption(concessionariaOptions, value)
       if (perfilFirestore?.source === 'firestore') {
         await loadPerfilById(perfilFirestore.id)
-        return
-      }
-
-      if (value === OUTRA_CONCESSIONARIA_VALUE) {
-        setSelectedPerfil(null)
-        setShowCadastroModal(true)
-        setFormData((prev) => ({
-          ...prev,
-          concessionariaSelect: '',
-          concessionariaId: '',
-          nomeConcessionaria: '',
-        }))
         return
       }
 
@@ -423,13 +446,41 @@ export default function NovaSolicitacao() {
     })
   }
 
+  const resolveClienteIdPersistido = () => {
+    if (!formData.clienteId || formData.clienteId === CLIENTE_OUTRO_VALUE) return null
+    return formData.clienteId
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (clienteSelectValue === CLIENTE_OUTRO_VALUE && !formData.cliente.trim()) {
+      setError('Informe o nome do cliente em Outro, ou selecione um cliente cadastrado.')
+      return
+    }
+    if (
+      (formData.tipoAnaliseId === 'outro' ||
+        tiposAnalise.find((t) => t.id === formData.tipoAnaliseId)?.categoria === 'outro') &&
+      formData.tipoAnaliseId &&
+      !formData.tipoAnaliseDescricao.trim()
+    ) {
+      setError('Descreva o tipo de análise quando usar Outro.')
+      return
+    }
+    for (const file of files) {
+      const key = getFileKey(file)
+      if (fileDocumentTypes[key] === 'outro' && !fileDocumentLabels[key]?.trim()) {
+        setError(`Informe o nome do tipo de documento para "${file.name}" (Outro).`)
+        return
+      }
+    }
+
     setIsSubmitting(true)
 
     try {
       const obra = montarDadosObra(formData)
+      const clienteIdPersistido = resolveClienteIdPersistido()
       const id = await createSolicitacao(
         {
           titulo: obra.titulo,
@@ -438,8 +489,10 @@ export default function NovaSolicitacao() {
           descricao: obra.descricao,
           status: 'pendente',
           concessionariaId: formData.concessionariaId || null,
-          clienteId: formData.clienteId || null,
+          clienteId: clienteIdPersistido,
           processoId: formData.processoId || null,
+          tipoAnaliseId: formData.tipoAnaliseId || null,
+          tipoAnaliseDescricao: formData.tipoAnaliseDescricao || null,
           cliente: formData.cliente || undefined,
           interessado: formData.interessado || formData.cliente || undefined,
           kilometragem: formData.kilometragem || undefined,
@@ -472,7 +525,7 @@ export default function NovaSolicitacao() {
             revisaoAtual: formData.numeroRevisao || 'R00',
             ultimaSolicitacaoId: id,
             status: 'em_analise',
-            clienteId: formData.clienteId || null,
+            clienteId: clienteIdPersistido,
             clienteNome: formData.cliente || null,
             concessionariaId: formData.concessionariaId || null,
             nomeConcessionaria: formData.nomeConcessionaria || null,
@@ -534,62 +587,42 @@ export default function NovaSolicitacao() {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="clienteSelect">Cliente</label>
-              <div className="cliente-mode-row">
-                <button
-                  type="button"
-                  className={`cliente-mode-btn ${clienteSelectMode === 'cadastrado' ? 'active' : ''}`}
-                  onClick={() => setClienteSelectMode('cadastrado')}
-                >
-                  Cadastrado
-                </button>
-                <button
-                  type="button"
-                  className={`cliente-mode-btn ${clienteSelectMode === 'manual' ? 'active' : ''}`}
-                  onClick={() => {
-                    setClienteSelectMode('manual')
-                    setFormData((prev) => ({ ...prev, clienteId: '' }))
-                  }}
-                >
-                  Digitar manualmente
-                </button>
-              </div>
-              {clienteSelectMode === 'cadastrado' ? (
-                <>
-                  <select
-                    id="clienteSelect"
-                    value={formData.clienteId}
-                    onChange={(e) => handleClienteSelect(e.target.value)}
-                  >
-                    <option value="">Selecione um cliente...</option>
-                    {clientes.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {getClienteDisplayName(item)}
-                        {item.cnpj ? ` — ${item.cnpj}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="add-concessionaria-hint">
-                    Não encontrou?{' '}
-                    <button
-                      type="button"
-                      className="link-button"
-                      onClick={() => navigate('/clientes')}
-                    >
-                      Cadastrar cliente
-                    </button>
-                    {' '}(persistente para próximas solicitações).
-                  </p>
-                </>
-              ) : (
+              <select
+                id="clienteSelect"
+                value={clienteSelectValue}
+                onChange={(e) => handleClienteSelect(e.target.value)}
+              >
+                <option value="">Selecione um cliente...</option>
+                {clientes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {getClienteDisplayName(item)}
+                    {item.cnpj ? ` — ${item.cnpj}` : ''}
+                  </option>
+                ))}
+                <option value={CLIENTE_OUTRO_VALUE}>Outro...</option>
+              </select>
+              {clienteSelectValue === CLIENTE_OUTRO_VALUE ? (
                 <input
                   type="text"
                   id="cliente"
                   name="cliente"
                   value={formData.cliente}
                   onChange={handleInputChange}
-                  placeholder="Ex: OHR TELECOM EIRELI (compatibilidade)"
+                  placeholder="Informe o nome do cliente"
+                  style={{ marginTop: '0.5rem' }}
                 />
-              )}
+              ) : null}
+              <p className="add-concessionaria-hint">
+                Não encontrou?{' '}
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => navigate('/clientes')}
+                >
+                  Cadastrar cliente
+                </button>
+                {' '}ou use Outro para casos pontuais.
+              </p>
             </div>
             <div className="form-group">
               <label htmlFor="interessado">Interessado</label>
@@ -677,9 +710,6 @@ export default function NovaSolicitacao() {
                       {item.perfilCompleto ? '' : ' (perfil incompleto)'}
                     </option>
                   ))}
-                <option value={OUTRA_CONCESSIONARIA_VALUE}>
-                  Cadastrar nova concessionária...
-                </option>
               </select>
 
               <button
@@ -861,6 +891,33 @@ export default function NovaSolicitacao() {
 
           <div className="form-row">
             <div className="form-group">
+              <label htmlFor="tipoAnaliseId">Tipo de análise</label>
+              <select
+                id="tipoAnaliseId"
+                name="tipoAnaliseId"
+                value={formData.tipoAnaliseId}
+                onChange={handleInputChange}
+              >
+                <option value="">Selecione...</option>
+                {tiposAnalise.map((tipo) => (
+                  <option key={tipo.id} value={tipo.id}>
+                    {tipo.nome}
+                  </option>
+                ))}
+              </select>
+              {(formData.tipoAnaliseId === 'outro' ||
+                tiposAnalise.find((t) => t.id === formData.tipoAnaliseId)?.categoria ===
+                  'outro') && (
+                <input
+                  style={{ marginTop: 8 }}
+                  name="tipoAnaliseDescricao"
+                  value={formData.tipoAnaliseDescricao}
+                  onChange={handleInputChange}
+                  placeholder="Descreva o tipo (obrigatório para Outro)"
+                />
+              )}
+            </div>
+            <div className="form-group">
               <label htmlFor="tipoRelatorio">Tipo de Projeto Normativo</label>
               <select
                 id="tipoRelatorio"
@@ -969,6 +1026,19 @@ export default function NovaSolicitacao() {
                         </option>
                       ))}
                     </select>
+                    {fileDocumentTypes[fileKey] === 'outro' && (
+                      <input
+                        className="file-type-select"
+                        placeholder="Nome do documento"
+                        value={fileDocumentLabels[fileKey] || ''}
+                        onChange={(e) =>
+                          setFileDocumentLabels((prev) => ({
+                            ...prev,
+                            [fileKey]: e.target.value,
+                          }))
+                        }
+                      />
+                    )}
                     <span className="file-size">
                       {(file.size / (1024 * 1024)).toFixed(2)} MB
                     </span>

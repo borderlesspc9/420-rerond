@@ -23,6 +23,7 @@ import {
   type ConcessionariaCadastrada,
 } from '../utils/concessionariasStorage'
 import type { SolicitacaoWithFiles } from '../models/Solicitacao'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './Dashboard.css'
 
 export default function Dashboard() {
@@ -157,6 +158,7 @@ export default function Dashboard() {
     resetLogoForm()
     setConcessionariaFeedback(null)
   }
+  const overlayDismiss = useOverlayDismiss(closeConcessionariaModal)
 
   const handleLogoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
@@ -605,7 +607,8 @@ export default function Dashboard() {
       {showConcessionariaModal && (
         <div
           className="dashboard-modal-overlay"
-          onClick={closeConcessionariaModal}
+          onMouseDown={overlayDismiss.onMouseDown}
+          onClick={overlayDismiss.onClick}
           role="presentation"
         >
           <div

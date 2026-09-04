@@ -13,6 +13,7 @@ import {
   parseComplementosChecklist,
   parseConformidadeChecklist,
 } from '../utils/checklistConformidade'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './RelatorioViewer.css'
 
 const CHECKLIST_KEYS = [
@@ -136,6 +137,7 @@ export default function RelatorioViewer({
   const [complementosAtual, setComplementosAtual] = useState(complementosChecklist)
   const [gerando, setGerando] = useState(false)
   const [erroGeracao, setErroGeracao] = useState<string | null>(null)
+  const overlayDismiss = useOverlayDismiss(onClose)
 
   useEffect(() => {
     setParecerAtual(parecerTecnico)
@@ -330,7 +332,11 @@ export default function RelatorioViewer({
   }
 
   return (
-    <div className="relatorio-viewer-overlay" onClick={onClose}>
+    <div
+      className="relatorio-viewer-overlay"
+      onMouseDown={overlayDismiss.onMouseDown}
+      onClick={overlayDismiss.onClick}
+    >
       <AnaliseProgressOverlay
         active={gerando}
         titulo={titulo}

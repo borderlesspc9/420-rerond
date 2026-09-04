@@ -1,5 +1,3 @@
-import type { TipoDocumentoAnexo } from './Solicitacao'
-
 export type PromptProfileId = 'eco101' | 'motiva' | 'arteris' | 'default' | 'custom'
 export type TipoProjetoPadrao = 'pit' | 'obra_per' | 'obra_nao_per'
 
@@ -15,6 +13,27 @@ export type ModeloRelatorioConfig = {
   templateMarkdown: string
 }
 
+/** Norma cadastrada no perfil (fora do catálogo JSON embutido). */
+export type NormaCustom = {
+  id: string
+  titulo: string
+  orgao: string
+  ano?: number | null
+  descricao: string
+  /** Nome original do arquivo, se houver. */
+  arquivoNome?: string | null
+  arquivoUrl?: string | null
+  arquivoStoragePath?: string | null
+  origem: 'manual' | 'arquivo'
+}
+
+/** Tipo de documento obrigatório cadastrado no perfil (fora do catálogo fixo). */
+export type DocumentoObrigatorioCustom = {
+  id: string
+  label: string
+  descricao?: string
+}
+
 export type ConcessionariaPerfil = {
   id: string
   nome: string
@@ -25,8 +44,12 @@ export type ConcessionariaPerfil = {
   rodovia?: string
   tipoProjetoPadrao: TipoProjetoPadrao
   normasFontes: string[]
+  /** Metadados das normas custom referenciadas em `normasFontes`. */
+  normasCustom?: NormaCustom[]
   modeloRelatorio: ModeloRelatorioConfig
-  documentosObrigatorios: TipoDocumentoAnexo[]
+  /** IDs do catálogo e/ou de `documentosCustom`. */
+  documentosObrigatorios: string[]
+  documentosCustom?: DocumentoObrigatorioCustom[]
   requisitos: RequisitoChecklist[]
   logoUrl?: string | null
   logoDataUrl?: string | null

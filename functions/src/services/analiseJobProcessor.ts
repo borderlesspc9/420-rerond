@@ -598,6 +598,55 @@ export async function runAnaliseJob(params: {
       parsed.dadosExtraidos,
     );
 
+    // Snapshot da versão anterior (se existir) + grava versão atual antes de sobrescrever no doc pai
+    const snapAntes = await solicitacaoRef.get();
+    const dataAntes = snapAntes.data() || {};
+    const versaoAnterior =
+      typeof dataAntes.analiseVersaoAtual === "number" ? dataAntes.analiseVersaoAtual : 0;
+    const novaVersao = versaoAnterior + 1;
+    const versoesRef = solicitacaoRef.collection("analiseVersoes");
+
+    if (
+      versaoAnterior > 0 ||
+      dataAntes.parecerTecnico ||
+      dataAntes.checklistConformidade ||
+      dataAntes.relatorioIA
+    ) {
+      // Preserva o estado anterior como versão N (se ainda não havia contador, vira v1)
+      const versaoParaArquivar = versaoAnterior > 0 ? versaoAnterior : 1;
+      await versoesRef.doc(`v${versaoParaArquivar}`).set(
+        {
+          solicitacaoId: params.solicitacaoId,
+          versao: versaoParaArquivar,
+          jobId: dataAntes.activeAnaliseJobId ?? null,
+          tipoAnaliseId: dataAntes.tipoAnaliseId ?? null,
+          tipoRelatorio: dataAntes.tipoRelatorio ?? null,
+          parecerTecnico: dataAntes.parecerTecnico ?? null,
+          checklistConformidade: dataAntes.checklistConformidade ?? null,
+          relatorioIA: dataAntes.relatorioIA ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          arquivadoEm: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
+
+    const versaoCorrente = versaoAnterior > 0 ? novaVersao : 1;
+    await versoesRef.doc(`v${versaoCorrente}`).set({
+      solicitacaoId: params.solicitacaoId,
+      versao: versaoCorrente,
+      jobId: params.jobId,
+      tipoAnaliseId: dataAntes.tipoAnaliseId ?? null,
+      tipoRelatorio: tipoBase,
+      parecerTecnico: escopoAnalise.gerarParecerTecnico ? parecerFinal : null,
+      checklistConformidade: escopoAnalise.gerarChecklistConformidade
+        ? JSON.stringify(checklistFinal)
+        : null,
+      relatorioIA: result.content,
+      promptCustomizado: promptCustomizado || null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
     await solicitacaoRef.update({
       status: "em_analise",
       tipoRelatorio: tipoBase,
@@ -615,6 +664,7 @@ export async function runAnaliseJob(params: {
       activeAnaliseJobId: null,
       analiseJobStatus: "completed",
       analiseJobProgress: 100,
+      analiseVersaoAtual: versaoCorrente,
       updatedAt: FieldValue.serverTimestamp(),
     });
 

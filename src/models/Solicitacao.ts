@@ -13,12 +13,15 @@ export type TipoDocumentoAnexo =
   | 'licenca_ambiental'
   | 'parecer_concessionaria'
   | 'documento_complementar'
+  | 'outro'
   | 'desconhecido'
 
 export interface ArquivoMeta {
   url: string
   nome: string
   tipoDocumento: TipoDocumentoAnexo
+  /** Preenchido quando tipoDocumento === 'outro'. */
+  tipoDocumentoLabel?: string
   mimeType?: string
   tamanhoBytes?: number
   uploadedAt?: string
@@ -108,6 +111,18 @@ export interface Solicitacao {
   clienteId?: string | null
   /** Vínculo com processo/atendimento (Sprint 2). */
   processoId?: string | null
+  /** Tipo de análise isolado (ocupação, acesso, PAC, outro…). */
+  tipoAnaliseId?: string | null
+  /** Descrição livre quando tipoAnaliseId = outro / custom. */
+  tipoAnaliseDescricao?: string | null
+  /** Versão corrente da análise IA (snapshot em subcoleção). */
+  analiseVersaoAtual?: number | null
+  /** Histórico leve de edições manuais (P11). */
+  historicoEdicoes?: Array<{
+    em: string
+    por?: string | null
+    resumo: string
+  }>
   // Overview Dados do cliente
   cliente?: string
   interessado?: string | null

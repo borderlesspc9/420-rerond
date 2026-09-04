@@ -6,11 +6,13 @@ import Layout from './components/Layout'
 import Dashboard from './views/Dashboard'
 import Solicitacoes from './views/Solicitacoes'
 import NovaSolicitacao from './views/NovaSolicitacao'
+import EditarSolicitacao from './views/EditarSolicitacao'
 import SolicitacaoRegistrada from './views/SolicitacaoRegistrada'
 import NovaConcessionaria from './views/NovaConcessionaria'
 import Clientes from './views/Clientes'
 import Processos from './views/Processos'
 import ProcessoDetalhe from './views/ProcessoDetalhe'
+import ConfiguracoesModulares from './views/ConfiguracoesModulares'
 import { HomeScreen, LoginScreen, RegisterScreen } from './screens'
 import './App.css'
 
@@ -33,6 +35,8 @@ function App() {
             <Route path="processos/:processoId" element={<ProcessoDetalhe />} />
             <Route path="solicitacoes" element={<Solicitacoes />} />
             <Route path="nova-solicitacao" element={<NovaSolicitacao />} />
+            <Route path="solicitacoes/:id/editar" element={<EditarSolicitacao />} />
+            <Route path="configuracoes" element={<ConfiguracoesModulares />} />
             <Route path="concessionarias/nova" element={<NovaConcessionaria />} />
             <Route path="solicitacao-registrada" element={<SolicitacaoRegistrada />} />
           </Route>

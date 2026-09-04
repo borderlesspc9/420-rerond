@@ -1,4 +1,5 @@
 import { Building2, X } from 'lucide-react'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './ConcessionariaCadastroModal.css'
 
 type ConcessionariaCadastroModalProps = {
@@ -12,10 +13,16 @@ export default function ConcessionariaCadastroModal({
   onClose,
   onConfirm,
 }: ConcessionariaCadastroModalProps) {
+  const overlayDismiss = useOverlayDismiss(onClose)
   if (!open) return null
 
   return (
-    <div className="conc-modal-overlay" onClick={onClose} role="presentation">
+    <div
+      className="conc-modal-overlay"
+      onMouseDown={overlayDismiss.onMouseDown}
+      onClick={overlayDismiss.onClick}
+      role="presentation"
+    >
       <div
         className="conc-modal"
         role="dialog"

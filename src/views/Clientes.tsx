@@ -10,6 +10,7 @@ import {
   updateCliente,
 } from '../services/cliente/clienteService'
 import { Button, Input, Typography } from '../components/ui'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './Clientes.css'
 
 const EMPTY_DRAFT: ClienteDraft = {
@@ -102,6 +103,7 @@ export default function Clientes() {
     setDraft({ ...EMPTY_DRAFT })
     setFormError(null)
   }
+  const overlayDismiss = useOverlayDismiss(closeForm)
 
   const handleSave = async () => {
     if (!draft.razaoSocial.trim()) {
@@ -234,7 +236,12 @@ export default function Clientes() {
       )}
 
       {showForm && (
-        <div className="clientes-modal-overlay" onClick={closeForm} role="presentation">
+        <div
+          className="clientes-modal-overlay"
+          onMouseDown={overlayDismiss.onMouseDown}
+          onClick={overlayDismiss.onClick}
+          role="presentation"
+        >
           <div
             className="clientes-modal"
             role="dialog"

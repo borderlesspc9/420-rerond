@@ -9,9 +9,15 @@ import {
   setDoc,
   type Timestamp,
 } from 'firebase/firestore'
-import { db } from '../../lib/firebase'
-import type { ConcessionariaPerfil, ConcessionariaPerfilDraft } from '../../models/ConcessionariaPerfil'
+import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
+import { db, storage } from '../../lib/firebase'
+import type {
+  ConcessionariaPerfil,
+  ConcessionariaPerfilDraft,
+  NormaCustom,
+} from '../../models/ConcessionariaPerfil'
 import { slugifyConcessionariaNome } from '../../config/modelosRelatorioPadrao'
+import { validateNormaArquivo } from '../../utils/normaCustom'
 
 const COLLECTION_NAME =
   import.meta.env.VITE_FIRESTORE_CONCESSIONARIAS_COLLECTION?.trim() || 'concessionarias'
@@ -23,6 +29,38 @@ const toDate = (value: unknown): Date | undefined => {
     return (value as Timestamp).toDate()
   }
   return undefined
+}
+
+const parseNormaCustom = (raw: unknown): NormaCustom | null => {
+  if (!raw || typeof raw !== 'object') return null
+  const item = raw as Record<string, unknown>
+  const id = String(item.id ?? '').trim()
+  const titulo = String(item.titulo ?? '').trim()
+  const orgao = String(item.orgao ?? '').trim()
+  const descricao = String(item.descricao ?? '').trim()
+  if (!id || !titulo || !orgao || !descricao) return null
+
+  const anoRaw = item.ano
+  const ano =
+    typeof anoRaw === 'number' && Number.isFinite(anoRaw)
+      ? anoRaw
+      : typeof anoRaw === 'string' && anoRaw.trim()
+        ? Number(anoRaw)
+        : null
+
+  return {
+    id,
+    titulo,
+    orgao,
+    ano: ano !== null && Number.isFinite(ano) ? ano : null,
+    descricao,
+    arquivoNome: item.arquivoNome ? String(item.arquivoNome) : null,
+    arquivoUrl: item.arquivoUrl ? String(item.arquivoUrl) : null,
+    arquivoStoragePath: item.arquivoStoragePath
+      ? String(item.arquivoStoragePath)
+      : null,
+    origem: item.origem === 'arquivo' ? 'arquivo' : 'manual',
+  }
 }
 
 const parsePerfil = (id: string, raw: Record<string, unknown>): ConcessionariaPerfil => ({
@@ -44,6 +82,11 @@ const parsePerfil = (id: string, raw: Record<string, unknown>): ConcessionariaPe
       ? raw.tipoProjetoPadrao
       : 'pit',
   normasFontes: Array.isArray(raw.normasFontes) ? raw.normasFontes.map(String) : [],
+  normasCustom: Array.isArray(raw.normasCustom)
+    ? raw.normasCustom
+        .map(parseNormaCustom)
+        .filter((item): item is NormaCustom => item !== null)
+    : [],
   modeloRelatorio: {
     tituloPadrao: String(
       (raw.modeloRelatorio as Record<string, unknown> | undefined)?.tituloPadrao ??
@@ -57,7 +100,24 @@ const parsePerfil = (id: string, raw: Record<string, unknown>): ConcessionariaPe
     ),
   },
   documentosObrigatorios: Array.isArray(raw.documentosObrigatorios)
-    ? (raw.documentosObrigatorios as ConcessionariaPerfil['documentosObrigatorios'])
+    ? raw.documentosObrigatorios.map(String)
+    : [],
+  documentosCustom: Array.isArray(raw.documentosCustom)
+    ? raw.documentosCustom
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const row = item as Record<string, unknown>
+          const id = String(row.id ?? '').trim()
+          const label = String(row.label ?? '').trim()
+          if (!id || !label) return null
+          const descricao = row.descricao ? String(row.descricao).trim() : ''
+          return {
+            id,
+            label,
+            ...(descricao ? { descricao } : {}),
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
     : [],
   requisitos: Array.isArray(raw.requisitos)
     ? (raw.requisitos as ConcessionariaPerfil['requisitos'])
@@ -70,8 +130,8 @@ const parsePerfil = (id: string, raw: Record<string, unknown>): ConcessionariaPe
 })
 
 export async function listConcessionariasPerfil(): Promise<ConcessionariaPerfil[]> {
-  const ref = collection(db, COLLECTION_NAME)
-  const snap = await getDocs(query(ref, orderBy('nome')))
+  const colRef = collection(db, COLLECTION_NAME)
+  const snap = await getDocs(query(colRef, orderBy('nome')))
   return snap.docs
     .map((item) => parsePerfil(item.id, item.data() as Record<string, unknown>))
     .filter((item) => item.ativo)
@@ -85,6 +145,41 @@ export async function getConcessionariaPerfilById(
   return parsePerfil(snap.id, snap.data() as Record<string, unknown>)
 }
 
+/** Upload opcional de PDF/DOC de norma. Falha de storage NÃO interrompe o cadastro. */
+export async function uploadNormaArquivoSafe(
+  file: File,
+  concessionariaId: string,
+  normaId: string,
+): Promise<{ url: string | null; storagePath: string | null; warning?: string }> {
+  const validationError = validateNormaArquivo(file)
+  if (validationError) {
+    return { url: null, storagePath: null, warning: validationError }
+  }
+
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80)
+    const storagePath = `concessionarias/${concessionariaId}/normas/${normaId}_${safeName}`
+    const fileRef = storageRef(storage, storagePath)
+    await uploadBytes(fileRef, file, {
+      contentType: file.type || 'application/octet-stream',
+      customMetadata: {
+        normaId,
+        originalName: file.name.slice(0, 120),
+      },
+    })
+    const url = await getDownloadURL(fileRef)
+    return { url, storagePath }
+  } catch (err) {
+    console.warn('Upload de norma falhou (perfil segue sem arquivo):', err)
+    return {
+      url: null,
+      storagePath: null,
+      warning:
+        'Não foi possível enviar o arquivo da norma. Os dados textuais foram salvos; anexe o arquivo depois se necessário.',
+    }
+  }
+}
+
 export async function saveConcessionariaPerfil(
   draft: ConcessionariaPerfilDraft,
   options?: { id?: string; perfilCompleto?: boolean },
@@ -95,6 +190,18 @@ export async function saveConcessionariaPerfil(
   }
 
   const existing = await getDoc(doc(db, COLLECTION_NAME, id))
+  const normasCustom = (draft.normasCustom ?? []).map((item) => ({
+    id: item.id,
+    titulo: item.titulo.trim(),
+    orgao: item.orgao.trim(),
+    ano: item.ano ?? null,
+    descricao: item.descricao.trim(),
+    arquivoNome: item.arquivoNome ?? null,
+    arquivoUrl: item.arquivoUrl ?? null,
+    arquivoStoragePath: item.arquivoStoragePath ?? null,
+    origem: item.origem === 'arquivo' ? 'arquivo' : 'manual',
+  }))
+
   const payload = {
     id,
     nome: draft.nome.trim(),
@@ -105,8 +212,14 @@ export async function saveConcessionariaPerfil(
     rodovia: draft.rodovia?.trim() || null,
     tipoProjetoPadrao: draft.tipoProjetoPadrao,
     normasFontes: draft.normasFontes,
+    normasCustom,
     modeloRelatorio: draft.modeloRelatorio,
     documentosObrigatorios: draft.documentosObrigatorios,
+    documentosCustom: (draft.documentosCustom ?? []).map((item) => ({
+      id: item.id,
+      label: item.label.trim(),
+      ...(item.descricao?.trim() ? { descricao: item.descricao.trim() } : {}),
+    })),
     requisitos: draft.requisitos,
     logoUrl: draft.logoUrl ?? null,
     logoDataUrl: draft.logoDataUrl ?? null,
@@ -132,8 +245,8 @@ export async function updateConcessionariaPerfilFields(
     >
   >,
 ): Promise<ConcessionariaPerfil> {
-  const ref = doc(db, COLLECTION_NAME, id)
-  const snap = await getDoc(ref)
+  const docRef = doc(db, COLLECTION_NAME, id)
+  const snap = await getDoc(docRef)
   if (!snap.exists()) {
     throw new Error('Concessionária não encontrada.')
   }
@@ -154,7 +267,7 @@ export async function updateConcessionariaPerfilFields(
     }
   }
 
-  await setDoc(ref, payload, { merge: true })
+  await setDoc(docRef, payload, { merge: true })
   const updated = await getConcessionariaPerfilById(id)
   if (!updated) {
     throw new Error('Não foi possível carregar a concessionária após atualizar.')

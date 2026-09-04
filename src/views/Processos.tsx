@@ -7,6 +7,7 @@ import type { Processo } from '../models/Processo'
 import { listClientes } from '../services/cliente/clienteService'
 import { createProcesso, isProcessosMockMode, listProcessos } from '../services/processo/processoService'
 import { Button, Input, Typography } from '../components/ui'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './Processos.css'
 
 export default function Processos() {
@@ -23,6 +24,7 @@ export default function Processos() {
   const [titulo, setTitulo] = useState('')
   const [clienteId, setClienteId] = useState('')
   const [rodovia, setRodovia] = useState('')
+  const overlayDismiss = useOverlayDismiss(() => setShowForm(false))
 
   const load = async () => {
     try {
@@ -164,7 +166,12 @@ export default function Processos() {
       )}
 
       {showForm && (
-        <div className="processos-modal-overlay" onClick={() => setShowForm(false)} role="presentation">
+        <div
+          className="processos-modal-overlay"
+          onMouseDown={overlayDismiss.onMouseDown}
+          onClick={overlayDismiss.onClick}
+          role="presentation"
+        >
           <div className="processos-modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <Typography variant="h3">Novo processo</Typography>
             <Typography variant="muted">

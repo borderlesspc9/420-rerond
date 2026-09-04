@@ -140,3 +140,18 @@ Gradientes suaves em azul claro sobre `--color-bg` (já definidos em `index.css`
 3. Feedback de processamento sempre visível em operações longas.
 4. Hierarquia: brand BaseInfra presente; concessionária destacada no relatório, não competindo no chrome principal.
 5. Evitar cards/estatísticas decorativas que atrapalhem o fluxo técnico.
+
+---
+
+## Nota pós-reunião (prioridade de produto)
+
+O cliente **aprovou** a interface / MVP visual. O design system permanece como referência para correções funcionais e novas telas **necessárias** (ex.: feedback de aprendizado, tipos de análise, edição de solicitação).
+
+**Não** priorizar:
+
+- redesign de dashboard;
+- polimento visual amplo;
+- novas telas decorativas.
+
+Prioridade atual: **assertividade da IA** e regras de negócio — ver [`escopo.md`](./escopo.md) e [`checklist_sprints.md`](./checklist_sprints.md).
+

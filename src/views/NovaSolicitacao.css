@@ -87,30 +87,6 @@
   color: #6b7280;
 }
 
-.cliente-mode-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.cliente-mode-btn {
-  border: 1px solid var(--color-border, #d5e3f5);
-  background: var(--color-surface-alt, #f8fbff);
-  color: var(--color-text-muted, #5d708e);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.cliente-mode-btn.active {
-  background: var(--color-primary-100, #ddeaff);
-  color: var(--color-primary-800, #163f97);
-  border-color: var(--color-primary-600, #2d67db);
-}
-
-
 .link-button {
   background: none;
   border: none;

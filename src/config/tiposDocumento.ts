@@ -16,6 +16,7 @@ export const TIPOS_DOCUMENTO_OPTIONS: Array<{
   { value: 'licenca_ambiental', label: 'Licença Ambiental / Dispensa' },
   { value: 'parecer_concessionaria', label: 'Parecer da Concessionária' },
   { value: 'documento_complementar', label: 'Documento Complementar' },
+  { value: 'outro', label: 'Outro...' },
   { value: 'desconhecido', label: 'Desconhecido' },
 ]
 

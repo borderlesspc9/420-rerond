@@ -12,7 +12,7 @@ import {
   type DocumentData,
   type Timestamp,
 } from 'firebase/firestore'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import { httpsCallable } from 'firebase/functions'
 import type {
   ArquivoMeta,
@@ -76,6 +76,9 @@ const parseArquivosMeta = (value: unknown): ArquivoMeta[] => {
         url: String(raw.url ?? ''),
         nome: String(raw.nome ?? ''),
         tipoDocumento: (raw.tipoDocumento as TipoDocumentoAnexo) ?? 'desconhecido',
+        tipoDocumentoLabel: raw.tipoDocumentoLabel
+          ? String(raw.tipoDocumentoLabel)
+          : undefined,
         mimeType: raw.mimeType ? String(raw.mimeType) : undefined,
         tamanhoBytes: typeof raw.tamanhoBytes === 'number' ? raw.tamanhoBytes : undefined,
         uploadedAt: raw.uploadedAt ? String(raw.uploadedAt) : undefined,
@@ -152,6 +155,14 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
     concessionariaId: data.concessionariaId != null ? String(data.concessionariaId) : undefined,
     clienteId: data.clienteId != null ? String(data.clienteId) : undefined,
     processoId: data.processoId != null ? String(data.processoId) : undefined,
+    tipoAnaliseId: data.tipoAnaliseId != null ? String(data.tipoAnaliseId) : undefined,
+    tipoAnaliseDescricao:
+      data.tipoAnaliseDescricao != null ? String(data.tipoAnaliseDescricao) : undefined,
+    analiseVersaoAtual:
+      typeof data.analiseVersaoAtual === 'number' ? data.analiseVersaoAtual : undefined,
+    historicoEdicoes: Array.isArray(data.historicoEdicoes)
+      ? (data.historicoEdicoes as Solicitacao['historicoEdicoes'])
+      : undefined,
     cliente: data.cliente ? String(data.cliente) : undefined,
     interessado: data.interessado != null ? String(data.interessado) : undefined,
     kilometragem: data.kilometragem ? String(data.kilometragem) : undefined,
@@ -284,6 +295,10 @@ const buildCreatePayload = (
   concessionariaId: solicitacao.concessionariaId ?? null,
   clienteId: solicitacao.clienteId ?? null,
   processoId: solicitacao.processoId ?? null,
+  tipoAnaliseId: solicitacao.tipoAnaliseId ?? null,
+  tipoAnaliseDescricao: solicitacao.tipoAnaliseDescricao ?? null,
+  analiseVersaoAtual: solicitacao.analiseVersaoAtual ?? null,
+  historicoEdicoes: solicitacao.historicoEdicoes ?? [],
   cliente: solicitacao.cliente ?? null,
   interessado: solicitacao.interessado ?? null,
   kilometragem: solicitacao.kilometragem ?? null,
@@ -408,6 +423,109 @@ export const updateSolicitacao = async (
     const message = error instanceof Error ? error.message : 'Erro ao atualizar solicitação.'
     throw new Error(message)
   }
+}
+
+export const appendHistoricoEdicao = async (
+  id: string,
+  resumo: string,
+): Promise<void> => {
+  const atual = await getSolicitacaoById(id)
+  if (!atual) throw new Error('Solicitação não encontrada')
+  const entrada = {
+    em: new Date().toISOString(),
+    por: auth.currentUser?.email ?? auth.currentUser?.uid ?? null,
+    resumo,
+  }
+  await updateSolicitacao(id, {
+    historicoEdicoes: [...(atual.historicoEdicoes ?? []), entrada],
+  })
+}
+
+export const addArquivosSolicitacao = async (
+  id: string,
+  files: File[],
+  fileDocumentTypes?: Record<string, TipoDocumentoAnexo>,
+  fileDocumentLabels?: Record<string, string>,
+): Promise<SolicitacaoWithFiles> => {
+  const atual = await getSolicitacaoById(id)
+  if (!atual) throw new Error('Solicitação não encontrada')
+  if (files.length === 0) return atual
+
+  const { urls, metas } = await uploadSolicitacaoFiles(id, files, fileDocumentTypes)
+  const metasComLabel = metas.map((meta) => {
+    const key = Object.keys(fileDocumentLabels ?? {}).find((k) =>
+      k.startsWith(meta.nome),
+    )
+    const label =
+      fileDocumentLabels?.[`${meta.nome}-${meta.tamanhoBytes}`] ||
+      (key ? fileDocumentLabels?.[key] : undefined)
+    if (meta.tipoDocumento === 'outro' && label) {
+      return { ...meta, tipoDocumentoLabel: label }
+    }
+    return meta
+  })
+
+  const updated = await updateSolicitacao(id, {
+    arquivos: [...(atual.arquivos ?? []), ...urls],
+    arquivosMeta: [...(atual.arquivosMeta ?? []), ...metasComLabel],
+  })
+  await appendHistoricoEdicao(id, `Adicionou ${files.length} arquivo(s).`)
+  return (await getSolicitacaoById(id)) ?? updated
+}
+
+export const removeArquivoSolicitacao = async (
+  id: string,
+  arquivoUrl: string,
+): Promise<SolicitacaoWithFiles> => {
+  const atual = await getSolicitacaoById(id)
+  if (!atual) throw new Error('Solicitação não encontrada')
+
+  const arquivos = (atual.arquivos ?? []).filter((url) => url !== arquivoUrl)
+  const arquivosMeta = (atual.arquivosMeta ?? []).filter((meta) => meta.url !== arquivoUrl)
+
+  try {
+    // Best-effort: remove do Storage se for path do Firebase
+    if (arquivoUrl.includes('firebasestorage.googleapis.com')) {
+      const pathMatch = decodeURIComponent(arquivoUrl).match(/\/o\/([^?]+)/)
+      if (pathMatch?.[1]) {
+        await deleteObject(ref(storage, pathMatch[1].replace(/%2F/g, '/')))
+      }
+    }
+  } catch (err) {
+    console.warn('Arquivo removido do registro; limpeza no Storage falhou:', err)
+  }
+
+  const updated = await updateSolicitacao(id, { arquivos, arquivosMeta })
+  await appendHistoricoEdicao(id, `Removeu arquivo.`)
+  return (await getSolicitacaoById(id)) ?? updated
+}
+
+export const reclassifyArquivoSolicitacao = async (
+  id: string,
+  arquivoUrl: string,
+  tipoDocumento: TipoDocumentoAnexo,
+  tipoDocumentoLabel?: string,
+): Promise<SolicitacaoWithFiles> => {
+  const atual = await getSolicitacaoById(id)
+  if (!atual) throw new Error('Solicitação não encontrada')
+
+  const arquivosMeta = (atual.arquivosMeta ?? []).map((meta) =>
+    meta.url === arquivoUrl
+      ? {
+          ...meta,
+          tipoDocumento,
+          tipoDocumentoLabel:
+            tipoDocumento === 'outro' ? tipoDocumentoLabel?.trim() || meta.tipoDocumentoLabel : undefined,
+        }
+      : meta,
+  )
+
+  const updated = await updateSolicitacao(id, { arquivosMeta })
+  await appendHistoricoEdicao(
+    id,
+    `Reclassificou arquivo para ${tipoDocumento === 'outro' ? tipoDocumentoLabel || 'Outro' : tipoDocumento}.`,
+  )
+  return (await getSolicitacaoById(id)) ?? updated
 }
 
 export const deleteSolicitacao = async (id: string): Promise<void> => {

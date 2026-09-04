@@ -32,5 +32,28 @@ service cloud.firestore {
       allow create, update: if request.auth != null;
       allow delete: if false;
     }
+
+    match /tiposAnalise/{tipoId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    match /feedbacksAprendizado/{feedbackId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    match /goldenCases/{caseId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    match /solicitacoes/{solicitacaoId}/analiseVersoes/{versaoId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }

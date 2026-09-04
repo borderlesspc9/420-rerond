@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, FileText, MapPin, Calendar, AlertCircle, Sparkles, Eye, CheckCircle, XCircle, Pencil } from 'lucide-react'
 import { getAllSolicitacoes, getSolicitacaoById, iniciarAnaliseSolicitacao, updateSolicitacao } from '../services/solicitacao/solicitacaoService'
 import { subscribeAnaliseJob } from '../services/solicitacao/analiseJobService'
 import { isActiveJobState, type AnaliseJob } from '../models/AnaliseJob'
@@ -433,6 +433,14 @@ export default function Solicitacoes() {
               )}
 
               <div className="solicitacao-actions">
+                <button
+                  className="btn-ver-relatorio"
+                  onClick={() => navigate(`/solicitacoes/${solicitacao.id}/editar`)}
+                  title="Editar dados e arquivos"
+                >
+                  <Pencil size={16} />
+                  Editar
+                </button>
                 {(solicitacao.relatorioIA || solicitacao.parecerTecnico || solicitacao.checklistConformidade) && (
                   <button
                     className="btn-ver-relatorio"

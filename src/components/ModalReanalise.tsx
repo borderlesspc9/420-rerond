@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, Sparkles, Upload, FileText } from 'lucide-react'
 import type { EscopoAnalise } from '../models/Solicitacao'
+import { useOverlayDismiss } from '../hooks/useOverlayDismiss'
 import './ModalReanalise.css'
 
 const TIPOS_PROJETO_OPTIONS = [
@@ -48,6 +49,7 @@ export default function ModalReanalise({
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const overlayDismiss = useOverlayDismiss(loading ? undefined : onClose)
 
   useEffect(() => {
     const tipoNormalizado = (tipoRelatorioAtual || '').trim().toLowerCase()
@@ -134,7 +136,8 @@ export default function ModalReanalise({
   return (
     <div
       className="modal-reanalise-overlay"
-      onClick={loading ? undefined : onClose}
+      onMouseDown={overlayDismiss.onMouseDown}
+      onClick={overlayDismiss.onClick}
     >
       <div className="modal-reanalise-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-reanalise-header">
