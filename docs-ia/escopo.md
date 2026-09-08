@@ -77,10 +77,13 @@ O principal problema atual é a **qualidade do resultado produzido pela IA**: el
 ### Em implementação (código — aguarda deploy Firebase/Netlify)
 
 - Coleção / mock **tiposAnalise** + vínculo em nova/editar solicitação + Outro
+- **Sprint 5 wiring:** processor isola checklist/normas/prompt por `tipoAnaliseId` (seeds OCUP/ACESSO/PAC); validação empírica pendente OpenAI
+- **Sprint 6 wiring:** reanálise injeta versão anterior da mesma solicitação; UI de histórico de versões; distinção edição × instrução × feedback
+- **Sprint 7 wiring:** feedbacks `aprovado` do mesmo `tipoAnaliseId` injetados no prompt (máx. 8; revogável); pendente/rejeitado ignorados
 - **Edição de solicitação e arquivos** (P11) — rota `/solicitacoes/:id/editar`
 - **Feedback estruturado** + validação (rascunho/pendente/aprovado/rejeitado) — UI em Configurações
 - **Golden cases** — cadastro por tipo
-- **Versionamento de análise** — subcoleção `analiseVersoes` (snapshot no processor)
+- **Versionamento de análise** — subcoleção `analiseVersoes` (snapshot no processor) + navegação no relatório
 - Documento tipo **Outro** no upload
 - Rules Firestore preparadas para `tiposAnalise`, `feedbacksAprendizado`, `goldenCases`, `analiseVersoes`
 
@@ -88,9 +91,9 @@ O principal problema atual é a **qualidade do resultado produzido pela IA**: el
 
 | ID | Problema | Impacto |
 |----|----------|---------|
-| P1 | IA confunde tipos de análise (ex.: checklist de ocupação em processo de acesso/PAC) | Assertividade |
-| P2 | Reanálise considera nova instrução mas “esquece” elementos da análise anterior | Consistência |
-| P3 | Reabrir o mesmo processo pode gerar resultados muito diferentes | Consistência |
+| P1 | IA confunde tipos de análise (ex.: checklist de ocupação em processo de acesso/PAC) | Assertividade — **tratado no código** (isolamento por `tipoAnaliseId` + seeds); validação empírica pendente deploy/OpenAI |
+| P2 | Reanálise considera nova instrução mas “esquece” elementos da análise anterior | Consistência — **tratado no código** (memória da versão anterior na mesma solicitação); validação empírica pendente |
+| P3 | Reabrir o mesmo processo pode gerar resultados muito diferentes | Consistência — **mitigado no código** (âncora + regras de itens não contestados); validação empírica pendente |
 | P4 | Classificação final às vezes correta com **justificativa incorreta** | Qualidade |
 | P5 | IA afirma que informação visual/técnica “não existe” em planta/projeto geométrico | Falsos negativos |
 | P6 | Erros ao enviar muitos arquivos; ocorrência de **HTTP 429** | Escalabilidade |
@@ -310,11 +313,10 @@ Uma melhoria de IA só se considera aceita se:
 
 ## Próximo foco de desenvolvimento
 
-1. **Isolar e assertivar a análise por tipo** (ocupação × acesso × PAC × outros) — checklist, normas e prompts só do domínio correto; reduzir apontamentos tecnicamente errados.  
-2. **Fortalecer memória da reanálise** — versionar análises; preservar contexto anterior + feedback da rodada atual.  
-3. **Feedback operacional estruturado** — registrar correção humana com status de validação (sem tratar edição de texto como treinamento).  
-4. **Receber e estruturar golden cases** fornecidos pelos analistas (casos modelo por tipo).  
-5. **Pipeline documental escalável** — chunking/recuperação seletiva e tratamento de 429 / muitos arquivos.
+1. **Deploy Firebase Functions + Netlify** (ou ao menos push do repo com functions atualizadas) — Sprints 5–7.  
+2. **Sprint 8** — recuperação de golden cases na análise.  
+3. Validação empírica com OpenAI (tipos, reanálise, feedback aprovado).  
+4. **Pipeline documental escalável** — chunking/recuperação seletiva e tratamento de 429 / muitos arquivos.
 
 ---
 
@@ -327,4 +329,6 @@ Uma melhoria de IA só se considera aceita se:
 | Ajustes UX manuais | Cliente Outro; normas/docs custom no wizard; P8 |
 | Modularidade (código) | tiposAnalise + P11 editar solicitação/arquivos + feedback estruturado + golden cases + analiseVersoes + Outro docs; rules preparadas; aguarda Firebase/Netlify do cliente |
 | Hotfix build | Site quebrado por import duplicado em `NovaSolicitacao` + tipagem em `processoService`; corrigido; **gate:** `npm run build` obrigatório ao fim de tarefa |
-| Hotfix build | Site quebrado por import duplicado em `NovaSolicitacao` + tipagem em `processoService`; corrigido; gate: `npm run build` obrigatório ao fim de tarefa |
+| Sprint 5 (código) | Isolamento por tipo de análise no processor; seeds OCUP/ACESSO/PAC; prompts de evidência; UI do tipo no relatório; casos de teste documentados |
+| Sprint 6 (código) | Memória da versão anterior na reanálise; regras de itens não contestados; histórico de versões no RelatorioViewer; distinção UI edição × instrução × feedback |
+| Sprint 7 (código) | Injeção de feedbacks aprovados no prompt (mesmo tipo); salvaguardas; revogar na UI; `feedbackIdsInjetados` |

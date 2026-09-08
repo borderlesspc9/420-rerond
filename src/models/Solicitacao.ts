@@ -115,6 +115,9 @@ export interface Solicitacao {
   tipoAnaliseId?: string | null
   /** Descrição livre quando tipoAnaliseId = outro / custom. */
   tipoAnaliseDescricao?: string | null
+  /** Metadados gravados pela última análise (transparência). */
+  tipoAnaliseIdUsado?: string | null
+  tipoAnaliseNomeUsado?: string | null
   /** Versão corrente da análise IA (snapshot em subcoleção). */
   analiseVersaoAtual?: number | null
   /** Histórico leve de edições manuais (P11). */

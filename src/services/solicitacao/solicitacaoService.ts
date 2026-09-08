@@ -158,6 +158,10 @@ const mapSolicitacao = (id: string, data: DocumentData): SolicitacaoWithFiles =>
     tipoAnaliseId: data.tipoAnaliseId != null ? String(data.tipoAnaliseId) : undefined,
     tipoAnaliseDescricao:
       data.tipoAnaliseDescricao != null ? String(data.tipoAnaliseDescricao) : undefined,
+    tipoAnaliseIdUsado:
+      data.tipoAnaliseIdUsado != null ? String(data.tipoAnaliseIdUsado) : undefined,
+    tipoAnaliseNomeUsado:
+      data.tipoAnaliseNomeUsado != null ? String(data.tipoAnaliseNomeUsado) : undefined,
     analiseVersaoAtual:
       typeof data.analiseVersaoAtual === 'number' ? data.analiseVersaoAtual : undefined,
     historicoEdicoes: Array.isArray(data.historicoEdicoes)

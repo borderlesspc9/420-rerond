@@ -217,11 +217,13 @@ export default function ConfiguracoesModulares() {
         <section className="config-modular-card">
           <h2>Registrar feedback estruturado</h2>
           <p className="config-modular-hint">
-            Isto <strong>não</strong> é edição de parecer. Só feedback com status aprovado deve
-            influenciar análises futuras (quando a IA estiver ligada).
+            Isto <strong>não</strong> é edição de parecer. Só feedback com status{" "}
+            <strong>aprovado</strong> entra em análises futuras do <strong>mesmo tipo</strong>{" "}
+            (máx. 8 por análise). Pendente/rejeitado/rascunho não influenciam. Em conflito com
+            normas ou evidência documental, prevalecem as normas.
           </p>
           <label>
-            Tipo de análise
+            Tipo de análise *
             <select value={fbTipoId} onChange={(e) => setFbTipoId(e.target.value)}>
               <option value="">Selecione...</option>
               {tipos.map((tipo) => (
@@ -257,6 +259,10 @@ export default function ConfiguracoesModulares() {
             onClick={() => {
               void (async () => {
                 setError(null)
+                if (!fbTipoId.trim()) {
+                  setError('Selecione o tipo de análise. Feedback sem tipo não entra na IA.')
+                  return
+                }
                 try {
                   await createFeedback({
                     tipoAnaliseId: fbTipoId || null,
@@ -313,6 +319,22 @@ export default function ConfiguracoesModulares() {
                       }}
                     >
                       Rejeitar
+                    </button>
+                  </div>
+                ) : null}
+                {item.status === 'aprovado' ? (
+                  <div className="config-modular-row-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void setFeedbackStatus(
+                          item.id,
+                          'rejeitado',
+                          'Revogado — deixa de entrar nas próximas análises',
+                        ).then(reload)
+                      }}
+                    >
+                      Revogar (parar de usar na IA)
                     </button>
                   </div>
                 ) : null}

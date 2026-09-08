@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { X, ClipboardList, FileText, Copy, Printer, FileOutput } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { X, ClipboardList, FileText, Copy, Printer, FileOutput, History } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ChecklistReportView from './ChecklistReportView'
@@ -7,7 +7,9 @@ import ChecklistConformidadeView from './ChecklistConformidadeView'
 import RelatorioConformidadeView from './RelatorioConformidadeView'
 import AnaliseProgressOverlay from './AnaliseProgressOverlay'
 import type { ComplementoChecklistItem, ConferenciaInput, DadosExtraidosAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../models/Solicitacao'
+import type { AnaliseVersao } from '../models/AnaliseVersao'
 import { formatarRelatorioComplementos } from '../services/solicitacao/solicitacaoService'
+import { listAnaliseVersoes } from '../services/analiseVersao/analiseVersaoService'
 import {
   getTipoProjetoNome,
   parseComplementosChecklist,
@@ -107,6 +109,10 @@ interface RelatorioViewerProps {
   complementosChecklist?: string
   tipoRelatorio?: TipoRelatorio
   concessionariaId?: string | null
+  /** Nome do tipo de análise (domínio) usado na última geração. */
+  tipoAnaliseNome?: string | null
+  /** Versão atual da análise na solicitação (vN). */
+  analiseVersaoAtual?: number | null
   dadosExtraidos?: DadosExtraidosAnalise | null
   conferenciaInputs?: ConferenciaInput[]
   onRelatorioAtualizado?: (resultado: SolicitacaoWithFiles) => void
@@ -124,12 +130,15 @@ export default function RelatorioViewer({
   complementosChecklist,
   tipoRelatorio,
   concessionariaId,
+  tipoAnaliseNome,
+  analiseVersaoAtual,
   dadosExtraidos,
   conferenciaInputs,
   onRelatorioAtualizado,
   initialTab,
 }: RelatorioViewerProps) {
   const [parecerAtual, setParecerAtual] = useState(parecerTecnico)
+  const [relatorioAtual, setRelatorioAtual] = useState(relatorio)
   const [dadosExtraidosAtual, setDadosExtraidosAtual] = useState(dadosExtraidos)
   const [conferenciaAtual, setConferenciaAtual] = useState(conferenciaInputs)
   const [copiado, setCopiado] = useState(false)
@@ -137,15 +146,74 @@ export default function RelatorioViewer({
   const [complementosAtual, setComplementosAtual] = useState(complementosChecklist)
   const [gerando, setGerando] = useState(false)
   const [erroGeracao, setErroGeracao] = useState<string | null>(null)
+  const [versoes, setVersoes] = useState<AnaliseVersao[]>([])
+  const [versaoSelecionada, setVersaoSelecionada] = useState<number | 'atual'>('atual')
+  const [carregandoVersoes, setCarregandoVersoes] = useState(false)
   const overlayDismiss = useOverlayDismiss(onClose)
 
   useEffect(() => {
     setParecerAtual(parecerTecnico)
+    setRelatorioAtual(relatorio)
     setChecklistAtual(checklistConformidade)
     setComplementosAtual(complementosChecklist)
     setDadosExtraidosAtual(dadosExtraidos)
     setConferenciaAtual(conferenciaInputs)
-  }, [parecerTecnico, checklistConformidade, complementosChecklist, dadosExtraidos, conferenciaInputs])
+    setVersaoSelecionada('atual')
+  }, [parecerTecnico, checklistConformidade, complementosChecklist, dadosExtraidos, conferenciaInputs, relatorio])
+
+  useEffect(() => {
+    if (!solicitacaoId) {
+      setVersoes([])
+      return
+    }
+    let cancelled = false
+    setCarregandoVersoes(true)
+    listAnaliseVersoes(solicitacaoId)
+      .then((items) => {
+        if (!cancelled) setVersoes(items)
+      })
+      .finally(() => {
+        if (!cancelled) setCarregandoVersoes(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [solicitacaoId, analiseVersaoAtual])
+
+  const versaoAtualNumero = useMemo(() => {
+    if (typeof analiseVersaoAtual === 'number' && analiseVersaoAtual > 0) {
+      return analiseVersaoAtual
+    }
+    if (versoes.length > 0) {
+      return Math.max(...versoes.map((v) => v.versao))
+    }
+    return null
+  }, [analiseVersaoAtual, versoes])
+
+  const visualizandoHistorico = versaoSelecionada !== 'atual'
+
+  const handleSelecionarVersao = (value: string) => {
+    if (value === 'atual') {
+      setVersaoSelecionada('atual')
+      setParecerAtual(parecerTecnico)
+      setRelatorioAtual(relatorio)
+      setChecklistAtual(checklistConformidade)
+      setComplementosAtual(complementosChecklist)
+      setDadosExtraidosAtual(dadosExtraidos)
+      setConferenciaAtual(conferenciaInputs)
+      return
+    }
+    const n = Number(value)
+    const snap = versoes.find((v) => v.versao === n)
+    if (!snap) return
+    setVersaoSelecionada(n)
+    setParecerAtual(snap.parecerTecnico ?? undefined)
+    setRelatorioAtual(snap.relatorioIA || '')
+    setChecklistAtual(snap.checklistConformidade ?? undefined)
+    setComplementosAtual(undefined)
+    setDadosExtraidosAtual(undefined)
+    setConferenciaAtual(undefined)
+  }
 
   const conformidadeItems = checklistAtual
     ? parseConformidadeChecklist(checklistAtual)
@@ -173,13 +241,20 @@ export default function RelatorioViewer({
   }, [initialTab, hasRelatorioPdf, solicitacaoId])
 
   const legacyChecklistData = !hasParecer && !hasConformidade
-    ? parseChecklistJson(relatorio)
+    ? parseChecklistJson(relatorioAtual)
     : null
   const isLegacyChecklist = legacyChecklistData !== null
 
   const tipoProjetoNome = getTipoProjetoNome(tipoRelatorio)
   const complementosIniciais = parseComplementosChecklist(complementosAtual)
-  const podeComplementar = !!solicitacaoId && hasConformidade
+  const podeComplementar = !!solicitacaoId && hasConformidade && !visualizandoHistorico
+
+  const badgeVersao =
+    versaoSelecionada === 'atual'
+      ? versaoAtualNumero
+        ? `Visualizando v${versaoAtualNumero} (atual)`
+        : null
+      : `Visualizando v${versaoSelecionada}${versaoAtualNumero ? ` de ${versaoAtualNumero}` : ''} (histórico)`
 
   const handleCopiarParecer = async () => {
     if (!parecerAtual) return
@@ -277,7 +352,7 @@ export default function RelatorioViewer({
   )
 
   const handleGerarRelatorio = async (complementos: ComplementoChecklistItem[]) => {
-    if (!solicitacaoId) return
+    if (!solicitacaoId || visualizandoHistorico) return
 
     setGerando(true)
     setErroGeracao(null)
@@ -289,6 +364,7 @@ export default function RelatorioViewer({
       setComplementosAtual(resultado.complementosChecklist)
       setDadosExtraidosAtual(resultado.dadosExtraidos)
       setConferenciaAtual(resultado.conferenciaInputs)
+      setRelatorioAtual(resultado.relatorioIA || relatorioAtual)
       setActiveTab('relatorio')
       onRelatorioAtualizado?.(resultado)
     } catch (error: unknown) {
@@ -301,6 +377,7 @@ export default function RelatorioViewer({
   }
 
   const showTabs = hasDualView || hasRelatorioPdf
+  const mostrarSeletorVersao = Boolean(solicitacaoId) && (versoes.length > 0 || versaoAtualNumero)
 
   const renderRelatorioPdf = () => {
     if (!hasRelatorioPdf || !conformidadeItems) return null
@@ -311,7 +388,7 @@ export default function RelatorioViewer({
         checklistItems={conformidadeItems}
         checklistConformidadeRaw={checklistAtual}
         parecerTecnico={parecerAtual}
-        relatorioIA={relatorio}
+        relatorioIA={relatorioAtual}
         tipoRelatorio={tipoRelatorio}
         concessionariaId={concessionariaId}
         nomeConcessionaria={solicitacaoInfo?.nomeConcessionaria}
@@ -351,14 +428,67 @@ export default function RelatorioViewer({
           <div className="relatorio-viewer-heading">
             <h2>Análise de Conformidade</h2>
             <p className="relatorio-viewer-subtitulo">{titulo}</p>
+            {tipoAnaliseNome && (
+              <span className="relatorio-viewer-tipo">
+                Tipo de análise: {tipoAnaliseNome}
+              </span>
+            )}
             {tipoProjetoNome && (
               <span className="relatorio-viewer-tipo">{tipoProjetoNome}</span>
+            )}
+            {badgeVersao && (
+              <span className={`relatorio-viewer-versao ${visualizandoHistorico ? 'historico' : 'atual'}`}>
+                <History size={12} />
+                {badgeVersao}
+              </span>
             )}
           </div>
           <button className="relatorio-viewer-close" onClick={onClose} aria-label="Fechar">
             <X size={24} />
           </button>
         </div>
+
+        {mostrarSeletorVersao && (
+          <div className="relatorio-versoes-bar">
+            <label htmlFor="relatorio-versao-select">
+              Histórico de versões
+              {carregandoVersoes ? ' (carregando…)' : ''}
+            </label>
+            <select
+              id="relatorio-versao-select"
+              className="relatorio-versao-select"
+              value={versaoSelecionada === 'atual' ? 'atual' : String(versaoSelecionada)}
+              onChange={(e) => handleSelecionarVersao(e.target.value)}
+            >
+              <option value="atual">
+                Versão atual{versaoAtualNumero ? ` (v${versaoAtualNumero})` : ''}
+              </option>
+              {versoes
+                .filter((v) => v.versao !== versaoAtualNumero)
+                .map((v) => (
+                  <option key={v.id} value={String(v.versao)}>
+                    v{v.versao}
+                    {v.createdAt
+                      ? ` — ${v.createdAt.toLocaleString('pt-BR')}`
+                      : ''}
+                    {v.promptCustomizado ? ' · com instrução' : ''}
+                  </option>
+                ))}
+            </select>
+            {visualizandoHistorico && (
+              <p className="relatorio-versoes-hint">
+                Visualização somente leitura da versão arquivada. Volte à versão atual para editar
+                complementos ou reanalisar.
+              </p>
+            )}
+          </div>
+        )}
+
+        <p className="relatorio-distincao-hint">
+          Complementos e edição neste relatório <strong>não treinam</strong> a IA. Instrução só desta
+          reanálise fica no modal de reanálise; feedback permanente (aprendizado) é cadastrado em
+          Configurações.
+        </p>
 
         {showTabs && (
           <div className="relatorio-tabs" role="tablist">
@@ -441,7 +571,7 @@ export default function RelatorioViewer({
               descricao={solicitacaoInfo?.descricao}
             />
           ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{relatorio}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{relatorioAtual}</ReactMarkdown>
           )}
         </div>
       </div>

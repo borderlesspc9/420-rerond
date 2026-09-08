@@ -209,7 +209,8 @@ export default function ChecklistConformidadeView({
             <strong>Complementar análise</strong>
             <p>
               Preencha os campos nos itens pendentes ou não conformes. A IA regenera o checklist e
-              o parecer técnico completo com base no que você informar.
+              o parecer técnico completo com base no que você informar. Isso é edição/complemento
+              desta solicitação — não cria feedback permanente nem treina a IA.
             </p>
           </div>
         </div>

@@ -38,6 +38,15 @@ import {
   getConcessionariaPerfilFromFirestore,
   getRequisitosFromPerfil,
 } from "./concessionariaPerfilService";
+import {
+  buildTipoAnalisePromptAddon,
+  formatarRequisitosTipoAnalise,
+  getTipoAnaliseFromFirestore,
+} from "./tipoAnaliseService";
+import {
+  buildFeedbackAprendizadoPromptBlock,
+  listFeedbacksAprovadosParaAnalise,
+} from "./feedbackAprendizadoService";
 
 export type AnaliseJobState =
   | "uploaded"
@@ -188,6 +197,84 @@ function formatPendenciasFromChecklist(checklistRaw: unknown): string {
   }
 }
 
+function buildBlocoContextoAnaliseAnterior(params: {
+  tituloBloco: string;
+  origemLabel: string;
+  titulo?: string | null;
+  versao?: number | null;
+  checklistConformidade?: string | null;
+  parecerTecnico?: string | null;
+  complementosChecklist?: string | null;
+  observacoesAnalista?: string | null;
+}): string {
+  const parecer = (params.parecerTecnico || "").trim().slice(0, 12000);
+  const pendencias = formatPendenciasFromChecklist(params.checklistConformidade || undefined);
+  const checklistResumo = (params.checklistConformidade || "").trim().slice(0, 10000);
+  const complementos = (params.complementosChecklist || "").trim().slice(0, 4000);
+  const observacoes = (params.observacoesAnalista || "").trim().slice(0, 3000);
+  const versaoLabel =
+    typeof params.versao === "number" && params.versao > 0 ? `v${params.versao}` : "anterior";
+
+  return [
+    params.tituloBloco,
+    `Origem: ${params.origemLabel}`,
+    `Versão de referência: ${versaoLabel}`,
+    `Título: ${params.titulo || "não informado"}`,
+    "",
+    "PENDÊNCIAS / NÃO CONFORMIDADES DA ANÁLISE ANTERIOR:",
+    pendencias,
+    "",
+    "PARECER TÉCNICO ANTERIOR (Markdown, pode estar truncado):",
+    parecer || "(sem parecer anterior)",
+    "",
+    "CHECKLIST COMPLETO ANTERIOR (JSON, pode estar truncado):",
+    checklistResumo || "(sem checklist anterior)",
+    complementos
+      ? `\nCOMPLEMENTOS / OBSERVAÇÕES HUMANAS DO ANALISTA (não descartar sem motivo):\n${complementos}`
+      : "",
+    observacoes ? `\nOBSERVAÇÕES REGISTRADAS NA SOLICITAÇÃO:\n${observacoes}` : "",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+/** Memória da mesma solicitação (reanálise vN → vN+1). */
+function loadContextoVersaoAnteriorMesmaSolicitacao(
+  solicitacaoId: string,
+  data: Record<string, unknown>,
+): string | null {
+  const temAnalise =
+    (typeof data.parecerTecnico === "string" && data.parecerTecnico.trim()) ||
+    (typeof data.checklistConformidade === "string" && data.checklistConformidade.trim()) ||
+    (typeof data.relatorioIA === "string" && data.relatorioIA.trim()) ||
+    (typeof data.analiseVersaoAtual === "number" && data.analiseVersaoAtual > 0);
+
+  if (!temAnalise) return null;
+
+  const versaoAtual =
+    typeof data.analiseVersaoAtual === "number" && data.analiseVersaoAtual > 0
+      ? data.analiseVersaoAtual
+      : 1;
+
+  return buildBlocoContextoAnaliseAnterior({
+    tituloBloco: "CONTEXTO DA VERSÃO ANTERIOR DESTA MESMA SOLICITAÇÃO",
+    origemLabel: `solicitação ${solicitacaoId} (reanálise na mesma ficha)`,
+    titulo: data.titulo ? String(data.titulo) : null,
+    versao: versaoAtual,
+    checklistConformidade:
+      typeof data.checklistConformidade === "string" ? data.checklistConformidade : null,
+    parecerTecnico: typeof data.parecerTecnico === "string" ? data.parecerTecnico : null,
+    complementosChecklist:
+      typeof data.complementosChecklist === "string" ? data.complementosChecklist : null,
+    observacoesAnalista:
+      typeof data.descricao === "string"
+        ? data.descricao
+        : typeof data.observacoes === "string"
+          ? data.observacoes
+          : null,
+  });
+}
+
 async function loadContextoRevisaoAnterior(
   currentSolicitacaoId: string,
   processoId?: string | null,
@@ -209,7 +296,9 @@ async function loadContextoRevisaoAnterior(
     numeroRevisao?: string;
     checklistConformidade?: string;
     parecerTecnico?: string;
+    complementosChecklist?: string;
     titulo?: string;
+    analiseVersaoAtual?: number;
   };
 
   const candidates: Candidate[] = snap.docs
@@ -227,7 +316,13 @@ async function loadContextoRevisaoAnterior(
             : undefined,
         parecerTecnico:
           typeof data.parecerTecnico === "string" ? data.parecerTecnico : undefined,
+        complementosChecklist:
+          typeof data.complementosChecklist === "string"
+            ? data.complementosChecklist
+            : undefined,
         titulo: data.titulo ? String(data.titulo) : undefined,
+        analiseVersaoAtual:
+          typeof data.analiseVersaoAtual === "number" ? data.analiseVersaoAtual : undefined,
       };
     })
     .filter((item) => String(item.numeroRevisao || "").toUpperCase() === prevLabel);
@@ -236,23 +331,28 @@ async function loadContextoRevisaoAnterior(
 
   candidates.sort((a, b) => b.createdAtMs - a.createdAtMs);
   const prev = candidates[0];
-  const parecer = (prev.parecerTecnico || "").trim().slice(0, 12000);
-  const pendencias = formatPendenciasFromChecklist(prev.checklistConformidade);
-  const checklistResumo = (prev.checklistConformidade || "").trim().slice(0, 10000);
 
-  return [
-    `Revisão anterior: ${prevLabel} (solicitação ${prev.id})`,
-    `Título anterior: ${prev.titulo || "não informado"}`,
-    "",
-    "PENDÊNCIAS / NÃO CONFORMIDADES DA REVISÃO ANTERIOR:",
-    pendencias,
-    "",
-    "PARECER TÉCNICO DA REVISÃO ANTERIOR (Markdown, pode estar truncado):",
-    parecer || "(sem parecer anterior)",
-    "",
-    "CHECKLIST COMPLETO DA REVISÃO ANTERIOR (JSON, pode estar truncado):",
-    checklistResumo || "(sem checklist anterior)",
-  ].join("\n");
+  return buildBlocoContextoAnaliseAnterior({
+    tituloBloco: "CONTEXTO DA REVISÃO ANTERIOR DO MESMO PROCESSO",
+    origemLabel: `revisão ${prevLabel} (solicitação ${prev.id})`,
+    titulo: prev.titulo,
+    versao: prev.analiseVersaoAtual ?? null,
+    checklistConformidade: prev.checklistConformidade,
+    parecerTecnico: prev.parecerTecnico,
+    complementosChecklist: prev.complementosChecklist,
+  });
+}
+
+/** Une memória da versão (mesma solicitação) + revisão do processo (R00→R01). */
+function mergeContextosMemoria(
+  contextoVersao: string | null,
+  contextoRevisao: string | null,
+): string | null {
+  const partes = [contextoVersao, contextoRevisao].filter(
+    (p): p is string => Boolean(p && p.trim()),
+  );
+  if (partes.length === 0) return null;
+  return partes.join("\n\n═══════════════════════════════════════\n\n");
 }
 
 function aplicarLimitesPdf(
@@ -435,12 +535,26 @@ export async function runAnaliseJob(params: {
 
     await updateJob(jobRef, solicitacaoRef, "analyzing", 55, "normas");
 
+    const tipoAnaliseId =
+      typeof data.tipoAnaliseId === "string" ? data.tipoAnaliseId.trim() : "";
+    const tipoAnaliseDescricao =
+      typeof data.tipoAnaliseDescricao === "string"
+        ? data.tipoAnaliseDescricao.trim()
+        : "";
+    const tipoAnaliseDoc = await getTipoAnaliseFromFirestore(tipoAnaliseId || null);
+
     const normasMap = new Map<
       string,
       { fonte: (ReturnType<typeof carregarNormasPDFParaTipo>[number])["fonte"]; buffer: Buffer }
     >();
 
-    if (perfilFirestore?.normasFontes?.length) {
+    // Prioridade de normas: TipoAnalise → perfil concessionária → fallback por tipoRelatorio
+    const normasDoTipo = tipoAnaliseDoc?.normasFontes?.filter(Boolean) ?? [];
+    if (normasDoTipo.length > 0) {
+      for (const norma of carregarNormasPDFPorFonteIds(normasDoTipo)) {
+        normasMap.set(norma.fonte.id, norma);
+      }
+    } else if (perfilFirestore?.normasFontes?.length) {
       for (const norma of carregarNormasPDFPorFonteIds(perfilFirestore.normasFontes)) {
         normasMap.set(norma.fonte.id, norma);
       }
@@ -481,8 +595,9 @@ export async function runAnaliseJob(params: {
       numeroRevisao: data.numeroRevisao,
     };
 
+    const requisitosDoTipo = formatarRequisitosTipoAnalise(tipoAnaliseDoc);
     const requisitosPerfil = getRequisitosFromPerfil(perfilFirestore);
-    const formatarRequisitos = (tipo: TipoRelatorio) => {
+    const formatarRequisitosLegado = (tipo: TipoRelatorio) => {
       if (requisitosPerfil.length > 0) {
         return requisitosPerfil
           .map((r) => {
@@ -494,42 +609,85 @@ export async function runAnaliseJob(params: {
       return listarRequisitosFormatados(tipo, concessionariaId);
     };
 
-    const requisitosFormatados = isProfile
-      ? formatarRequisitos(tipoBase)
-      : tiposConfig
-          .map(
-            ({ tipo, config }) =>
-              `### ${config.nome} (${tipo})\n${formatarRequisitos(tipo)}`,
-          )
-          .join("\n\n");
+    // Prioridade de checklist: TipoAnalise → perfil → catálogo PIT/PER (legado)
+    let requisitosFormatados: string;
+    if (requisitosDoTipo) {
+      requisitosFormatados = `### ${tipoAnaliseDoc!.nome} (${tipoAnaliseDoc!.id})\n${requisitosDoTipo}`;
+    } else if (isProfile) {
+      requisitosFormatados = formatarRequisitosLegado(tipoBase);
+    } else {
+      requisitosFormatados = tiposConfig
+        .map(
+          ({ tipo, config }) =>
+            `### ${config.nome} (${tipo})\n${formatarRequisitosLegado(tipo)}`,
+        )
+        .join("\n\n");
+    }
 
-    const tiposProjetoNome =
+    const tiposProjetoNome = [
+      tipoAnaliseDoc ? `Tipo de análise: ${tipoAnaliseDoc.nome}` : null,
       perfilFirestore?.nome ??
-      getProfileTipoProjetoNome(promptProfile) ??
-      tiposConfig.map(({ config }) => config.nome).join(", ");
+        getProfileTipoProjetoNome(promptProfile) ??
+        tiposConfig.map(({ config }) => config.nome).join(", "),
+    ]
+      .filter(Boolean)
+      .join(" · ");
 
     const systemPrompt = buildProfileSystemPrompt(promptProfile);
     const promptCustomizadoComPerfil = [
       promptCustomizado,
+      buildTipoAnalisePromptAddon(tipoAnaliseDoc, tipoAnaliseDescricao || null),
       perfilFirestore?.perfilCompleto ? buildCustomAnalysisPromptAddon(perfilFirestore) : "",
     ]
       .filter(Boolean)
       .join("\n");
 
-    let contextoRevisaoAnterior: string | null = null;
+    let contextoMemoriaAnterior: string | null = null;
     try {
-      contextoRevisaoAnterior = await loadContextoRevisaoAnterior(
+      const contextoVersao = loadContextoVersaoAnteriorMesmaSolicitacao(
         params.solicitacaoId,
-        data.processoId ? String(data.processoId) : null,
-        data.numeroRevisao ? String(data.numeroRevisao) : null,
+        data as Record<string, unknown>,
       );
-      if (contextoRevisaoAnterior) {
+      let contextoRevisao: string | null = null;
+      try {
+        contextoRevisao = await loadContextoRevisaoAnterior(
+          params.solicitacaoId,
+          data.processoId ? String(data.processoId) : null,
+          data.numeroRevisao ? String(data.numeroRevisao) : null,
+        );
+      } catch (ctxErr) {
+        console.warn("Falha ao carregar contexto da revisão anterior do processo:", ctxErr);
+      }
+      contextoMemoriaAnterior = mergeContextosMemoria(contextoVersao, contextoRevisao);
+      if (contextoMemoriaAnterior) {
         console.log(
-          `Contexto de revisão anterior carregado para solicitação ${params.solicitacaoId}`,
+          `Contexto de memória/reanálise carregado para solicitação ${params.solicitacaoId}` +
+            `${contextoVersao ? " [versão]" : ""}${contextoRevisao ? " [revisão]" : ""}`,
         );
       }
     } catch (ctxErr) {
-      console.warn("Falha ao carregar contexto da revisão anterior:", ctxErr);
+      console.warn("Falha ao carregar contexto de memória da análise anterior:", ctxErr);
+    }
+
+    let feedbackBlock = "";
+    let feedbackIdsInjetados: string[] = [];
+    if (tipoAnaliseId) {
+      try {
+        const feedbacks = await listFeedbacksAprovadosParaAnalise({
+          tipoAnaliseId,
+          organizacaoId: concessionariaId,
+          maxItems: 8,
+        });
+        feedbackBlock = buildFeedbackAprendizadoPromptBlock(feedbacks);
+        feedbackIdsInjetados = feedbacks.map((item) => item.id);
+        if (feedbackIdsInjetados.length > 0) {
+          console.log(
+            `Feedbacks aprovados injetados (${feedbackIdsInjetados.length}) para tipo ${tipoAnaliseId}: ${feedbackIdsInjetados.join(", ")}`,
+          );
+        }
+      } catch (fbErr) {
+        console.warn("Falha ao carregar feedbacks de aprendizado:", fbErr);
+      }
     }
 
     const analysisPrompt = buildProfileAnalysisPrompt({
@@ -540,7 +698,8 @@ export async function runAnaliseJob(params: {
       tiposProjetoNome,
       escopo: escopoAnalise,
       promptCustomizado: promptCustomizadoComPerfil || undefined,
-      contextoRevisaoAnterior: contextoRevisaoAnterior || undefined,
+      contextoRevisaoAnterior: contextoMemoriaAnterior || undefined,
+      feedbackAprendizado: feedbackBlock || undefined,
       exemploSaidaEsperada:
         promptProfile === "eco101" ? buildEco101ExemploAnaliseBlock() : undefined,
     });
@@ -636,7 +795,8 @@ export async function runAnaliseJob(params: {
       solicitacaoId: params.solicitacaoId,
       versao: versaoCorrente,
       jobId: params.jobId,
-      tipoAnaliseId: dataAntes.tipoAnaliseId ?? null,
+      tipoAnaliseId: tipoAnaliseId || dataAntes.tipoAnaliseId || null,
+      tipoAnaliseNome: tipoAnaliseDoc?.nome ?? null,
       tipoRelatorio: tipoBase,
       parecerTecnico: escopoAnalise.gerarParecerTecnico ? parecerFinal : null,
       checklistConformidade: escopoAnalise.gerarChecklistConformidade
@@ -644,6 +804,7 @@ export async function runAnaliseJob(params: {
         : null,
       relatorioIA: result.content,
       promptCustomizado: promptCustomizado || null,
+      feedbackIdsInjetados,
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -651,6 +812,8 @@ export async function runAnaliseJob(params: {
       status: "em_analise",
       tipoRelatorio: tipoBase,
       tiposProjetoComparados: tiposAnalise,
+      tipoAnaliseIdUsado: tipoAnaliseId || null,
+      tipoAnaliseNomeUsado: tipoAnaliseDoc?.nome ?? null,
       escopoAnalise,
       relatorioIA: result.content,
       dadosExtraidos: parsed.dadosExtraidos,
@@ -665,6 +828,7 @@ export async function runAnaliseJob(params: {
       analiseJobStatus: "completed",
       analiseJobProgress: 100,
       analiseVersaoAtual: versaoCorrente,
+      feedbackIdsInjetados,
       updatedAt: FieldValue.serverTimestamp(),
     });
 

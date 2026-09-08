@@ -459,10 +459,13 @@ export default function NovaSolicitacao() {
       setError('Informe o nome do cliente em Outro, ou selecione um cliente cadastrado.')
       return
     }
+    if (!formData.tipoAnaliseId.trim()) {
+      setError('Selecione o tipo de análise (ocupação, acesso, PAC ou Outro).')
+      return
+    }
     if (
       (formData.tipoAnaliseId === 'outro' ||
         tiposAnalise.find((t) => t.id === formData.tipoAnaliseId)?.categoria === 'outro') &&
-      formData.tipoAnaliseId &&
       !formData.tipoAnaliseDescricao.trim()
     ) {
       setError('Descreva o tipo de análise quando usar Outro.')
@@ -891,7 +894,7 @@ export default function NovaSolicitacao() {
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="tipoAnaliseId">Tipo de análise</label>
+              <label htmlFor="tipoAnaliseId">Tipo de análise *</label>
               <select
                 id="tipoAnaliseId"
                 name="tipoAnaliseId"

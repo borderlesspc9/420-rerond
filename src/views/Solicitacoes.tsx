@@ -38,6 +38,8 @@ export default function Solicitacoes() {
     complementosChecklist?: string
     tipoRelatorio?: TipoRelatorio
     concessionariaId?: string | null
+    tipoAnaliseNome?: string | null
+    analiseVersaoAtual?: number | null
     dadosExtraidos?: SolicitacaoWithFiles['dadosExtraidos']
     conferenciaInputs?: SolicitacaoWithFiles['conferenciaInputs']
   } | null>(null)
@@ -218,6 +220,12 @@ export default function Solicitacoes() {
     complementosChecklist: solicitacao.complementosChecklist,
     tipoRelatorio: solicitacao.tipoRelatorio,
     concessionariaId: solicitacao.concessionariaId,
+    tipoAnaliseNome:
+      solicitacao.tipoAnaliseNomeUsado ||
+      solicitacao.tipoAnaliseDescricao ||
+      solicitacao.tipoAnaliseId ||
+      null,
+    analiseVersaoAtual: solicitacao.analiseVersaoAtual ?? null,
     dadosExtraidos: solicitacao.dadosExtraidos,
     conferenciaInputs: solicitacao.conferenciaInputs,
   })
@@ -431,6 +439,16 @@ export default function Solicitacoes() {
                   )}
                 </div>
               )}
+              {(solicitacao.tipoAnaliseNomeUsado ||
+                solicitacao.tipoAnaliseId ||
+                solicitacao.tipoAnaliseDescricao) && (
+                <div className="arquivos-count">
+                  Tipo de análise:{' '}
+                  {solicitacao.tipoAnaliseNomeUsado ||
+                    solicitacao.tipoAnaliseDescricao ||
+                    solicitacao.tipoAnaliseId}
+                </div>
+              )}
 
               <div className="solicitacao-actions">
                 <button
@@ -501,6 +519,8 @@ export default function Solicitacoes() {
           complementosChecklist={relatorioAberto.complementosChecklist}
           tipoRelatorio={relatorioAberto.tipoRelatorio}
           concessionariaId={relatorioAberto.concessionariaId}
+          tipoAnaliseNome={relatorioAberto.tipoAnaliseNome}
+          analiseVersaoAtual={relatorioAberto.analiseVersaoAtual}
           dadosExtraidos={relatorioAberto.dadosExtraidos}
           conferenciaInputs={relatorioAberto.conferenciaInputs}
           onRelatorioAtualizado={(resultado) => {
@@ -530,6 +550,11 @@ export default function Solicitacoes() {
         <ModalReanalise
           titulo={modalReanaliseAberto.titulo}
           tipoRelatorioAtual={modalReanaliseAberto.tipoRelatorio}
+          tipoAnaliseNome={
+            modalReanaliseAberto.tipoAnaliseNomeUsado ||
+            modalReanaliseAberto.tipoAnaliseDescricao ||
+            modalReanaliseAberto.tipoAnaliseId
+          }
           concessionariaId={modalReanaliseAberto.concessionariaId}
           numeroRevisao={modalReanaliseAberto.numeroRevisao}
           processoId={modalReanaliseAberto.processoId}

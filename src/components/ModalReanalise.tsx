@@ -13,6 +13,8 @@ const TIPOS_PROJETO_OPTIONS = [
 interface ModalReanaliseProps {
   titulo: string
   tipoRelatorioAtual?: string
+  /** Tipo de análise (domínio) já vinculado à solicitação — não misturar na reanálise. */
+  tipoAnaliseNome?: string | null
   concessionariaId?: string | null
   numeroRevisao?: string | null
   processoId?: string | null
@@ -29,6 +31,7 @@ interface ModalReanaliseProps {
 export default function ModalReanalise({ 
   titulo, 
   tipoRelatorioAtual,
+  tipoAnaliseNome,
   concessionariaId,
   numeroRevisao,
   processoId,
@@ -160,20 +163,29 @@ export default function ModalReanalise({
             {primeiraAnalise ? (
               <>
                 A solicitação <strong>"{titulo}"</strong> será analisada pela IA pela primeira vez.
-                Você pode adicionar PDFs adicionais e usar um prompt customizado para uma análise mais específica.
+                Você pode adicionar PDFs adicionais e uma instrução só desta análise.
               </>
             ) : (
               <>
-                A solicitação <strong>"{titulo}"</strong> será reenviada para análise pela IA.
-                Você pode adicionar novos PDFs e usar um prompt customizado para uma análise mais específica.
+                A solicitação <strong>"{titulo}"</strong> será reanalisada. A IA receberá a análise
+                anterior (checklist, parecer e pendências), os documentos já anexados e eventuais
+                PDFs novos. A versão anterior permanece arquivada e acessível no relatório.
               </>
             )}
           </p>
 
+          {!primeiraAnalise && (
+            <div className="modal-reanalise-continuidade">
+              Memória ativa: itens não contestados tendem a permanecer; mudanças de status devem
+              vir com justificativa. Instrução abaixo vale só nesta execução (não é feedback
+              permanente — isso fica em Configurações).
+            </div>
+          )}
+
           {processoId && numeroRevisao && /^R0*[1-9]\d*$/i.test(numeroRevisao) ? (
             <div className="modal-reanalise-continuidade">
-              Continuidade ativa: a IA receberá checklist, parecer e pendências da revisão anterior
-              do mesmo processo, além dos documentos desta revisão ({numeroRevisao}).
+              Continuidade de processo: a IA também receberá checklist, parecer e pendências da
+              revisão anterior do mesmo processo, além dos documentos desta revisão ({numeroRevisao}).
             </div>
           ) : null}
 
@@ -256,10 +268,19 @@ export default function ModalReanalise({
               <label className="modal-reanalise-section-title">
                 Delimitação de Tipos para Comparação Normativa
               </label>
-              <p className="modal-reanalise-section-description">
-                A IA compara os documentos com as normas dos tipos selecionados. Se nada for marcado,
-                o backend usa o tipo da solicitação como fallback.
-              </p>
+              {tipoAnaliseNome ? (
+                <p className="modal-reanalise-section-description">
+                  Tipo de análise desta solicitação: <strong>{tipoAnaliseNome}</strong>.
+                  A IA usa o checklist deste domínio; os tipos abaixo são apenas o enquadramento
+                  normativo PIT/PER (legado), não misturam ocupação × acesso × PAC.
+                </p>
+              ) : (
+                <p className="modal-reanalise-section-description">
+                  A IA compara os documentos com as normas dos tipos selecionados. Se nada for marcado,
+                  o backend usa o tipo da solicitação como fallback. Prefira vincular um tipo de
+                  análise (ocupação/acesso/PAC) na edição da solicitação.
+                </p>
+              )}
               <select
                 multiple
                 className="modal-reanalise-select"
@@ -273,7 +294,7 @@ export default function ModalReanalise({
                 ))}
               </select>
               <p className="modal-reanalise-hint">
-                Segure Ctrl (ou Cmd no Mac) para selecionar mais de um tipo.
+                Segure Ctrl (ou Cmd no Mac) para selecionar mais de um tipo normativo (PIT/PER).
               </p>
             </div>
 
@@ -329,7 +350,7 @@ export default function ModalReanalise({
               )}
             </div>
 
-            {/* Seção de Prompt Customizado */}
+            {/* Instrução só desta reanálise (não treina / não é feedback permanente) */}
             <div className="modal-reanalise-section">
               <div className="modal-reanalise-option">
                 <label className="modal-reanalise-checkbox-label">
@@ -338,23 +359,25 @@ export default function ModalReanalise({
                     checked={usarPromptCustomizado}
                     onChange={(e) => setUsarPromptCustomizado(e.target.checked)}
                   />
-                  <span>Usar prompt customizado</span>
+                  <span>Instrução só desta reanálise</span>
                 </label>
               </div>
 
               {usarPromptCustomizado && (
                 <div className="modal-reanalise-prompt-group">
-                  <label htmlFor="prompt-customizado">Prompt Customizado</label>
+                  <label htmlFor="prompt-customizado">Instrução para esta execução</label>
                   <textarea
                     id="prompt-customizado"
                     value={promptCustomizado}
                     onChange={(e) => setPromptCustomizado(e.target.value)}
-                    placeholder="Ex: Analise focando em aspectos ambientais e impacto ecológico..."
+                    placeholder="Ex.: Reavalie o item de ART; o memorial novo corrige afastamentos laterais..."
                     rows={6}
                     className="modal-reanalise-textarea"
                   />
                   <p className="modal-reanalise-hint">
-                    Descreva o tipo de análise que deseja. A IA usará este prompt junto com as informações da solicitação e documentos (incluindo os PDFs adicionados acima).
+                    Vale apenas para esta execução. Não treina a IA e não substitui feedback
+                    permanente (Configurações → aprendizado). Edição manual do parecer/checklist
+                    também não cria aprendizado.
                   </p>
                 </div>
               )}

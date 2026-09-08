@@ -42,18 +42,25 @@ export const TAXONOMIA_STATUS_CHECKLIST = `TAXONOMIA OBRIGATÓRIA DO CHECKLIST:
 - NAO_CONFORME: a evidência EXISTE nos documentos, mas está incompleta, incorreta ou em desacordo com a norma citada nesta chamada.
 - OK: evidência completa nos PDFs e aderente à norma. Presença do arquivo NÃO autoriza OK.
 - fundamentacao: cite somente normas anexadas nesta análise (título + artigo/parágrafo/página). Não invente artigo, página ou requisito.
-- orientacao: se NAO_CONFORME, o que corrigir no conteúdo apresentado; se INFORMACAO_AUSENTE, o que deve ser apresentado.`;
+- orientacao: se NAO_CONFORME, o que corrigir no conteúdo apresentado; se INFORMACAO_AUSENTE, o que deve ser apresentado.
+- Cada apontamento DEVE trazer: evidência observada + localização (arquivo e, se possível, página/trecho) + justificativa coerente com o veredito + norma citada. Veredito sem esses elementos é inválido.`;
 
 export const INSTRUCOES_PECAS_GRAFICAS = `PEÇAS GRÁFICAS (planta baixa, perfil, sinalização e equivalentes):
 - Analise o desenho, não só o nome do arquivo: cotas, FXD, faixa non aedificandi, km, sentido, interferência com pista/acostamento.
 - Se a peça estiver ilegível, truncada ou sem os elementos acima, use INFORMACAO_AUSENTE — não chute cotas nem geometria.
-- Documento gráfico presente mas com parâmetros insuficientes ou em desacordo com a norma → NAO_CONFORME.`;
+- Documento gráfico presente mas com parâmetros insuficientes ou em desacordo com a norma → NAO_CONFORME.
+- PROIBIDO declarar que informação "não existe" na planta sem indicar qual arquivo/página foi inspecionado e o que se buscou (cota, eixo, FXD, etc.).`;
 
 export const REGRAS_CONFERENCIA_EVIDENCIA = `CONFERÊNCIA FORMULÁRIO × DOCUMENTOS (conferenciaInputs):
 - valorDocumento SOMENTE extraído dos PDFs. Proibido copiar valorFormulario.
 - Para cada item, preencha evidencia quando houver: { "arquivo": "nome.pdf", "pagina": "3" ou null, "trecho": "trecho curto ou null" }.
 - observacao deve ser explícita. Em DIVERGENTE, use o formato: "Formulário: X · Documento: Y".
 - status: COMPATIVEL | DIVERGENTE | AUSENTE_NO_DOCUMENTO | AUSENTE_NO_FORMULARIO.`;
+
+export const REGRAS_ISOLAMENTO_TIPO = `ISOLAMENTO POR TIPO DE ANÁLISE:
+- Respeite o bloco TIPO DE ANÁLISE (DOMÍNIO) quando presente.
+- Use somente os IDs de requisito listados para aquele tipo. Não importe itens de ocupação em análise de acesso/PAC (e vice-versa).
+- Se o tipo for Outro, não invente checklist de outro domínio.`;
 
 export function buildSystemPrompt(): string {
   return `Você é um especialista técnico em projetos rodoviários e engenharia de transportes, com profundo conhecimento das normas brasileiras vigentes que regulamentam acessos, faixa de domínio, sinalização de obras e infraestrutura viária.
@@ -71,7 +78,9 @@ ${TAXONOMIA_STATUS_CHECKLIST}
 
 ${INSTRUCOES_PECAS_GRAFICAS}
 
-${REGRAS_CONFERENCIA_EVIDENCIA}`;
+${REGRAS_CONFERENCIA_EVIDENCIA}
+
+${REGRAS_ISOLAMENTO_TIPO}`;
 }
 
 export function buildAnalysisPrompt(
@@ -145,7 +154,9 @@ INSTRUÇÕES:
 5. ${TAXONOMIA_STATUS_CHECKLIST}
 6. ${INSTRUCOES_PECAS_GRAFICAS}
 7. ${REGRAS_CONFERENCIA_EVIDENCIA}
-8. Respeite estritamente as saídas pedidas:
+8. ${REGRAS_ISOLAMENTO_TIPO}
+9. Em situacaoEncontrada, quando aplicável, cite arquivo/página inspecionados.
+10. Respeite estritamente as saídas pedidas:
 - ${instrucoesSaida}${promptAdicional}
 
 FORMATO DE SAÍDA OBRIGATÓRIO — responda APENAS com JSON válido, sem texto antes ou depois:

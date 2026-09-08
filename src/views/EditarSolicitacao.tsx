@@ -96,7 +96,15 @@ export default function EditarSolicitacao() {
       setError('Título é obrigatório.')
       return
     }
-    if (tipoAnaliseId === 'outro' && !tipoAnaliseDescricao.trim()) {
+    if (!tipoAnaliseId.trim()) {
+      setError('Selecione o tipo de análise (ocupação, acesso, PAC ou Outro).')
+      return
+    }
+    if (
+      (tipoAnaliseId === 'outro' ||
+        tiposAnalise.find((t) => t.id === tipoAnaliseId)?.categoria === 'outro') &&
+      !tipoAnaliseDescricao.trim()
+    ) {
       setError('Descreva o tipo de análise em Outro.')
       return
     }
@@ -253,7 +261,7 @@ export default function EditarSolicitacao() {
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="edit-tipo-analise">Tipo de análise</label>
+              <label htmlFor="edit-tipo-analise">Tipo de análise *</label>
             <select
               id="edit-tipo-analise"
               value={tipoAnaliseId}

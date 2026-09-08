@@ -52,7 +52,7 @@
 - [x] UI de comparação revisão anterior × atual (resumo)
 - [x] Código no repo; publicar functions no deploy
 - [ ] Testes com casos reais do cliente
-- [ ] Consistência plena na reanálise (ver Sprint 6 — evolução)
+- [x] Consistência plena na reanálise (ver Sprint 6 — evolução) — wiring concluído; validação empírica pendente
 
 ### Sprint 4 — Refinamento técnico inicial da IA
 
@@ -76,19 +76,21 @@
 
 - [x] Modelo de **tipo de análise** (descrição, finalidade, checklist, normas, docs, prompts) — coleção + seed + UI Configurações
 - [x] Vincular solicitação/processo ao tipo de análise — vínculo na nova/editar solicitação (`tipoAnaliseId`)
-- [ ] Recuperação de contexto **somente** do tipo pertinente (não misturar bases) — depende IA/OpenAI + deploy functions
-- [ ] Garantir que checklist de um tipo não seja aplicado a outro
-- [ ] Reforçar validação de apontamento: evidência + localização + justificativa + norma (não só o veredito)
-- [ ] Separar/orientar pipeline texto vs peças gráficas / projeto geométrico (piloto)
-- [ ] Reduzir falsos negativos em plantas ("informação existe no desenho e a IA diz que não")
-- [ ] Casos de teste mínimos por tipo (ocupação, acesso, PAC — conforme material do cliente)
+- [x] Recuperação de contexto **somente** do tipo pertinente (não misturar bases) — wiring no `analiseJobProcessor` + seed de requisitos
+- [x] Garantir que checklist de um tipo não seja aplicado a outro — IDs prefixados `OCUP_` / `ACESSO_` / `PAC_` + prompt de isolamento
+- [x] Reforçar validação de apontamento: evidência + localização + justificativa + norma (não só o veredito) — prompts atualizados
+- [x] Separar/orientar pipeline texto vs peças gráficas / projeto geométrico (piloto) — instruções reforçadas (não declarar ausente sem citar inspeção)
+- [ ] Reduzir falsos negativos em plantas ("informação existe no desenho e a IA diz que não") — depende validação empírica com OpenAI + amostras reais
+- [x] Casos de teste mínimos por tipo (ocupação, acesso, PAC — conforme material do cliente) — ver [`casos_teste_sprint5_tipos.md`](./casos_teste_sprint5_tipos.md)
 
 **Critérios de aceite**
 
-1. Análise de tipo A não traz itens exclusivos do checklist de tipo B.
-2. Em amostra definida com o cliente, apontamentos com justificativa incoerente caem vs baseline atual.
-3. Peças gráficas classificadas seguem instrução específica (não tratadas só como PDF genérico).
-4. Relatório/checklist identifica o tipo de análise usado.
+1. Análise de tipo A não traz itens exclusivos do checklist de tipo B. *(código: isolamento por seed/prompt; validação empírica pendente OpenAI)*
+2. Em amostra definida com o cliente, apontamentos com justificativa incoerente caem vs baseline atual. *(pendente validação)*
+3. Peças gráficas classificadas seguem instrução específica (não tratadas só como PDF genérico). *(instrução no prompt; validação pendente)*
+4. Relatório/checklist identifica o tipo de análise usado. *(UI + `tipoAnaliseNomeUsado`)*
+
+**Nota:** deploy das Cloud Functions + chave OpenAI necessários para fechar validação em produção.
 
 ---
 
@@ -97,18 +99,20 @@
 **Objetivo:** reanálise preservar contexto; não sobrescrever análise anterior; resultados estáveis e justificáveis.
 
 - [x] Versionar cada execução de análise (v1, v2…) sem apagar a anterior — subcoleção `analiseVersoes` no processor
-- [ ] Reanálise recebe: docs originais + docs novos + análise anterior + checklist + regras + observações + feedback da rodada
-- [ ] Itens não contestados permanecem (ou mudança vem com justificativa explícita)
-- [ ] Histórico navegável de versões na UI do analista
-- [ ] Evitar "reabrir o mesmo processo e obter resultado radicalmente diferente" sem mudança de entrada
-- [ ] Distinguir na UI: edição manual × instrução só desta reanálise × feedback permanente (este último na Sprint 7)
+- [x] Reanálise recebe: docs originais + docs novos + análise anterior + checklist + regras + observações + feedback da rodada — memória da mesma solicitação + continuidade R00→R01
+- [x] Itens não contestados permanecem (ou mudança vem com justificativa explícita) — regras no prompt de continuidade
+- [x] Histórico navegável de versões na UI do analista — seletor + badge no `RelatorioViewer`
+- [x] Evitar "reabrir o mesmo processo e obter resultado radicalmente diferente" sem mudança de entrada — âncora na versão anterior + temperature baixa *(validação empírica pendente OpenAI)*
+- [x] Distinguir na UI: edição manual × instrução só desta reanálise × feedback permanente (este último na Sprint 7)
 
 **Critérios de aceite**
 
-1. Após reanálise, a versão anterior continua acessível.
-2. Em teste controlado (mesmos docs + mesma instrução), variação de checklist fica dentro de limite acordado com o cliente.
-3. Feedback/instrução da reanálise atual é aplicado sem "esquecer" pendências anteriores relevantes.
-4. UI mostra claramente qual versão está sendo visualizada.
+1. Após reanálise, a versão anterior continua acessível. *(Firestore + UI)*
+2. Em teste controlado (mesmos docs + mesma instrução), variação de checklist fica dentro de limite acordado com o cliente. *(ver [`casos_teste_sprint6_reanalise.md`](./casos_teste_sprint6_reanalise.md) — empírica pendente)*
+3. Feedback/instrução da reanálise atual é aplicado sem "esquecer" pendências anteriores relevantes. *(wiring no processor)*
+4. UI mostra claramente qual versão está sendo visualizada. *(badge + seletor)*
+
+**Nota:** deploy das Cloud Functions necessário para memória da reanálise em produção.
 
 ---
 
@@ -119,17 +123,19 @@
 - [x] Fluxo: análise → identificar erro → registrar "X estava errado; correto é Y porque…" — UI Configurações (registro estruturado)
 - [x] Persistência estruturada (tipo, organização, regra, original, correção, justificativa, docs, autor, data)
 - [x] Status de validação: rascunho / pendente / aprovado / rejeitado
-- [ ] Apenas conhecimento **aprovado** entra em análises futuras semelhantes — injeção no prompt (precisa OpenAI + deploy)
+- [x] Apenas conhecimento **aprovado** entra em análises futuras semelhantes — injeção no prompt (`feedbackAprendizadoService` + bloco no processor)
 - [x] UI deixa explícito que edição do parecer **não** treina a IA
-- [x] Admin pode revisar/aprovar/rejeitar feedbacks
-- [ ] Salvaguardas para não contaminar todas as análises com um feedback ruim
+- [x] Admin pode revisar/aprovar/rejeitar feedbacks (+ revogar aprovado)
+- [x] Salvaguardas para não contaminar todas as análises com um feedback ruim — só mesmo tipo; máx. 8; truncamento; normas prevalecem; sem tipo = não injeta
 
 **Critérios de aceite**
 
-1. Feedback aprovado influencia nova análise do **mesmo tipo** (demonstrável em caso de teste).
-2. Feedback pendente/rejeitado **não** altera análises.
-3. Analista consegue concluir o fluxo em menos de 2 minutos em caso típico.
-4. Edição manual do checklist/parecer não cria registro de aprendizado automaticamente.
+1. Feedback aprovado influencia nova análise do **mesmo tipo** (demonstrável em caso de teste). *(wiring + [`casos_teste_sprint7_feedback.md`](./casos_teste_sprint7_feedback.md); empírica pendente OpenAI/deploy)*
+2. Feedback pendente/rejeitado **não** altera análises. *(filtro `status==aprovado`)*
+3. Analista consegue concluir o fluxo em menos de 2 minutos em caso típico. *(UI Configurações)*
+4. Edição manual do checklist/parecer não cria registro de aprendizado automaticamente. *(fluxo separado)*
+
+**Nota:** deploy das Cloud Functions necessário para injeção em produção.
 
 ---
 
@@ -282,8 +288,7 @@ Itens das antigas sprints 6–8 e pedidos secundários:
 
 ## Próximo foco de desenvolvimento
 
-1. **Sprint 5** — isolamento e assertividade por tipo de análise.  
-2. **Sprint 6** — versionamento e memória consistente na reanálise.  
-3. **Sprint 7** — feedback operacional com validação.  
-4. **Sprint 8** — golden cases / base de conhecimento.  
-5. **Sprint 9** — escala documental e 429.
+1. **Deploy / publicar repo** — functions + front (Sprints 5–7) e validar com OpenAI.  
+2. **Sprint 8** — golden cases / recuperação na análise.  
+3. Empírica: isolamento por tipo, memória de reanálise, feedback aprovado.  
+4. **Sprint 9** — escala documental e 429.

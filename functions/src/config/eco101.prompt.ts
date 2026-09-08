@@ -1,6 +1,7 @@
 import {
   INSTRUCOES_PECAS_GRAFICAS,
   REGRAS_CONFERENCIA_EVIDENCIA,
+  REGRAS_ISOLAMENTO_TIPO,
   TAXONOMIA_STATUS_CHECKLIST,
   type DadosFormulario,
   type EscopoAnalisePrompt,
@@ -30,6 +31,8 @@ ${TAXONOMIA_STATUS_CHECKLIST}
 ${INSTRUCOES_PECAS_GRAFICAS}
 
 ${REGRAS_CONFERENCIA_EVIDENCIA}
+
+${REGRAS_ISOLAMENTO_TIPO}
 
 3. PROIBIÇÕES ABSOLUTAS
    - Nunca escreva apenas "OK", "Conforme", "Documento apresentado" ou equivalente.

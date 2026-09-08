@@ -20,7 +20,7 @@ import {
 const COLLECTION =
   import.meta.env.VITE_FIRESTORE_TIPOS_ANALISE_COLLECTION?.trim() || 'tiposAnalise'
 
-const MOCK_KEY = 'rerond-tipos-analise-mock-v1'
+const MOCK_KEY = 'rerond-tipos-analise-mock-v2'
 
 let mockMode = false
 
@@ -50,25 +50,40 @@ const toDate = (value: unknown): Date | undefined => {
   return undefined
 }
 
-const parseTipo = (id: string, raw: Record<string, unknown>): TipoAnalise => ({
-  id,
-  nome: String(raw.nome ?? ''),
-  slug: String(raw.slug ?? id),
-  categoria: (raw.categoria as TipoAnalise['categoria']) || 'outro',
-  descricao: String(raw.descricao ?? ''),
-  finalidade: raw.finalidade ? String(raw.finalidade) : undefined,
-  normasFontes: Array.isArray(raw.normasFontes) ? raw.normasFontes.map(String) : [],
-  documentosSugeridos: Array.isArray(raw.documentosSugeridos)
-    ? raw.documentosSugeridos.map(String)
-    : [],
-  requisitos: Array.isArray(raw.requisitos)
-    ? (raw.requisitos as TipoAnalise['requisitos'])
-    : [],
-  promptOrientacao: raw.promptOrientacao ? String(raw.promptOrientacao) : undefined,
-  ativo: raw.ativo !== false,
-  createdAt: toDate(raw.createdAt),
-  updatedAt: toDate(raw.updatedAt),
-})
+const enrichFromSeed = (tipo: TipoAnalise): TipoAnalise => {
+  const seed = TIPOS_ANALISE_SEED.find((item) => item.id === tipo.id)
+  if (!seed) return tipo
+  return {
+    ...tipo,
+    requisitos: tipo.requisitos?.length ? tipo.requisitos : seed.requisitos,
+    normasFontes: tipo.normasFontes?.length ? tipo.normasFontes : seed.normasFontes,
+    promptOrientacao: tipo.promptOrientacao || seed.promptOrientacao,
+    documentosSugeridos: tipo.documentosSugeridos?.length
+      ? tipo.documentosSugeridos
+      : seed.documentosSugeridos,
+  }
+}
+
+const parseTipo = (id: string, raw: Record<string, unknown>): TipoAnalise =>
+  enrichFromSeed({
+    id,
+    nome: String(raw.nome ?? ''),
+    slug: String(raw.slug ?? id),
+    categoria: (raw.categoria as TipoAnalise['categoria']) || 'outro',
+    descricao: String(raw.descricao ?? ''),
+    finalidade: raw.finalidade ? String(raw.finalidade) : undefined,
+    normasFontes: Array.isArray(raw.normasFontes) ? raw.normasFontes.map(String) : [],
+    documentosSugeridos: Array.isArray(raw.documentosSugeridos)
+      ? raw.documentosSugeridos.map(String)
+      : [],
+    requisitos: Array.isArray(raw.requisitos)
+      ? (raw.requisitos as TipoAnalise['requisitos'])
+      : [],
+    promptOrientacao: raw.promptOrientacao ? String(raw.promptOrientacao) : undefined,
+    ativo: raw.ativo !== false,
+    createdAt: toDate(raw.createdAt),
+    updatedAt: toDate(raw.updatedAt),
+  })
 
 const readMock = (): TipoAnalise[] => {
   try {
@@ -78,7 +93,7 @@ const readMock = (): TipoAnalise[] => {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return TIPOS_ANALISE_SEED.map((item) => ({ ...item }))
     }
-    return parsed
+    return parsed.map(enrichFromSeed)
   } catch {
     return TIPOS_ANALISE_SEED.map((item) => ({ ...item }))
   }

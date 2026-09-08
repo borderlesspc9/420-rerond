@@ -74,7 +74,7 @@ function parsePerfil(
     normasFontes: Array.isArray(raw.normasFontes) ? raw.normasFontes.map(String) : [],
     normasCustom: Array.isArray(raw.normasCustom)
       ? (raw.normasCustom as NormaCustomFirestore[])
-          .map((item) => ({
+          .map((item): NormaCustomFirestore => ({
             id: String(item?.id ?? "").trim(),
             titulo: String(item?.titulo ?? "").trim(),
             orgao: String(item?.orgao ?? "").trim(),
