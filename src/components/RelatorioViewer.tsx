@@ -113,6 +113,9 @@ interface RelatorioViewerProps {
   tipoAnaliseNome?: string | null
   /** Versão atual da análise na solicitação (vN). */
   analiseVersaoAtual?: number | null
+  /** PDFs efetivamente enviados à IA na última análise. */
+  documentosProcessados?: string[] | null
+  documentosOmitidos?: string[] | null
   dadosExtraidos?: DadosExtraidosAnalise | null
   conferenciaInputs?: ConferenciaInput[]
   onRelatorioAtualizado?: (resultado: SolicitacaoWithFiles) => void
@@ -132,6 +135,8 @@ export default function RelatorioViewer({
   concessionariaId,
   tipoAnaliseNome,
   analiseVersaoAtual,
+  documentosProcessados,
+  documentosOmitidos,
   dadosExtraidos,
   conferenciaInputs,
   onRelatorioAtualizado,
@@ -441,6 +446,15 @@ export default function RelatorioViewer({
                 <History size={12} />
                 {badgeVersao}
               </span>
+            )}
+            {documentosProcessados && documentosProcessados.length > 0 && (
+              <p className="relatorio-viewer-docs">
+                Documentos processados ({documentosProcessados.length}):{' '}
+                {documentosProcessados.join(', ')}
+                {documentosOmitidos && documentosOmitidos.length > 0
+                  ? ` · Omitidos: ${documentosOmitidos.join(', ')}`
+                  : ''}
+              </p>
             )}
           </div>
           <button className="relatorio-viewer-close" onClick={onClose} aria-label="Fechar">

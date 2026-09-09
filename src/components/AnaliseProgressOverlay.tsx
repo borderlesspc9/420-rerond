@@ -233,9 +233,11 @@ export default function AnaliseProgressOverlay({
         </ol>
 
         <p className="apo-hint">
-          {usesRealJob
-            ? 'A análise continua em segundo plano. Você pode navegar pelo sistema enquanto processamos os documentos.'
-            : 'A análise pode levar alguns minutos conforme o volume de PDFs.'}
+          {jobState === 'failed'
+            ? 'Edite a solicitação para ajustar PDFs se necessário e use Tentar novamente na mesma ficha — não é preciso abrir um processo novo.'
+            : usesRealJob
+              ? 'A análise continua em segundo plano. Você pode navegar pelo sistema enquanto processamos os documentos.'
+              : 'A análise pode levar alguns minutos conforme o volume de PDFs.'}
         </p>
       </div>
     </div>

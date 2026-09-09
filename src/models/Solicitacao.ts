@@ -7,6 +7,13 @@ export type TipoDocumentoAnexo =
   | 'planta_baixa'
   | 'perfil_ocupacao'
   | 'projeto_sinalizacao'
+  | 'projeto_terraplenagem'
+  | 'projeto_drenagem'
+  | 'projeto_pavimentacao'
+  | 'projeto_topografico'
+  | 'projeto_geometrico'
+  | 'projeto_publicidade'
+  | 'estrutura_sustentacao'
   | 'art'
   | 'cronograma'
   | 'declaracao_veracidade'
@@ -120,6 +127,10 @@ export interface Solicitacao {
   tipoAnaliseNomeUsado?: string | null
   /** Versão corrente da análise IA (snapshot em subcoleção). */
   analiseVersaoAtual?: number | null
+  analiseErroMensagem?: string | null
+  analiseErroCodigo?: string | null
+  documentosProcessados?: string[] | null
+  documentosOmitidos?: string[] | null
   /** Histórico leve de edições manuais (P11). */
   historicoEdicoes?: Array<{
     em: string

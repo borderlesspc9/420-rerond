@@ -20,7 +20,7 @@ import {
 const COLLECTION =
   import.meta.env.VITE_FIRESTORE_TIPOS_ANALISE_COLLECTION?.trim() || 'tiposAnalise'
 
-const MOCK_KEY = 'rerond-tipos-analise-mock-v2'
+const MOCK_KEY = 'rerond-tipos-analise-mock-v3'
 
 let mockMode = false
 

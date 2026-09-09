@@ -11,8 +11,10 @@ import './ConfiguracoesModulares.css'
 
 const CATEGORIA_OPTIONS: Array<{ value: TipoAnaliseCategoria; label: string }> = [
   { value: 'ocupacao_faixa', label: 'Ocupação em faixa' },
+  { value: 'poc', label: 'POC' },
   { value: 'acesso', label: 'Acesso' },
   { value: 'pac', label: 'PAC' },
+  { value: 'ppu', label: 'PPU / Publicidade' },
   { value: 'rede_eletrica', label: 'Rede elétrica' },
   { value: 'esgoto', label: 'Esgoto / saneamento' },
   { value: 'publicidade', label: 'Publicidade' },

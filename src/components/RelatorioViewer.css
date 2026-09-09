@@ -70,6 +70,14 @@
   background: #edf2fa;
 }
 
+.relatorio-viewer-docs {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #4b5563;
+  max-width: 52rem;
+}
+
 .relatorio-viewer-versao {
   display: inline-flex;
   align-items: center;

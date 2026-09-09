@@ -8,6 +8,7 @@ import type { EscopoAnalise, SolicitacaoWithFiles, TipoRelatorio } from '../mode
 import RelatorioViewer from '../components/RelatorioViewer'
 import ModalReanalise from '../components/ModalReanalise'
 import AnaliseProgressOverlay from '../components/AnaliseProgressOverlay'
+import { humanizeAnaliseErrorMessage } from '../utils/analiseErrorMessage'
 import './Solicitacoes.css'
 
 export default function Solicitacoes() {
@@ -40,6 +41,8 @@ export default function Solicitacoes() {
     concessionariaId?: string | null
     tipoAnaliseNome?: string | null
     analiseVersaoAtual?: number | null
+    documentosProcessados?: string[] | null
+    documentosOmitidos?: string[] | null
     dadosExtraidos?: SolicitacaoWithFiles['dadosExtraidos']
     conferenciaInputs?: SolicitacaoWithFiles['conferenciaInputs']
   } | null>(null)
@@ -63,7 +66,11 @@ export default function Solicitacoes() {
       activeJobId,
       async (job) => {
         setActiveJob(job)
-        setJobError(job.state === 'failed' ? job.error?.message ?? 'Falha na análise.' : null)
+        setJobError(
+          job.state === 'failed'
+            ? humanizeAnaliseErrorMessage(job.error?.message ?? 'Falha na análise.')
+            : null,
+        )
 
         setSolicitacoes((prev) =>
           prev.map((item) =>
@@ -226,6 +233,8 @@ export default function Solicitacoes() {
       solicitacao.tipoAnaliseId ||
       null,
     analiseVersaoAtual: solicitacao.analiseVersaoAtual ?? null,
+    documentosProcessados: solicitacao.documentosProcessados ?? null,
+    documentosOmitidos: solicitacao.documentosOmitidos ?? null,
     dadosExtraidos: solicitacao.dadosExtraidos,
     conferenciaInputs: solicitacao.conferenciaInputs,
   })
@@ -450,6 +459,19 @@ export default function Solicitacoes() {
                 </div>
               )}
 
+              {solicitacao.analiseJobStatus === 'failed' && (
+                <div className="solicitacao-erro-analise" role="alert">
+                  <AlertCircle size={14} />
+                  <span>
+                    {humanizeAnaliseErrorMessage(
+                      solicitacao.analiseErroMensagem ||
+                        (analisandoId === solicitacao.id ? jobError : null) ||
+                        'A última análise falhou. Edite os arquivos se precisar e use Tentar novamente.',
+                    )}
+                  </span>
+                </div>
+              )}
+
               <div className="solicitacao-actions">
                 <button
                   className="btn-ver-relatorio"
@@ -474,11 +496,13 @@ export default function Solicitacoes() {
                   disabled={analisandoId === solicitacao.id}
                 >
                   <Sparkles size={16} />
-                  {analisandoId === solicitacao.id 
-                    ? 'Analisando...' 
-                    : solicitacao.analisadoPorIA 
-                      ? 'Reanalisar' 
-                      : 'Primeira Análise'}
+                  {analisandoId === solicitacao.id
+                    ? 'Analisando...'
+                    : solicitacao.analiseJobStatus === 'failed'
+                      ? 'Tentar novamente'
+                      : solicitacao.analisadoPorIA
+                        ? 'Reanalisar'
+                        : 'Primeira Análise'}
                 </button>
                 {solicitacao.analisadoPorIA && solicitacao.status !== 'aprovada' && solicitacao.status !== 'rejeitada' && (
                   <>
@@ -521,6 +545,8 @@ export default function Solicitacoes() {
           concessionariaId={relatorioAberto.concessionariaId}
           tipoAnaliseNome={relatorioAberto.tipoAnaliseNome}
           analiseVersaoAtual={relatorioAberto.analiseVersaoAtual}
+          documentosProcessados={relatorioAberto.documentosProcessados}
+          documentosOmitidos={relatorioAberto.documentosOmitidos}
           dadosExtraidos={relatorioAberto.dadosExtraidos}
           conferenciaInputs={relatorioAberto.conferenciaInputs}
           onRelatorioAtualizado={(resultado) => {

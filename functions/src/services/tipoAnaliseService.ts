@@ -136,6 +136,133 @@ const REQ_PAC: RequisitoTipoAnalise[] = [
   },
 ];
 
+const REQ_POC: RequisitoTipoAnalise[] = [
+  {
+    id: "POC_COMPLETUDE_DOCUMENTAL",
+    descricao: "Completude documental do POC (requerimento, memorial, plantas).",
+    categoria: "DOCUMENTAL",
+  },
+  {
+    id: "POC_LOCALIZACAO_KM",
+    descricao:
+      "Localização (km/sentido) coerente entre formulário, memorial e plantas.",
+    categoria: "GEOMETRIA",
+  },
+  {
+    id: "POC_COMPAT_MEMORIAL_PLANTAS",
+    descricao:
+      "Compatibilização Memorial × plantas (sem divergência de cotas/km/escopo).",
+    categoria: "TECNICO",
+  },
+  {
+    id: "POC_ART",
+    descricao: "ART do POC apresentada e vinculada ao responsável técnico.",
+    categoria: "DOCUMENTAL",
+  },
+  {
+    id: "POC_INTERFERENCIA_FXD",
+    descricao:
+      "Interferência com faixa de domínio / non aedificandi identificada.",
+    categoria: "GEOMETRIA",
+  },
+];
+
+const REQ_PPU: RequisitoTipoAnalise[] = [
+  {
+    id: "PPU_COMPLETUDE_DOCUMENTAL",
+    descricao:
+      "Completude documental de publicidade (requerimento, memorial, projeto).",
+    categoria: "DOCUMENTAL",
+  },
+  {
+    id: "PPU_ESTRUTURA_SUSTENTACAO",
+    descricao:
+      "Estrutura de sustentação do dispositivo de publicidade dimensionada/apresentada.",
+    categoria: "TECNICO",
+  },
+  {
+    id: "PPU_LOCALIZACAO_KM",
+    descricao: "Localização (km/sentido) do ponto de publicidade coerente.",
+    categoria: "GEOMETRIA",
+  },
+  {
+    id: "PPU_INTERFERENCIA_SEGURANCA",
+    descricao:
+      "Avaliação de interferência com segurança viária / visibilidade.",
+    categoria: "SEGURANCA",
+  },
+  {
+    id: "PPU_ART",
+    descricao: "ART referente ao projeto de publicidade apresentada.",
+    categoria: "DOCUMENTAL",
+  },
+];
+
+const REQ_PAC_VIAB: RequisitoTipoAnalise[] = [
+  {
+    id: "PACV_COMPLETUDE_DOCUMENTAL",
+    descricao: "Documentação mínima de PAC em fase de viabilidade.",
+    categoria: "DOCUMENTAL",
+  },
+  {
+    id: "PACV_ESCOPO_FASE",
+    descricao:
+      "Escopo coerente com fase de viabilidade (não exigir disciplinas só de executivo).",
+    categoria: "PLANEJAMENTO",
+  },
+  {
+    id: "PACV_LOCALIZACAO",
+    descricao: "Localização e premissas de viabilidade coerentes.",
+    categoria: "TECNICO",
+  },
+  {
+    id: "PACV_CRONOGRAMA",
+    descricao: "Cronograma/prazos de viabilidade quando exigidos.",
+    categoria: "PLANEJAMENTO",
+  },
+  {
+    id: "PACV_ART",
+    descricao: "ART aplicável à fase de viabilidade, se exigida.",
+    categoria: "DOCUMENTAL",
+  },
+];
+
+const REQ_PAC_EXEC: RequisitoTipoAnalise[] = [
+  {
+    id: "PACE_COMPLETUDE_DISCIPLINAS",
+    descricao:
+      "Completude das disciplinas do executivo enviadas (planta, drenagem, terraplenagem, pavimentação, etc. conforme anexos).",
+    categoria: "DOCUMENTAL",
+  },
+  {
+    id: "PACE_COMPAT_ENTRE_PROJETOS",
+    descricao: "Compatibilização entre disciplinas/projetos enviados nesta etapa.",
+    categoria: "TECNICO",
+  },
+  {
+    id: "PACE_GEOMETRIA",
+    descricao:
+      "Projeto geométrico / planta compatível com memorial (quando enviados).",
+    categoria: "GEOMETRIA",
+  },
+  {
+    id: "PACE_DRENAGEM_TERRAP",
+    descricao: "Drenagem e/ou terraplenagem avaliadas se constarem nos anexos.",
+    categoria: "TECNICO",
+  },
+  {
+    id: "PACE_SINALIZACAO",
+    descricao:
+      "Sinalização avaliada se enviada; não exigir se não anexada nesta etapa.",
+    categoria: "SEGURANCA",
+  },
+  {
+    id: "PACE_ART",
+    descricao: "ART(s) do executivo vinculada(s) aos projetos enviados.",
+    categoria: "DOCUMENTAL",
+  },
+];
+
 /** Seed embutido — usado se Firestore estiver vazio ou sem o doc. */
 export const TIPOS_ANALISE_SEED: TipoAnaliseFirestore[] = [
   {
@@ -156,7 +283,28 @@ export const TIPOS_ANALISE_SEED: TipoAnaliseFirestore[] = [
     ],
     requisitos: REQ_OCUPACAO,
     promptOrientacao:
-      "ISOLAMENTO OBRIGATÓRIO: use SOMENTE requisitos com prefixo OCUP_ / domínio ocupação em faixa. NÃO aplique checklist de acesso (ACESSO_*) nem PAC (PAC_*). Não invente requisitos de outros tipos.",
+      "ISOLAMENTO OBRIGATÓRIO: use SOMENTE requisitos com prefixo OCUP_. NÃO aplique ACESSO_*, PAC_*, POC_* ou PPU_*.",
+    ativo: true,
+  },
+  {
+    id: "poc",
+    nome: "POC — Projeto de Ocupação",
+    slug: "poc",
+    categoria: "poc",
+    descricao:
+      "Tipologia POC (Projeto de Ocupação) — Ecovias/Capixaba e equivalentes.",
+    finalidade: "Checklist específico de POC, distinto de PPU e PAC.",
+    normasFontes: ["ANTT_SUROD_13_2025"],
+    documentosSugeridos: [
+      "requerimento",
+      "memorial_descritivo",
+      "planta_baixa",
+      "perfil_ocupacao",
+      "art",
+    ],
+    requisitos: REQ_POC,
+    promptOrientacao:
+      "ISOLAMENTO POC: use somente POC_*. Não use checklist genérico de outro domínio nem PPU/PAC/acesso.",
     ativo: true,
   },
   {
@@ -170,16 +318,16 @@ export const TIPOS_ANALISE_SEED: TipoAnaliseFirestore[] = [
     documentosSugeridos: ["requerimento", "memorial_descritivo", "planta_baixa", "art"],
     requisitos: REQ_ACESSO,
     promptOrientacao:
-      "ISOLAMENTO OBRIGATÓRIO: use SOMENTE requisitos com prefixo ACESSO_ / domínio acessos. NÃO aplique checklist de ocupação (OCUP_*) nem PAC (PAC_*). Não invente requisitos de outros tipos.",
+      "ISOLAMENTO OBRIGATÓRIO: use SOMENTE ACESSO_*. NÃO aplique OCUP_*, PAC_*, POC_* ou PPU_*.",
     ativo: true,
   },
   {
     id: "pac",
-    nome: "PAC",
+    nome: "PAC (geral)",
     slug: "pac",
     categoria: "pac",
     descricao:
-      "Análise de Projetos de Adequação / PAC conforme material da organização.",
+      "PAC genérico — prefira PAC Viabilidade ou PAC Executivo quando a fase for conhecida.",
     finalidade: "Verificar conformidade de PAC.",
     normasFontes: ["ANTT_SUROD_12_2025"],
     documentosSugeridos: [
@@ -190,7 +338,74 @@ export const TIPOS_ANALISE_SEED: TipoAnaliseFirestore[] = [
     ],
     requisitos: REQ_PAC,
     promptOrientacao:
-      "ISOLAMENTO OBRIGATÓRIO: use SOMENTE requisitos com prefixo PAC_ / domínio PAC. NÃO aplique checklist de ocupação (OCUP_*) nem acesso (ACESSO_*). Não invente requisitos de outros tipos.",
+      "ISOLAMENTO: use SOMENTE PAC_*. Se a fase for viabilidade ou executivo, prefira pac-viabilidade / pac-executivo.",
+    ativo: true,
+  },
+  {
+    id: "pac-viabilidade",
+    nome: "PAC — Viabilidade",
+    slug: "pac-viabilidade",
+    categoria: "pac",
+    descricao:
+      "PAC na fase de viabilidade — não exigir disciplinas exclusivas de executivo não enviadas.",
+    finalidade: "Checklist de PAC Viabilidade.",
+    normasFontes: ["ANTT_SUROD_12_2025"],
+    documentosSugeridos: [
+      "requerimento",
+      "memorial_descritivo",
+      "plano_trabalho",
+      "art",
+    ],
+    requisitos: REQ_PAC_VIAB,
+    promptOrientacao:
+      "FASE VIABILIDADE: use somente PACV_*. Não exija disciplinas de executivo se não foram anexadas.",
+    ativo: true,
+  },
+  {
+    id: "pac-executivo",
+    nome: "PAC — Executivo",
+    slug: "pac-executivo",
+    categoria: "pac",
+    descricao:
+      "PAC executivo — disciplinas conforme documentos enviados nesta etapa.",
+    finalidade: "Checklist de PAC Executivo com múltiplas disciplinas.",
+    normasFontes: ["ANTT_SUROD_12_2025"],
+    documentosSugeridos: [
+      "requerimento",
+      "memorial_descritivo",
+      "planta_baixa",
+      "projeto_geometrico",
+      "projeto_drenagem",
+      "projeto_terraplenagem",
+      "projeto_pavimentacao",
+      "projeto_sinalizacao",
+      "art",
+    ],
+    requisitos: REQ_PAC_EXEC,
+    promptOrientacao:
+      "FASE EXECUTIVO: use somente PACE_*. Avalie disciplinas presentes nos anexos; não marque ausente o que não foi enviado.",
+    ativo: true,
+  },
+  {
+    id: "ppu",
+    nome: "PPU — Publicidade",
+    slug: "ppu",
+    categoria: "ppu",
+    descricao:
+      "Projeto de publicidade (PPU) — critérios próprios, não ocupação genérica.",
+    finalidade: "Checklist de publicidade / estrutura de sustentação.",
+    normasFontes: ["ANTT_SUROD_13_2025"],
+    documentosSugeridos: [
+      "requerimento",
+      "memorial_descritivo",
+      "projeto_publicidade",
+      "estrutura_sustentacao",
+      "planta_baixa",
+      "art",
+    ],
+    requisitos: REQ_PPU,
+    promptOrientacao:
+      "ISOLAMENTO PPU: use somente PPU_*. PROIBIDO checklist genérico de ocupação em faixa.",
     ativo: true,
   },
   {
@@ -205,7 +420,7 @@ export const TIPOS_ANALISE_SEED: TipoAnaliseFirestore[] = [
     documentosSugeridos: [],
     requisitos: [],
     promptOrientacao:
-      "Tipo Outro: use apenas normas, documentos e requisitos informados nesta solicitação/perfil. NÃO importe checklist de ocupação, acesso ou PAC. Não invente requisitos de outro domínio.",
+      "Tipo Outro: use apenas normas/requisitos informados nesta solicitação. NÃO importe checklist de outro domínio.",
     ativo: true,
   },
 ];

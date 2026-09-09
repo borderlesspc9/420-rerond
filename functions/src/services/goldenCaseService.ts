@@ -94,14 +94,18 @@ function parseDoc(
   id: string,
   raw: Record<string, unknown>,
 ): GoldenCaseFirestore | null {
-  const statusRaw = String(raw.status ?? "aprovado");
+  // Sem status explícito: legado só entra se ativo (compat); docs novos sempre gravam status.
+  const hasStatusField = Object.prototype.hasOwnProperty.call(raw, "status");
+  const statusRaw = hasStatusField
+    ? String(raw.status ?? "").trim()
+    : "aprovado";
   const status = (
     ["rascunho", "pendente", "aprovado", "rejeitado"].includes(statusRaw)
       ? statusRaw
-      : "aprovado"
-  ) as GoldenCaseValidacaoStatus;
+      : null
+  ) as GoldenCaseValidacaoStatus | null;
 
-  if (status !== "aprovado") return null;
+  if (!status || status !== "aprovado") return null;
   if (raw.ativo === false) return null;
 
   const tipoAnaliseId =

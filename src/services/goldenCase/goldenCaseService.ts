@@ -193,11 +193,6 @@ export async function listGoldenCases(
   }
 }
 
-/** @deprecated use listGoldenCases({ tipoAnaliseId }) */
-export async function listGoldenCasesByTipo(tipoAnaliseId?: string): Promise<GoldenCase[]> {
-  return listGoldenCases({ tipoAnaliseId })
-}
-
 export function suggestGoldenCodigo(
   tipoSlugOrId: string,
   existing: GoldenCase[],
@@ -261,7 +256,15 @@ export async function createGoldenCase(draft: GoldenCaseDraft): Promise<GoldenCa
       updatedAt: serverTimestamp(),
     })
     const snap = await getDoc(created)
-    return parseGoldenCase(snap.id, snap.data() as Record<string, unknown>)
+    const data = snap.data()
+    if (!data) {
+      return parseGoldenCase(created.id, {
+        ...base,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as Record<string, unknown>)
+    }
+    return parseGoldenCase(snap.id, data as Record<string, unknown>)
   } catch (err) {
     if (isPermissionError(err)) {
       mockMode = true
@@ -275,7 +278,10 @@ export async function updateGoldenCase(
   id: string,
   patch: Partial<GoldenCaseDraft>,
 ): Promise<GoldenCase> {
-  const payload: Record<string, unknown> = { ...patch }
+  const payload: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(patch)) {
+    if (value !== undefined) payload[key] = value
+  }
   if (patch.pares) {
     payload.pares = serializePares(
       normalizePares(patch.pares, {
@@ -293,11 +299,25 @@ export async function updateGoldenCase(
     const items = readMock()
     const idx = items.findIndex((item) => item.id === id)
     if (idx < 0) throw new Error('Golden case não encontrado.')
-    const merged = parseGoldenCase(id, {
-      ...items[idx],
+    const current = items[idx]
+    const mergedRaw: Record<string, unknown> = {
+      codigo: current.codigo,
+      titulo: current.titulo,
+      tipoAnaliseId: current.tipoAnaliseId,
+      organizacaoId: current.organizacaoId ?? null,
+      descricao: current.descricao,
+      erroIa: current.erroIa,
+      analiseCorreta: current.analiseCorreta,
+      observacoes: current.observacoes,
+      pares: current.pares,
+      documentosRef: current.documentosRef,
+      status: current.status,
+      ativo: current.ativo,
+      createdAt: current.createdAt,
       ...payload,
       updatedAt: new Date(),
-    } as unknown as Record<string, unknown>)
+    }
+    const merged = parseGoldenCase(id, mergedRaw)
     items[idx] = merged
     writeMock(items)
     return merged
@@ -325,6 +345,10 @@ export async function setGoldenCaseStatus(
   status: GoldenCaseValidacaoStatus,
   revisaoNota?: string,
 ): Promise<GoldenCase> {
+  if (!revisaoNota?.trim()) {
+    return updateGoldenCase(id, { status })
+  }
+
   let observacoesAtuais: string | undefined
 
   if (mockMode) {
@@ -342,10 +366,7 @@ export async function setGoldenCaseStatus(
     }
   }
 
-  const observacoes = revisaoNota
-    ? [observacoesAtuais, revisaoNota].filter(Boolean).join('\n')
-    : observacoesAtuais
-
+  const observacoes = [observacoesAtuais, revisaoNota.trim()].filter(Boolean).join('\n')
   return updateGoldenCase(id, { status, observacoes })
 }
 

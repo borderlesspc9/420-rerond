@@ -855,6 +855,10 @@ export async function runAnaliseJob(params: {
       analiseVersaoAtual: versaoCorrente,
       feedbackIdsInjetados,
       goldenCaseIdsInjetados,
+      documentosProcessados: pdfBuffers.map((pdf) => pdf.filename),
+      documentosOmitidos: pdfsOmitidos,
+      analiseErroCodigo: null,
+      analiseErroMensagem: null,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
@@ -866,14 +870,45 @@ export async function runAnaliseJob(params: {
       updatedAt: FieldValue.serverTimestamp(),
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Erro desconhecido na análise.";
+    const rawMessage = error instanceof Error ? error.message : "Erro desconhecido na análise.";
     console.error(`Job ${params.jobId} falhou:`, error);
+
+    const lower = rawMessage.toLowerCase();
+    let code = "analysis_failed";
+    let message = rawMessage;
+
+    if (
+      lower.includes("429") ||
+      lower.includes("rate limit") ||
+      lower.includes("too many requests")
+    ) {
+      code = "rate_limit_or_tokens";
+      message =
+        "Limite de processamento/tokens (429). Reduza PDFs em Editar, aguarde e reanalise na mesma solicitação.";
+    } else if (
+      lower.includes("context_length") ||
+      lower.includes("context length") ||
+      lower.includes("maximum context") ||
+      lower.includes("context window") ||
+      (lower.includes("400") && lower.includes("context"))
+    ) {
+      code = "context_window";
+      message =
+        "Volume acima da janela de contexto (400). Envie só os PDFs da fase atual e tente novamente na mesma ficha.";
+    } else if (
+      lower.includes("api key") ||
+      (lower.includes("openai") && lower.includes("key"))
+    ) {
+      code = "missing_api_key";
+      message =
+        "OPENAI_API_KEY ausente/inválida no ambiente das Cloud Functions. Configure o secret e faça o deploy.";
+    }
 
     await jobRef.update({
       state: "failed",
       progress: 0,
       stage: "prep",
-      error: { code: "analysis_failed", message },
+      error: { code, message },
       completedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -883,6 +918,8 @@ export async function runAnaliseJob(params: {
       activeAnaliseJobId: null,
       analiseJobStatus: "failed",
       analiseJobProgress: 0,
+      analiseErroCodigo: code,
+      analiseErroMensagem: message,
       updatedAt: FieldValue.serverTimestamp(),
     });
   }

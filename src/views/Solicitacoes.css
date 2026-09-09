@@ -208,6 +208,25 @@
   color: #1e40af;
 }
 
+.solicitacao-erro-analise {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.solicitacao-erro-analise svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .solicitacao-ia-badge svg {
   flex-shrink: 0;
 }

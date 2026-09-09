@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookMarked,
@@ -91,6 +91,7 @@ export default function EnsinarIA() {
   const [fbJustificativa, setFbJustificativa] = useState('')
 
   const [previewTipoId, setPreviewTipoId] = useState('')
+  const prevWizardTipoRef = useRef('')
 
   const tipoNome = (id: string) => tipos.find((t) => t.id === id)?.nome || id
 
@@ -111,8 +112,14 @@ export default function EnsinarIA() {
     )
   }, [])
 
+  // Sugere código só quando o tipo do wizard muda (não a cada reload da lista).
   useEffect(() => {
-    if (!gcTipoId) return
+    if (!gcTipoId) {
+      prevWizardTipoRef.current = ''
+      return
+    }
+    if (gcTipoId === prevWizardTipoRef.current) return
+    prevWizardTipoRef.current = gcTipoId
     const tipo = tipos.find((t) => t.id === gcTipoId)
     const slug = tipo?.slug || tipo?.id || gcTipoId
     setGcCodigo(suggestGoldenCodigo(slug, goldens.filter((g) => g.tipoAnaliseId === gcTipoId)))

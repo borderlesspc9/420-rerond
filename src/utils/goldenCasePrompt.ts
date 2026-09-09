@@ -165,7 +165,11 @@ export function normalizePares(
 }
 
 export function parseGoldenStatus(raw: unknown): GoldenCaseValidacaoStatus {
-  const value = String(raw ?? '').trim()
+  if (raw === undefined || raw === null) {
+    // Legado sem campo status: trata como aprovado (acervo antigo).
+    return 'aprovado'
+  }
+  const value = String(raw).trim()
   if (
     value === 'rascunho' ||
     value === 'pendente' ||
@@ -174,8 +178,8 @@ export function parseGoldenStatus(raw: unknown): GoldenCaseValidacaoStatus {
   ) {
     return value
   }
-  // Legado sem status: trata como aprovado se ativo (comportamento anterior de listagem)
-  return 'aprovado'
+  // Status inválido/vazio com campo presente: não promove a aprovado na UI.
+  return 'pendente'
 }
 
 export function newParId(): string {
