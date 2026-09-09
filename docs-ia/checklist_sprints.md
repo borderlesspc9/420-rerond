@@ -143,18 +143,22 @@
 
 **Objetivo:** estruturar materiais dos analistas como referência de qualidade (RAG/exemplos — **sem** fine-tune obrigatório).
 
-- [x] Estrutura por tipo: `/tipo/caso-00N` (docs originais, análise IA, erros, análise correta, observações) — cadastro (código + mock/Firestore)
-- [x] Cadastro/associação: tipo, organização, regras, justificativas
-- [ ] Recuperação semântica / exemplos contextualizados na análise (**Decisão técnica sugerida:** RAG/embeddings; validar antes de fine-tune)
-- [ ] Ingestão dos primeiros casos fornecidos pelo cliente
-- [ ] Documentar o que entra no contexto da chamada vs o que fica só no acervo
+- [x] Estrutura por tipo: `/tipo/caso-00N` (docs originais, análise IA, erros, análise correta, observações) — coleção + seed + hub **Ensinar a IA**
+- [x] Cadastro/associação: tipo, organização, regras, justificativas — wizard com pares errado×certo + status de validação
+- [x] Recuperação por tipo na análise (determinística; máx. 3) — `functions` `goldenCaseService` + processor *(RAG/embeddings = fase 2 com API)*
+- [x] Seeds mínimos ocupação/acesso/PAC (sintéticos; substituir pelos do cliente)
+- [x] Documentar o que entra no contexto da chamada vs o que fica só no acervo — [`guia_ensinar_ia.md`](./guia_ensinar_ia.md)
+- [ ] Ingestão dos primeiros casos **reais** fornecidos pelo cliente
+- [ ] Recuperação semântica / embeddings (backlog — requer API)
 
 **Critérios de aceite**
 
-1. Pelo menos N casos modelo (N definido com o cliente) cadastrados e recuperáveis por tipo.
-2. Análise de um tipo prioriza exemplos daquele tipo.
-3. Nenhuma afirmação de "modelo treinado/fine-tuned" sem decisão explícita.
-4. Analista/admin consegue abrir um golden case e ver pares errado×correto.
+1. Pelo menos N casos modelo (N definido com o cliente) cadastrados e recuperáveis por tipo. *(3 seeds + UI; N reais pendente cliente)*
+2. Análise de um tipo prioriza exemplos daquele tipo. *(wiring + preview; empírica OpenAI pendente)*
+3. Nenhuma afirmação de "modelo treinado/fine-tuned" sem decisão explícita. *(copy do hub)*
+4. Analista/admin consegue abrir um golden case e ver pares errado×correto. *(drawer no hub)*
+
+**Nota:** ver também [`casos_teste_sprint8_golden.md`](./casos_teste_sprint8_golden.md). Deploy + OpenAI para efeito em produção.
 
 ---
 
@@ -288,7 +292,8 @@ Itens das antigas sprints 6–8 e pedidos secundários:
 
 ## Próximo foco de desenvolvimento
 
-1. **Deploy / publicar repo** — functions + front (Sprints 5–7) e validar com OpenAI.  
-2. **Sprint 8** — golden cases / recuperação na análise.  
-3. Empírica: isolamento por tipo, memória de reanálise, feedback aprovado.  
-4. **Sprint 9** — escala documental e 429.
+1. **Deploy Firebase Functions + Netlify** + `OPENAI_API_KEY` — ativa Sprints 5–8 + ensino.  
+2. Ingestão dos golden cases **reais** do cliente no hub Ensinar a IA.  
+3. Empírica: isolamento, memória, feedback, golden.  
+4. **Sprint 9** — escala documental e 429.  
+5. (Backlog) embeddings/RAG semântico.

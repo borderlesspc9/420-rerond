@@ -1,0 +1,428 @@
+.ensinar-ia {
+  padding: 28px 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.ensinar-ia-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ensinar-ia-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 26px;
+  color: #111827;
+}
+
+.ensinar-ia-header p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+
+.ensinar-ia-mock {
+  margin-top: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.ensinar-ia-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.ensinar-ia-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151;
+}
+
+.ensinar-ia-tabs button.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.ensinar-ia-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ensinar-ia-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.ensinar-ia-hint,
+.ensinar-ia-muted {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.ensinar-ia-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ensinar-ia-card input,
+.ensinar-ia-card select,
+.ensinar-ia-card textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.ensinar-ia-grid,
+.ensinar-ia-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ensinar-ia-filters {
+  grid-template-columns: 1fr 1fr 1.4fr;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .ensinar-ia-grid,
+  .ensinar-ia-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ensinar-ia-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ensinar-ia-btn.secondary {
+  background: #fff;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.ensinar-ia-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ensinar-ia-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.ensinar-ia-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.ensinar-ia-empty {
+  text-align: center;
+  padding: 40px 16px;
+}
+
+.ensinar-ia-empty h3 {
+  margin: 0 0 8px;
+}
+
+.ensinar-ia-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.ensinar-ia-case-card {
+  text-align: left;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fafafa;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ensinar-ia-case-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+
+.ensinar-ia-case-card-top {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ensinar-ia-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.ensinar-ia-badge.status-aprovado {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ensinar-ia-badge.status-pendente,
+.ensinar-ia-badge.status-rascunho {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ensinar-ia-badge.status-rejeitado,
+.ensinar-ia-badge.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.ensinar-ia-pair-preview {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.wrong {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.right {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.why {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.ensinar-ia-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ensinar-ia-steps .active {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.ensinar-ia-steps .done {
+  color: #059669;
+}
+
+.ensinar-ia-par {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: #f9fafb;
+}
+
+.ensinar-ia-par-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ensinar-ia-linkish {
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.ensinar-ia-wizard-nav,
+.ensinar-ia-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.ensinar-ia-doc-list,
+.ensinar-ia-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.ensinar-ia-doc-list li,
+.ensinar-ia-list li {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.ensinar-ia-doc-list li {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ensinar-ia-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ensinar-ia-row-actions button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ensinar-ia-review {
+  display: grid;
+  gap: 8px;
+}
+
+.ensinar-ia-review div {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.ensinar-ia-review dt {
+  color: #6b7280;
+}
+
+.ensinar-ia-preview-block {
+  white-space: pre-wrap;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.ensinar-ia-footer-link {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.ensinar-ia-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ensinar-ia-drawer {
+  width: min(480px, 100%);
+  height: 100%;
+  background: #fff;
+  padding: 20px;
+  overflow: auto;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.ensinar-ia-drawer header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ensinar-ia-drawer header button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ensinar-ia-par-view {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.ensinar-ia-par-view p {
+  margin: 6px 0 0;
+}

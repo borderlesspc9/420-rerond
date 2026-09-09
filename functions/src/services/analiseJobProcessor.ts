@@ -47,6 +47,10 @@ import {
   buildFeedbackAprendizadoPromptBlock,
   listFeedbacksAprovadosParaAnalise,
 } from "./feedbackAprendizadoService";
+import {
+  buildGoldenCasesPromptBlock,
+  listGoldenCasesAprovadosParaAnalise,
+} from "./goldenCaseService";
 
 export type AnaliseJobState =
   | "uploaded"
@@ -671,6 +675,8 @@ export async function runAnaliseJob(params: {
 
     let feedbackBlock = "";
     let feedbackIdsInjetados: string[] = [];
+    let goldenBlock = "";
+    let goldenCaseIdsInjetados: string[] = [];
     if (tipoAnaliseId) {
       try {
         const feedbacks = await listFeedbacksAprovadosParaAnalise({
@@ -688,6 +694,23 @@ export async function runAnaliseJob(params: {
       } catch (fbErr) {
         console.warn("Falha ao carregar feedbacks de aprendizado:", fbErr);
       }
+
+      try {
+        const goldens = await listGoldenCasesAprovadosParaAnalise({
+          tipoAnaliseId,
+          organizacaoId: concessionariaId,
+          maxItems: 3,
+        });
+        goldenBlock = buildGoldenCasesPromptBlock(goldens);
+        goldenCaseIdsInjetados = goldens.map((item) => item.id);
+        if (goldenCaseIdsInjetados.length > 0) {
+          console.log(
+            `Golden cases injetados (${goldenCaseIdsInjetados.length}) para tipo ${tipoAnaliseId}: ${goldenCaseIdsInjetados.join(", ")}`,
+          );
+        }
+      } catch (gcErr) {
+        console.warn("Falha ao carregar golden cases:", gcErr);
+      }
     }
 
     const analysisPrompt = buildProfileAnalysisPrompt({
@@ -700,6 +723,7 @@ export async function runAnaliseJob(params: {
       promptCustomizado: promptCustomizadoComPerfil || undefined,
       contextoRevisaoAnterior: contextoMemoriaAnterior || undefined,
       feedbackAprendizado: feedbackBlock || undefined,
+      goldenCases: goldenBlock || undefined,
       exemploSaidaEsperada:
         promptProfile === "eco101" ? buildEco101ExemploAnaliseBlock() : undefined,
     });
@@ -805,6 +829,7 @@ export async function runAnaliseJob(params: {
       relatorioIA: result.content,
       promptCustomizado: promptCustomizado || null,
       feedbackIdsInjetados,
+      goldenCaseIdsInjetados,
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -829,6 +854,7 @@ export async function runAnaliseJob(params: {
       analiseJobProgress: 100,
       analiseVersaoAtual: versaoCorrente,
       feedbackIdsInjetados,
+      goldenCaseIdsInjetados,
       updatedAt: FieldValue.serverTimestamp(),
     });
 

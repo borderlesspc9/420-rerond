@@ -60,6 +60,7 @@ export function buildProfileAnalysisPrompt(params: {
   promptCustomizado?: string;
   contextoRevisaoAnterior?: string;
   feedbackAprendizado?: string;
+  goldenCases?: string;
   exemploSaidaEsperada?: string;
 }): string {
   const {
@@ -72,6 +73,7 @@ export function buildProfileAnalysisPrompt(params: {
     promptCustomizado,
     contextoRevisaoAnterior,
     feedbackAprendizado,
+    goldenCases,
     exemploSaidaEsperada,
   } = params;
 
@@ -136,6 +138,11 @@ INSTRUÇÕES DE CONTINUIDADE E ESTABILIDADE (OBRIGATÓRIAS):
   const feedback = feedbackAprendizado?.trim();
   if (feedback) {
     blocos.push(feedback);
+  }
+
+  const goldens = goldenCases?.trim();
+  if (goldens) {
+    blocos.push(goldens);
   }
 
   return blocos.join("\n\n");

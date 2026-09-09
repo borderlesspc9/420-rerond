@@ -80,6 +80,7 @@ O principal problema atual é a **qualidade do resultado produzido pela IA**: el
 - **Sprint 5 wiring:** processor isola checklist/normas/prompt por `tipoAnaliseId` (seeds OCUP/ACESSO/PAC); validação empírica pendente OpenAI
 - **Sprint 6 wiring:** reanálise injeta versão anterior da mesma solicitação; UI de histórico de versões; distinção edição × instrução × feedback
 - **Sprint 7 wiring:** feedbacks `aprovado` do mesmo `tipoAnaliseId` injetados no prompt (máx. 8; revogável); pendente/rejeitado ignorados
+- **Sprint Teach / 8:** hub **Ensinar a IA** (wizard, pares, validação, preview) + golden cases no processor (máx. 3)
 - **Edição de solicitação e arquivos** (P11) — rota `/solicitacoes/:id/editar`
 - **Feedback estruturado** + validação (rascunho/pendente/aprovado/rejeitado) — UI em Configurações
 - **Golden cases** — cadastro por tipo
@@ -313,10 +314,11 @@ Uma melhoria de IA só se considera aceita se:
 
 ## Próximo foco de desenvolvimento
 
-1. **Deploy Firebase Functions + Netlify** (ou ao menos push do repo com functions atualizadas) — Sprints 5–7.  
-2. **Sprint 8** — recuperação de golden cases na análise.  
-3. Validação empírica com OpenAI (tipos, reanálise, feedback aprovado).  
-4. **Pipeline documental escalável** — chunking/recuperação seletiva e tratamento de 429 / muitos arquivos.
+1. **Deploy Firebase Functions + Netlify** + chave OpenAI — Sprints 5–8 e hub Ensinar a IA.  
+2. Popular golden cases **reais** do cliente (seeds sintéticos já existem).  
+3. Validação empírica (tipos, reanálise, feedback, golden).  
+4. **Pipeline documental escalável** — chunking/429.  
+5. (Backlog) embeddings/RAG.
 
 ---
 
@@ -332,3 +334,4 @@ Uma melhoria de IA só se considera aceita se:
 | Sprint 5 (código) | Isolamento por tipo de análise no processor; seeds OCUP/ACESSO/PAC; prompts de evidência; UI do tipo no relatório; casos de teste documentados |
 | Sprint 6 (código) | Memória da versão anterior na reanálise; regras de itens não contestados; histórico de versões no RelatorioViewer; distinção UI edição × instrução × feedback |
 | Sprint 7 (código) | Injeção de feedbacks aprovados no prompt (mesmo tipo); salvaguardas; revogar na UI; `feedbackIdsInjetados` |
+| Teach / Sprint 8 (código) | Hub Ensinar a IA; pares errado×certo; validação; preview; golden no processor; seeds; guia |
